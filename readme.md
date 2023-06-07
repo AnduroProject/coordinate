@@ -1,1 +1,1 @@
-#sidechain node
+#sidechain
