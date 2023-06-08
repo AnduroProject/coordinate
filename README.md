@@ -17,11 +17,11 @@
    <pre>sudo apt install qtwayland5</pre>
    <pre>sudo apt-get install libqrencode-dev</pre>
 
-4. Go to the <b>src/chainparams.cpp</b> directory
+4. Go to the file <b>src/chainparams.cpp</b>
    <b>line number : 40 replace corresponding 0th block address based on the Network (regtest or testnet or mainnet)</b>
    <pre>genesis.nextAddress = replace corresponding 0th block address based on the Network  (regtest or testnet or mainnet)</pre>
 
-5. Go to the <b>src/federation_deposit.cpp</b> directory
+5. Go to the file<b>src/federation_deposit.cpp</b>
    <b>line number : 20 replace corresponding 0th block address based on the Network (regtest or testnet or mainnet)</b>
    <pre>GENSIS_NEXTADDRESS = replace corresponding 0th block address based on the Network  (regtest or testnet or mainnet)</pre>
 
@@ -30,7 +30,8 @@
    <pre>touch ~/.marachain/marachain.conf</pre>
 
 7. go to the <b>.marachain</b> folder and open the <b>marachain.conf</b> file paste the below line.
-   <pre>rpcuser=marachain
+   <pre>
+    rpcuser=marachain
 	rpcpassword=mara
 	server=1
 	zmqpubrawblock=tcp://127.0.0.1:27000
@@ -45,7 +46,7 @@
    <pre>make</pre>
    <pre>cd src</pre>
 
-9. start the sidechain node run the below comment
+9. start the sidechain node run the below comment</b>
    <b>for regtest</b>
    <pre>./bitcoind --regtest --conf=/configuration_file_path/marachain.conf --datadir=/configuration_file_path/.marachain -fallbackfee=0.0001 -txindex=1</pre>
    <b>for testnet</b>
