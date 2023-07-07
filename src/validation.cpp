@@ -2368,7 +2368,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              Ticks<MillisecondsDouble>(time_connect) / num_blocks_total);
 
     CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
-    CAmount depositAmount = listPendingDepositTotal();
+    CAmount depositAmount = listPendingDepositTotal(pindex->nHeight);
     CAmount totalAmount = block.vtx[0]->GetValueOut() - depositAmount;
     const CTransaction &dtx = *(block.vtx[0]);
 
@@ -2429,7 +2429,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         time_5 - time_start // in microseconds (µs)
     );
 
-    resetDeposit();
+    resetDeposit(pindex->nHeight);
+
+    resetPegInfo(block.pegInfo);
 
     return true;
 }
@@ -3745,13 +3747,13 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
-    if (!fHaveWitness) {
-      for (const auto& tx : block.vtx) {
-            if (tx->HasWitness()) {
-                return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "unexpected-witness", strprintf("%s : unexpected witness data found", __func__));
-            }
-        }
-    }
+    // if (!fHaveWitness) {
+    //   for (const auto& tx : block.vtx) {
+    //         if (tx->HasWitness()) {
+    //             return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "unexpected-witness", strprintf("%s : unexpected witness data found", __func__));
+    //         }
+    //     }
+    // }
 
     // After the coinbase witness reserved value and commitment are verified,
     // we can check if the block weight passes (before we've checked the
@@ -4008,6 +4010,14 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         CBlockIndex *pindex = nullptr;
         if (new_block) *new_block = false;
         BlockValidationState state;
+
+        // if(block->vtx.size() == 1) {
+        //     const CTransaction& tx = *block->vtx[0];
+        //     LogPrintf("%s: AcceptBlock tx (%s)", __func__, tx.ToString());
+        //     if(tx.vout.size() == 2) {
+        //         return error("%s: AcceptBlock FAILED (%s)", __func__, "no transactions available");
+        //     }
+        // } 
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
         // Therefore, the following critical section must include the CheckBlock() call as well.

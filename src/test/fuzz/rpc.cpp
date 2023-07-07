@@ -95,7 +95,6 @@ const std::vector<std::string> RPC_COMMANDS_SAFE_FOR_FUZZING{
     "createmultisig",
     "createpsbt",
     "createrawtransaction",
-    "sendpegtransaction",
     "decodepsbt",
     "decoderawtransaction",
     "decodescript",

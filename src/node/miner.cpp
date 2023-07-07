@@ -4,7 +4,8 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <node/miner.h>
-
+#include <univalue.h>
+#include <rpc/util.h>
 #include <chain.h>
 #include <chainparams.h>
 #include <coins.h>
@@ -162,33 +163,51 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
     int resize = 1;
 
-    std::vector<CTxOut> pending_deposits = listPendingDepositTransaction();
+    std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
     
-    int tIndex = 1;
-    for (const CTxOut& tx_out : pending_deposits) {
-        if(isSpecialTxoutValid(tx_out,tIndex,getPegTime(),m_chainstate.m_chainman,true)) {
-            resize = resize + 1;
-            tIndex = tIndex + 1;
+    if(pending_deposits.size()>0) {
+        if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
+            int tIndex = 1;
+            for (const FederationTxOut& tx_out : pending_deposits) {
+                    resize = resize + 2;
+                    tIndex = tIndex + 1;
+            }
         }
+        resize = resize + 1;
+    }
 
-    }
-    if (nBlockTx == 0 && tIndex == 1 && !isPegInfoValid(getPegInfo(),getPegWitness(),m_chainstate.m_chainman,true)) {
-        return nullptr;
-    }
+
 
 
     LogPrintf("address ******************** %s \n",getNextAddress(m_chainstate.m_chainman));
     std::string pegExpected = "";
     if (getPegInfo().compare(pegExpected) != 0) {
-        if(isPegInfoValid(getPegInfo(),getPegWitness(),m_chainstate.m_chainman,true)) {
+        if(isPegInfoValid(getPegInfo(),getPegWitness(),m_chainstate.m_chainman)) {
             pblock->pegInfo = getPegInfo();
             pblock->pegWitness = getPegWitness();
+        } else {
+            // if (nBlockTx == 0 && tIndex == 1) {
+            //     return nullptr;
+            // }
         }
+    } else {
+        // if (nBlockTx == 0 && tIndex == 1) {
+        //     return nullptr;
+        // }
     }
 
-    pblock->pegTime = getPegTime();
-    pblock->nextAddress = getNextAddress(m_chainstate.m_chainman);
-    pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+    if(pending_deposits.size() == 0) {
+        pblock->pegTime = 0;
+        pblock->nextAddress = getNextAddress(m_chainstate.m_chainman);
+        pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+    } else {
+        FederationTxOut& tx_out = pending_deposits[0];
+        pblock->pegTime = tx_out.pegTime;
+        pblock->nextAddress = tx_out.nextAddress;
+        pblock->nextIndex = tx_out.nextIndex;
+    }
+
+
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
@@ -199,10 +218,29 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     //coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vout[0].nValue = nFees;
     int incr = 1;
-    for (const CTxOut& tx_out : pending_deposits) {
-        if(isSpecialTxoutValid(tx_out,incr,getPegTime(),m_chainstate.m_chainman,true)) {
-            coinbaseTx.vout[incr] = tx_out;
-            incr = incr + 1;
+    int oIncr = 1;
+    if(pending_deposits.size()>0) {
+        if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
+            for (const FederationTxOut& tx_out : pending_deposits) {
+                    coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
+                    coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
+                    UniValue tx_out_addtional(UniValue::VOBJ);
+                    tx_out_addtional.pushKV("index", oIncr);
+                    tx_out_addtional.pushKV("peg_hash", tx_out.peg_hash);
+                    std::string finalHex = string_to_hex(tx_out_addtional.write());
+                    std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+                    CTxOut out(0, CScript() << OP_RETURN << data);
+                    oIncr = oIncr + 1;
+                    coinbaseTx.vout[oIncr] = out;
+                    oIncr = oIncr + 1;
+                    incr = incr + 1;
+            }
+            UniValue tx_out_addtional(UniValue::VOBJ);
+            tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
+            std::string finalHex = string_to_hex(tx_out_addtional.write());
+            std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+            CTxOut out(0, CScript() << OP_RETURN << data);
+            coinbaseTx.vout[oIncr] = out;
         }
     }
     
@@ -219,9 +257,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
 
-    // pblock->vtx[0].pegInfo = getPegInfo();
-    // pblock->vtx[0].pegTime = getPegTime();
-    // pblock->vtx[0].nextAddress = getNextAddress();
 
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
     pblocktemplate->vTxFees[0] = -nFees;

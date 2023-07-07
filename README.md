@@ -1,55 +1,78 @@
-# Mara Node
+Bitcoin Core integration/staging tree
+=====================================
 
-## How to Setup Mara Node
+https://bitcoincore.org
 
-1. Clone Mara Node 
-   <pre>https://github.com/MarathonDH/mara-sidechain-node.git</pre>
+For an immediately usable, binary version of the Bitcoin Core software, see
+https://bitcoincore.org/en/download/.
 
-2. Install sidechain dependencies
-   <pre>sudo apt-get install build-essential libtool autotools-dev automake pkg-config bsdmainutils python3</pre>
-   <pre>sudo apt-get install libevent-dev libboost-dev</pre>
-   <pre>sudo apt install libsqlite3-dev</pre>
-   <pre>sudo apt-get install libzmq3-dev</pre>
-   <pre>sudo apt install systemtap-sdt-dev</pre>
+What is Bitcoin Core?
+---------------------
 
-3. Install GUI dependencies
-   <pre>sudo apt-get install libqt5gui5 libqt5core5a libqt5dbus5 qttools5-dev qttools5-dev-tools</pre>
-   <pre>sudo apt install qtwayland5</pre>
-   <pre>sudo apt-get install libqrencode-dev</pre>
+Bitcoin Core connects to the Bitcoin peer-to-peer network to download and fully
+validate blocks and transactions. It also includes a wallet and graphical user
+interface, which can be optionally built.
 
-4. Go to the file <b>src/chainparams.cpp</b>
-   <b>line number : 40 replace corresponding 0th block address based on the Network (regtest or testnet or mainnet)</b>
-   <pre>genesis.nextAddress = replace corresponding 0th block address based on the Network  (regtest or testnet or mainnet)</pre>
+Further information about Bitcoin Core is available in the [doc folder](/doc).
 
-5. Go to the file<b>src/federation_deposit.cpp</b>
-   <b>line number : 20 replace corresponding 0th block address based on the Network (regtest or testnet or mainnet)</b>
-   <pre>GENSIS_NEXTADDRESS = replace corresponding 0th block address based on the Network  (regtest or testnet or mainnet)</pre>
+License
+-------
 
-6. To generate the configuration file, run the following commands in the root path.
-   <pre>mkdir ~/.marachain/</pre>
-   <pre>touch ~/.marachain/marachain.conf</pre>
+Bitcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
+information or see https://opensource.org/licenses/MIT.
 
-7. go to the <b>.marachain</b> folder and open the <b>marachain.conf</b> file paste the below line.
-   <pre>
-    rpcuser=marachain
-	rpcpassword=mara
-	server=1
-	zmqpubrawblock=tcp://127.0.0.1:27000
-	zmqpubrawtx=tcp://127.0.0.1:27000
-	zmqpubhashtx=tcp://127.0.0.1:27000
-	zmqpubhashblock=tcp://127.0.0.1:27000
-	rest=1</pre>
+Development Process
+-------------------
 
-8. go to the sidechain root directory run the following commands
-   <pre>./autogen.sh</pre>
-   <pre>./configure</pre>
-   <pre>make</pre>
-   <pre>cd src</pre>
+The `master` branch is regularly built (see `doc/build-*.md` for instructions) and tested, but it is not guaranteed to be
+completely stable. [Tags](https://github.com/bitcoin/bitcoin/tags) are created
+regularly from release branches to indicate new official, stable release versions of Bitcoin Core.
 
-9. start the sidechain node run the below comment</b>
-   <b>for regtest</b>
-   <pre>./bitcoind --regtest --conf=/configuration_file_path/marachain.conf --datadir=/configuration_file_path/.marachain -fallbackfee=0.0001 -txindex=1</pre>
-   <b>for testnet</b>
-   <pre>./bitcoind --testnet --conf=/configuration_file_path/marachain.conf --datadir=/configuration_file_path/.marachain -fallbackfee=0.0001 -txindex=1</pre>
-   <b>for mainnet</b>
-   <pre>./bitcoind --conf=/configuration_file_path/marachain.conf --datadir=/configuration_file_path/.marachain -fallbackfee=0.0001 -txindex=1</pre>    
+The https://github.com/bitcoin-core/gui repository is used exclusively for the
+development of the GUI. Its master branch is identical in all monotree
+repositories. Release branches and tags do not exist, so please do not fork
+that repository unless it is for development reasons.
+
+The contribution workflow is described in [CONTRIBUTING.md](CONTRIBUTING.md)
+and useful hints for developers can be found in [doc/developer-notes.md](doc/developer-notes.md).
+
+Testing
+-------
+
+Testing and code review is the bottleneck for development; we get more pull
+requests than we can review and test on short notice. Please be patient and help out by testing
+other people's pull requests, and remember this is a security-critical project where any mistake might cost people
+lots of money.
+
+### Automated Testing
+
+Developers are strongly encouraged to write [unit tests](src/test/README.md) for new code, and to
+submit new unit tests for old code. Unit tests can be compiled and run
+(assuming they weren't disabled in configure) with: `make check`. Further details on running
+and extending unit tests can be found in [/src/test/README.md](/src/test/README.md).
+
+There are also [regression and integration tests](/test), written
+in Python.
+These tests can be run (if the [test dependencies](/test) are installed) with: `test/functional/test_runner.py`
+
+The CI (Continuous Integration) systems make sure that every pull request is built for Windows, Linux, and macOS,
+and that unit/sanity tests are run automatically.
+
+### Manual Quality Assurance (QA) Testing
+
+Changes should be tested by somebody other than the developer who wrote the
+code. This is especially important for large or high-risk changes. It is useful
+to add a test plan to the pull request description if testing the changes is
+not straightforward.
+
+Translations
+------------
+
+Changes to translations as well as new translations can be submitted to
+[Bitcoin Core's Transifex page](https://www.transifex.com/bitcoin/bitcoin/).
+
+Translations are periodically pulled from Transifex and merged into the git repository. See the
+[translation process](doc/translation_process.md) for details on how this works.
+
+**Important**: We do not accept translation changes as GitHub pull requests because the next
+pull from Transifex would automatically overwrite them again.

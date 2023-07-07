@@ -136,12 +136,14 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
     // - If both decode attempts succeed:
     //   - If only one passes the CheckTxScriptsSanity check, return that one.
     //   - If neither or both pass CheckTxScriptsSanity, return the extended one.
+    LogPrintf("-------------checking decode3--------------- \n");
 
     CMutableTransaction tx_extended, tx_legacy;
     bool ok_extended = false, ok_legacy = false;
     // Try decoding with extended serialization support, and remember if the result successfully
     // consumes the entire input.
     if (try_witness) {
+        LogPrintf("-------------checking decode4--------------- \n");
         CDataStream ssData(tx_data, SER_NETWORK, PROTOCOL_VERSION);
         try {
             ssData >> tx_extended;
@@ -151,15 +153,18 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
         }
     }
 
+
     // Optimization: if extended decoding succeeded and the result passes CheckTxScriptsSanity,
     // don't bother decoding the other way.
+    LogPrintf("-------------checking decode5--------------- \n");
     if (ok_extended && CheckTxScriptsSanity(tx_extended)) {
         tx = std::move(tx_extended);
         return true;
     }
-
+    LogPrintf("-------------checking decode6--------------- \n");
     // Try decoding with legacy serialization, and remember if the result successfully consumes the entire input.
     if (try_no_witness) {
+        LogPrintf("-------------checking decode61--------------- \n");
         CDataStream ssData(tx_data, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
         try {
             ssData >> tx_legacy;
@@ -168,26 +173,26 @@ static bool DecodeTx(CMutableTransaction& tx, const std::vector<unsigned char>& 
             // Fall through.
         }
     }
-
+    LogPrintf("-------------checking decode7--------------- \n");
     // If legacy decoding succeeded and passes CheckTxScriptsSanity, that's our answer, as we know
     // at this point that extended decoding either failed or doesn't pass the sanity check.
     if (ok_legacy && CheckTxScriptsSanity(tx_legacy)) {
         tx = std::move(tx_legacy);
         return true;
     }
-
+    LogPrintf("-------------checking decode8--------------- \n");
     // If extended decoding succeeded, and neither decoding passes sanity, return the extended one.
     if (ok_extended) {
         tx = std::move(tx_extended);
         return true;
     }
-
+    LogPrintf("-------------checking decode9--------------- \n");
     // If legacy decoding succeeded and extended didn't, return the legacy one.
     if (ok_legacy) {
         tx = std::move(tx_legacy);
         return true;
     }
-
+    LogPrintf("-------------checking decode10--------------- \n");
     // If none succeeded, we failed.
     return false;
 }
@@ -198,7 +203,10 @@ bool DecodeHexTx(CMutableTransaction& tx, const std::string& hex_tx, bool try_no
         return false;
     }
 
+    LogPrintf("-------------checking decode1--------------- \n");
+
     std::vector<unsigned char> txData(ParseHex(hex_tx));
+    LogPrintf("-------------checking decode2--------------- \n");
     return DecodeTx(tx, txData, try_no_witness, try_witness);
 }
 

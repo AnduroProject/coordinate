@@ -10,27 +10,24 @@
 using node::BlockManager;
 using node::ReadBlockFromDisk;
 
-std::vector<CTxOut> tDeposits;
+std::vector<FederationTxOut> tDeposits;
 std::string pegInfo;
 std::string pegWitness;
-std::string nextAddress;
-int32_t pegTime = 0;
-int32_t nextIndex = 0;
 
-static const std::string GENSIS_NEXTADDRESS = "bcrt1pnqu5a0q80rjvjtavsal0mqgdwlgq3epl978jlmlquc2lgtfsxsgs5pvzys";
-
-void addDeposit(const CTxOut& tx) {
-    LogPrintf("it is came to deposit");
-    tDeposits.push_back(tx);
+void addDeposit(std::vector<FederationTxOut> txOuts) {
+   LogPrintf("it is came to deposit");
+   for (const FederationTxOut& tx : txOuts) {
+      tDeposits.push_back(tx);
+   }
 }
 
-bool isSpecialTxoutValid(const CTxOut& txOut, int32_t tIndex, int32_t pegTimeIn, ChainstateManager& chainman, bool isNew) {
-   int block_height = chainman.ActiveChain().Height();
+bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
+   if(txOuts.size()==0) {
+      return false;
+   }
    CChain& active_chain = chainman.ActiveChain();
    int blockindex = chainman.ActiveChain().Height();
-   if(isNew) {
-      block_height = block_height + 1;
-   }  else {
+   if(txOuts[0].block_height <= blockindex) {
       blockindex = blockindex - 1;
    }
 
@@ -38,20 +35,26 @@ bool isSpecialTxoutValid(const CTxOut& txOut, int32_t tIndex, int32_t pegTimeIn,
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
    }
 
-
-   CTxDestination address;
-   ExtractDestination(txOut.scriptPubKey, address);
-   UniValue message(UniValue::VOBJ);
-   message.pushKV("pegtime", pegTimeIn);
-   message.pushKV("height", block_height);
-   message.pushKV("amount", txOut.nValue);
-   message.pushKV("index", tIndex);
-   message.pushKV("address", EncodeDestination(address));
+   UniValue messages(UniValue::VARR);
+   int tIndex = 1;
+   for (const FederationTxOut& txOut : txOuts) {
+      CTxDestination address;
+      ExtractDestination(txOut.scriptPubKey, address);
+      UniValue message(UniValue::VOBJ);
+      message.pushKV("pegtime", txOut.pegTime);
+      message.pushKV("height", txOut.block_height);
+      message.pushKV("amount", txOut.nValue);
+      message.pushKV("index", tIndex);
+      message.pushKV("address", EncodeDestination(address));
+      tIndex = tIndex + 1;
+      messages.push_back(message);
+   }
 
    UniValue mainstr(UniValue::VOBJ);
-   mainstr.pushKV("message", message);
+   mainstr.pushKV("message", messages);
+   mainstr.pushKV("chain_id", "1");
    mainstr.pushKV("federationaddress", block.nextAddress);
-   mainstr.pushKV("witness", txOut.witness);
+   mainstr.pushKV("witness", txOuts[0].witness);
 
    std::string messagestr = "federation -sv '"  + mainstr.write() + "'";
    LogPrintf("******************messagestr********************* %s \n",messagestr);
@@ -72,30 +75,28 @@ bool isSpecialTxoutValid(const CTxOut& txOut, int32_t tIndex, int32_t pegTimeIn,
    return false;
 }
 
-bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman, bool isNew) {
+bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman) {
    int block_height = chainman.ActiveChain().Height();
    CChain& active_chain = chainman.ActiveChain();
    int blockindex = chainman.ActiveChain().Height();
-   if(isNew) {
-      block_height = block_height + 1;
-   }  else {
-      blockindex = blockindex - 1;
-   }
+
 
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
    }
 
-
+   UniValue messages(UniValue::VARR);
    UniValue message(UniValue::VOBJ);
    message.pushKV("pegtime", 0);
-   message.pushKV("height", block_height);
+   message.pushKV("height", 0);
    message.pushKV("amount", 0);
    message.pushKV("index", 0);
    message.pushKV("address", pegInfoIn);
+   messages.push_back(message);
 
    UniValue mainstr(UniValue::VOBJ);
-   mainstr.pushKV("message", message);
+   mainstr.pushKV("message", messages);
+   mainstr.pushKV("chain_id", "1");
    mainstr.pushKV("federationaddress", block.nextAddress);
    mainstr.pushKV("witness", pegWitness);
 
@@ -119,63 +120,78 @@ bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateMan
 }
 
 
-
-void addFederationTransactionInfo(int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn) {
-    pegTime = pegTimeIn;
-    nextAddress = nextAddressIn;
-    nextIndex = nextIndexIn;
-}
-
 void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn) {
     pegWitness = pegWitnessIn;
     pegInfo = pegInfoIn;
 }
 
 
-std::vector<CTxOut> listPendingDepositTransaction() {
-   return tDeposits;
+std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height) {
+   if(block_height == -1) {
+      return tDeposits;
+   }
+   std::vector<FederationTxOut> tDepositsNew;
+    for (const FederationTxOut& tx_out : tDeposits) {
+      if(tx_out.block_height == block_height) {
+         tDepositsNew.push_back(tx_out);
+      }
+    }
+   return tDepositsNew;
 }
 
-CAmount listPendingDepositTotal() {
+CAmount listPendingDepositTotal(int32_t block_height) {
+   std::vector<FederationTxOut> tDepositsNew;
+   if(block_height == -1) {
+      tDepositsNew = tDeposits;
+   } else {
+    for (const FederationTxOut& tx_out : tDeposits) {
+      if(tx_out.block_height == block_height) {
+         tDepositsNew.push_back(tx_out);
+      }
+    }
+   }
+
+
     CAmount totalDeposit = CAmount(0);
-    for (const CTxOut& txOut: tDeposits) {
+    for (const FederationTxOut& txOut: tDepositsNew) {
         totalDeposit = totalDeposit + CAmount(txOut.nValue);
     }
     return totalDeposit;
 } 
 
-void resetDeposit() {
-   pegInfo = "";
-   pegWitness = "";
-   pegTime = 0;
-   nextIndex = -1;
-   tDeposits.clear();
+void resetDeposit(int32_t block_height) {
+   std::vector<FederationTxOut> tDepositsNew;
+   for (const FederationTxOut& tx_out : tDeposits) {
+      if(tx_out.block_height != block_height) {
+         tDepositsNew.push_back(tx_out);
+      }
+   }
+   tDeposits = tDepositsNew;
+}
+
+void resetPegInfo(std::string pegInfoIn) {
+   if (pegInfo.compare(pegInfoIn) == 0) {
+         pegInfo = "";
+         pegWitness = "";
+   }
 }
 
 std::string getNextAddress(ChainstateManager& chainman) {
-   if(nextIndex == -1) {
-      int block_height = chainman.ActiveChain().Height();
-      CChain& active_chain = chainman.ActiveChain();
-      CBlock block;
-      if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
-      }
-      return block.nextAddress;
-   } else if (nextIndex == 0) {
-      return GENSIS_NEXTADDRESS;
+   int block_height = chainman.ActiveChain().Height();
+   CChain& active_chain = chainman.ActiveChain();
+   CBlock block;
+   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
    }
-   return nextAddress;
+   return block.nextAddress;
 }
 
 int32_t getNextIndex(ChainstateManager& chainman) {
-   if(nextIndex == -1) {
-      int block_height = chainman.ActiveChain().Height();
-      CChain& active_chain = chainman.ActiveChain();
-      CBlock block;
-      if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
-      }
-      return block.nextIndex;
+   int block_height = chainman.ActiveChain().Height();
+   CChain& active_chain = chainman.ActiveChain();
+   CBlock block;
+   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
    }
-   return nextIndex;
+   return block.nextIndex;
 }
 
 
@@ -187,8 +203,15 @@ std::string getPegWitness() {
    return pegWitness;
 }
 
-int32_t getPegTime() {
-   return pegTime;
+std::string string_to_hex(const std::string& in) {
+    std::stringstream ss;
+
+    ss << std::hex << std::setfill('0');
+    for (size_t i = 0; in.length() > i; ++i) {
+        ss << std::setw(2) << static_cast<unsigned int>(static_cast<unsigned char>(in[i]));
+    }
+
+    return ss.str(); 
 }
 
 std::string exec(const char* cmd)

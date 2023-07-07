@@ -51,14 +51,7 @@ static RPCHelpMan submitAuxBlock()
         "The mining pool to submit the mined auxPoW",
         {
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The marachain bloch header hash that the submitted auxPoW is associated with."},
-            {"block", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "It is the serialized string of the auxiliary proof of work."},
-            {"prevblock", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "It is the serialized string of the auxiliary proof of work."},
-            {"merkle", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "It is the serialized string of the auxiliary proof of work."},
-            {"nVersion", RPCArg::Type::STR, RPCArg::Optional::NO, "nVersion"},
-            {"nTime", RPCArg::Type::STR, RPCArg::Optional::NO, "nTime"},
-            {"nBits", RPCArg::Type::STR, RPCArg::Optional::NO, "nBits"},
-            {"nNonce", RPCArg::Type::STR, RPCArg::Optional::NO, "nNonce"},
-            {"coinbase", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Coinbase"},
+            {"auxpow", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "It is the serialized string of the auxiliary proof of work."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -67,20 +60,13 @@ static RPCHelpMan submitAuxBlock()
             },
         },
         RPCExamples{
-            HelpExampleCli("submitauxblock", "\"AuxBlockHash\" \"ParentBlockHash\" \"ParentPrevBlockHash\" \"ParentMerkleRoot\" nVersion nTime nBits nNonce \"coinbaseRawTx\" ")
+            HelpExampleCli("submitauxblock", "\"7926398947f332fe534b15c628ff0cd9dc6f7d3ea59c74801dc758ac65428e64\" \"02000000010000000000000000000000000000000000000000000000000000000000000000ffffffff4b0313ee0904a880495b742f4254432e434f4d2ffabe6d6d9581ba0156314f1e92fd03430c6e4428a32bb3f1b9dc627102498e5cfbf26261020000004204cb9a010f32a00601000000000000ffffffff0200000000000000001976a914c0174e89bd93eacd1d5a1af4ba1802d412afc08688ac0000000000000000266a24aa21a9ede2f61c3f71d1defd3fa999dfa36953755c690689799962b48bebd836974e8cf90000000014acac4ee8fdd8ca7e0b587b35fce8c996c70aefdf24c333038bdba7af531266000000000001ccc205f0e1cb435f50cc2f63edd53186b414fcb22b719da8c59eab066cf30bdb0000000000000020d1061d1e456cae488c063838b64c4911ce256549afadfc6a4736643359141b01551e4d94f9e8b6b03eec92bb6de1e478a0e913e5f733f5884857a7c2b965f53ca880495bffff7f20a880495b\" ")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             return AuxpowMiner::get ().submitAuxBlock(request,
                                                     request.params[0].get_str(),
-                                                    request.params[1].get_str(),
-                                                    request.params[2].get_str(),
-                                                    request.params[3].get_str(),
-                                                    request.params[4].get_str(),
-                                                    request.params[5].get_str(),
-                                                    request.params[6].get_str(),
-                                                    request.params[7].get_str(),
-                                                    request.params[8].get_str());
+                                                    request.params[1].get_str());
         }
     };
 
@@ -105,6 +91,7 @@ static RPCHelpMan getPendingDeposit() {
                                 {
                                     {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
                                     {RPCResult::Type::NUM, "n", "index"},
+                                    {RPCResult::Type::NUM, "n", "block_height"},
                                 }},
                             }},
                         }
@@ -119,19 +106,20 @@ static RPCHelpMan getPendingDeposit() {
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
                 UniValue result(UniValue::VOBJ);
-                result.pushKV("total", ValueFromAmount(listPendingDepositTotal()));
+                result.pushKV("total", ValueFromAmount(listPendingDepositTotal(-1)));
 
                 
                 UniValue deposits(UniValue::VARR);
-                std::vector<CTxOut> txList = listPendingDepositTransaction();
+                std::vector<FederationTxOut> txList = listPendingDepositTransaction(-1);
  
                 UniValue txresult(UniValue::VOBJ);
                 UniValue vout(UniValue::VARR);
                 uint64_t index = 0;
-                for (const CTxOut& eout : txList) {
+                for (const FederationTxOut& eout : txList) {
                     UniValue toutresult(UniValue::VOBJ);
                     toutresult.pushKV("index", index);
                     toutresult.pushKV("value", ValueFromAmount(eout.nValue));
+                    toutresult.pushKV("block_height", eout.block_height);
                     index = index + 1;
                     vout.push_back(toutresult);
                 }
@@ -160,54 +148,12 @@ static std::vector<RPCArg> CreateTxDoc()
     };
 }
 
-
-static RPCHelpMan sendpegtransaction()
-{
-
-        return RPCHelpMan{
-            "sendpegtransaction",
-            "submit tx out from federation",
-        CreateTxDoc(),
-        RPCResult{
-            RPCResult::Type::STR, "", "The transaction hash in hex"
-        },
-        RPCExamples{
-           HelpExampleCli("sendpegtransaction", "")
-           + HelpExampleRpc("sendpegtransaction", "\"[{\\\"address\\\":\\\"myid\\\",\\\"amount\\\":0}]\"")
-        },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            if (request.params[0].isNull()) {
-                throw JSONRPCError(RPC_WALLET_ERROR, "Transaction out are empty");
-                return true;
-            }
-            const UniValue& output_params = request.params[0].get_array();
-            for (unsigned int idx = 0; idx < output_params.size(); idx++) {
-                const UniValue& o = output_params[idx].get_obj();
-                RPCTypeCheckObj(o,
-                {
-                    {"address", UniValueType(UniValue::VSTR)},
-                    {"amount", UniValueType(UniValue::VSTR)},
-                });
-                 const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
-                 const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                 CTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey);
-                 addDeposit(out);
-            }
-            return "success";
-        }
-    };
-
-}
-
-
 void RegisterMarachainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"marachain", &createAuxBlock},
         {"marachain", &submitAuxBlock},
         {"marachain", &getPendingDeposit},
-        {"marachain",&sendpegtransaction}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

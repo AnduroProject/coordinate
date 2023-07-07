@@ -55,16 +55,6 @@ CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn)
 {
     nValue = nValueIn;
     scriptPubKey = scriptPubKeyIn;
-    witness = "";
-    peg_hash = "";
-}
-
-CTxOut::CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn)
-{
-    nValue = nValueIn;
-    scriptPubKey = scriptPubKeyIn;
-    witness = witnessIn;
-    peg_hash = peg_hashIn;
 }
 
 std::string CTxOut::ToString() const

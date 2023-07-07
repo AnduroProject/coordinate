@@ -168,14 +168,7 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
 bool
 AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
                              const std::string& hashHex,
-                             const std::string& blockHash,
-                             const std::string& hashPrevBlock,
-                             const std::string& hashMerkleRoot,
-                             const std::string& nVersion,
-                             const std::string& nTime,
-                             const std::string& nBits,
-                             const std::string& nNonce,
-                             const std::string& coinbase) const
+                             const std::string& auxpowHex) const
 {
   const auto& node = EnsureAnyNodeContext (request);
   // auxMiningCheck (node);
@@ -188,60 +181,11 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
     shared_block = std::make_shared<CBlock> (*pblock);
   }
 
-  /* Build a minimal coinbase script input for merge-mining.  */
-  // const uint256 blockHash = header.GetHash ();
-  uint256 hash(ParseHashV(blockHash, "blockhash"));
-  uint256 prevblock(ParseHashV(hashPrevBlock, "blockhash"));
-  uint256 merkle(ParseHashV(hashMerkleRoot, "blockhash"));
-  /*valtype inputData(hash.begin (), hash.end ());
-  std::reverse (inputData.begin (), inputData.end ());
-  inputData.push_back (1);
-  inputData.insert (inputData.end (), 7, 0);*/
-
-  /* Fake a parent-block coinbase with just the required input
-     script and no outputs.  */
-  /*CMutableTransaction coinbase;
-  coinbase.vin.resize (1);
-  coinbase.vin[0].prevout.SetNull ();
-  coinbase.vin[0].scriptSig = (CScript () << inputData);
-  assert (coinbase.vout.empty ());
-  CTransactionRef coinbaseRef = MakeTransactionRef (coinbase);*/
-  
-  /*CDataStream ss(ParseHex (coinbase), SER_DISK, CLIENT_VERSION);
-  CTransaction tx(deserialize, ss);
-  CTransactionRef coinbaseRef = MakeTransactionRef (tx);*/
-
-  CMutableTransaction tx;
-  DecodeHexTx(tx, coinbase);
-  CTransactionRef coinbaseRef = MakeTransactionRef(std::move(tx));
-
-  /* Build a fake parent block with the coinbase.  */
-  unsigned long int version = strtoul(nVersion.c_str(), NULL, 10);
-  unsigned long int time = strtoul(nTime.c_str(), NULL, 10);
-  unsigned long int bits = strtoul(nBits.c_str(), NULL, 10);
-  unsigned long int nonce = strtoul(nNonce.c_str(), NULL, 10);
-  CBlock parent;
-  parent.nVersion = (uint32_t)version;
-  parent.nTime = (uint32_t)time;
-  parent.nBits = (uint32_t)bits;
-  parent.nNonce = (uint32_t)nonce;
-  parent.vtx.resize (1);
-  parent.vtx[0] = coinbaseRef;
-  parent.hashMerkleRoot = merkle;
-  parent.hashPrevBlock = prevblock;
-
-  /* Construct the auxpow object.  */
-  std::unique_ptr<CAuxPow> auxpow(new CAuxPow (std::move (coinbaseRef)));
-  assert (auxpow->vMerkleBranch.empty ());
-  assert (auxpow->vChainMerkleBranch.empty ());
-  auxpow->nChainIndex = 0;
-  auxpow->parentBlock = parent;
-
-  // const std::vector<unsigned char> vchAuxPow = ParseHex (auxpowHex);
-  // CDataStream ss(vchAuxPow, SER_GETHASH, PROTOCOL_VERSION);
-  // std::unique_ptr<CAuxPow> auxpow(new CAuxPow ());
-  // ss >> *auxpow;
-  shared_block->SetAuxpow (std::move (auxpow));
+  const std::vector<unsigned char> vchAuxPow = ParseHex (auxpowHex);
+  CDataStream ss(vchAuxPow, SER_GETHASH, PROTOCOL_VERSION);
+  std::unique_ptr<CAuxPow> pow(new CAuxPow ());
+  ss >> *pow;
+  shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
 
   return chainman.ProcessNewBlock (shared_block, /*force_processing=*/true,

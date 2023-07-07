@@ -24,8 +24,6 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
-    txNew.vout[0].witness="";
-    txNew.vout[0].peg_hash="";
 
     CBlock genesis;
     genesis.nTime    = nTime;
@@ -35,9 +33,9 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
-    genesis.pegInfo="RKM2jkYefRe7SblW9CdxE7BMS6ddhWrxTzYPajI0rnVxojVasQkh8b2sT/fxtFcmblI/v2oAsvMs9Z4ZnZ6iy9WQa3CVirjcz9Ii0DVks9QLaJsKRwb/XSs+m9cnwb9EdIiiCQi6SFDbH8tNeUCLjSRoJZhtEFuyyjHEJ2/fZUGO5QSwbYyPqGHjI4LjXlGtHIKDR4ovKY4OnHuEBdMWHQIw5w3VOrJmrzjVYdwioHuvYlbeqhA7927RZtq9+/OoQXB5Ipp0xQKVJNuBFPcaS5RRTwylfetl+91LQ+sZUvBz+8Y7+MrP0x3zh2fPliRqa4MOnZD0AGHBrRUfqFvKC2CAB+aR+8nln0S5a21+XsZ9uQt/gIKOc6mRBD/rErW2Pn4caxSQTOwImQCs/OEdfegloHOFHQOEvTvtLTLo4SudbcqzaRig9iHcIxZePGgp32xZIIute9CUXlorA+fNod4WcUP7UZASStM3qHr5/qj/J1XfLZKwsPJPifwD2eXM6kBhELmLGJ5nkroe0noH5FJyydi4OP/jJHOUsUtUhpqxMwTMdCrud8AKGK+s8Ffg6JdnREUyHSjY+VQWeVslqWKZGUw/UKDOt5OEdXHCzGh+JshG+1v/hjzzUdsb3pHgB7iUjbTHBBW18/ROsvlUu/Ob+BdQiE5381PfJyfTz1H95WD01lYl8E6n00fi1Yy0AdXpXLNtNDTSAkk5z5BvL7zztbe2VbQLExoecl9whdOZuwMUYbRZ910TLPvDdF5gjqO1P+DA0PVNgxxlsYDyO1ooGcw2YriCA47Kh70qwiIMElK5o8DSCppdSeu2ZQj5Cosau5wF0QrQF+QkDAVBHoif3YM0a6wbd+zI/V3ouf0KIs3AgYc17s9FtAVIEenqhwk32EqMANo3rW9PPYWctX6/UMwraLCr6BxduRIR5tQ7/NUvBtSR0h3R2MdoJUFAt9DfxaxpUMQ18AI53m8ZG3aaWtvE3xv1JygT1ZzTrOab5runEpyxxVJ42K+QhT4ZyWlyZ2qecPlCdPvyJc3JiEpWsbOYkrm5N6eodxS6oNdXuYsTIbLKoqWdNQSWDHl+mWNx+HI2TLG+Z2zh9Mdc49lkyUDNVO/Z/OlR1zywf29VImLskBC8OtHeBMFctCHvWVMwzB1fAL+qeuVZRkr0eZNA6nQe/IHHQX/VMYuBcxD6OFSdReaxARuALJqTkNG+nm+CwT1POeJcKk3vooXCf9RT8rm8NQuqfNtLtz589n6+mVjuHlIMLoy87QAHyHmt32yyZC9Cyqf29cPcatMEH7C21AzyTBblLhfvwZm4hPc=";
+    genesis.pegInfo="";
     genesis.nextIndex=0;
-    genesis.nextAddress="bcrt1pnqu5a0q80rjvjtavsal0mqgdwlgq3epl978jlmlquc2lgtfsxsgs5pvzys";
+    genesis.nextAddress="bcrt1p78w64jzdg3wz6fws97drmgzl4sczgl6u6ejhwyan99nqs70cmgpsmrccvh";
     genesis.pegWitness="";
     genesis.pegTime=0;
     return genesis;

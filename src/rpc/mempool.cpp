@@ -49,7 +49,8 @@ static RPCHelpMan sendrawtransaction()
                             {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address"},
                             {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin amount"},
                             {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin witness"},
-                            {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"}
+                            {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"},
+                            {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block_height to sign"},
                         },
                     },
                 },
@@ -82,7 +83,7 @@ static RPCHelpMan sendrawtransaction()
                 std::string pegExpected = "";
                 if (request.params[2].get_str().compare(pegExpected) != 0) {
                     ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                    if(isPegInfoValid(request.params[2].get_str(),request.params[6].get_str(),chainman,true)) {
+                    if(isPegInfoValid(request.params[2].get_str(),request.params[6].get_str(),chainman)) {
                         addFederationPegout(request.params[2].get_str(),request.params[6].get_str());
                     } else {
                         throw JSONRPCError(RPC_WALLET_ERROR, "Pegout is invalid");
@@ -99,7 +100,7 @@ static RPCHelpMan sendrawtransaction()
                 }
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
                 const UniValue& output_params = request.params[1].get_array();
-                int tIndex = 1;
+                std::vector<FederationTxOut> tOuts;
                 for (unsigned int idx = 0; idx < output_params.size(); idx++) {
                     const UniValue& o = output_params[idx].get_obj();
                     RPCTypeCheckObj(o,
@@ -108,18 +109,19 @@ static RPCHelpMan sendrawtransaction()
                         {"amount", UniValueType(UniValue::VSTR)},
                         {"witness", UniValueType(UniValue::VSTR)},
                         {"peg_hash", UniValueType(UniValue::VSTR)},
+                        {"block_height", UniValueType(UniValue::VNUM)},
                     });
                     const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
                     const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                    CTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str());
-                    if(isSpecialTxoutValid(out,tIndex,request.params[4].getInt<int>(),chainman,true)) {
-                        addDeposit(out);
-                    } else {
-                        throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
-                    }
-                    tIndex = tIndex + 1;
+                    FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),request.params[5].getInt<int32_t>(),request.params[4].getInt<int32_t>(),request.params[3].get_str());
+
+                    tOuts.push_back(out);
                 }
-                addFederationTransactionInfo(request.params[5].getInt<int>(),request.params[4].getInt<int>(),request.params[3].get_str());
+                if(isSpecialTxoutValid(tOuts,chainman)) {
+                    addDeposit(tOuts);
+                } else {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
+                }
                 return "sucess";
             } else {
                 CMutableTransaction mtx;

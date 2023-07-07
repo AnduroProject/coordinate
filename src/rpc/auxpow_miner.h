@@ -99,15 +99,8 @@ public:
    */
   bool submitAuxBlock (const JSONRPCRequest& request,
                        const std::string& hashHex,
-                       const std::string& blockHash,
-                       const std::string& hashPrevBlock,
-                       const std::string& hashMerkleRoot,
-                       const std::string& nVersion,
-                       const std::string& nTime,
-                       const std::string& nBits,
-                       const std::string& nNonce,
-                       const std::string& coinbase) const;
-// const std::string& auxpowHex
+                       const std::string& auxpowHex) const;
+
   /**
    * Returns the singleton instance of AuxpowMiner that is used for RPCs.
    */

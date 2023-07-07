@@ -162,22 +162,22 @@ class CTxOut
 public:
     CAmount nValue;
     CScript scriptPubKey;
-    std::string witness;
-    std::string peg_hash;
     CTxOut()
     {
         SetNull();
     }
 
     CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn);
-    CTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn);
 
-    SERIALIZE_METHODS(CTxOut, obj) { READWRITE(obj.nValue, obj.scriptPubKey, obj.witness, obj.peg_hash); }
+    SERIALIZE_METHODS(CTxOut, obj) { 
+        READWRITE(obj.nValue, obj.scriptPubKey); 
+    }
 
     void SetNull()
     {
         nValue = -1;
         scriptPubKey.clear();
+
     }
 
     bool IsNull() const

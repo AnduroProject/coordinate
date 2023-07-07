@@ -244,10 +244,6 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         UniValue o(UniValue::VOBJ);
         ScriptToUniv(txout.scriptPubKey, /*out=*/o, /*include_hex=*/true, /*include_address=*/true);
         out.pushKV("scriptPubKey", o);
-        if(!txout.witness.empty()) {
-            out.pushKV("witness", txout.witness);
-            out.pushKV("peg_hash", txout.peg_hash);
-        }
         vout.push_back(out);
 
         if (have_undo) {
