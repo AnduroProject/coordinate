@@ -63,6 +63,6 @@
     WORKDIR /opt/marachain/src
 
     EXPOSE 19011
-    EXPOSE 19010
+    EXPOSE 19010 
 
     CMD ["sh","../entrypoint.sh"]
