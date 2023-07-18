@@ -1,3 +1,4 @@
+    # Update new packages
     FROM ubuntu:20.04
 
     LABEL maintainer="michael.casey@mara.com"
@@ -6,9 +7,9 @@
 
     ARG DEBIAN_FRONTEND=noninteractive
 
-    # Update new packages
-    RUN apt update
+    RUN apt-get update
     RUN apt-get install -y \
+        software-properties-common \
         build-essential \
         libtool autotools-dev \
         automake \
@@ -23,26 +24,45 @@
         libzmq3-dev \
         libsqlite3-dev \
         libboost-all-dev \ 
-        bsdmainutils \
+        bsdmainutils \        
         net-tools \
+        unzip \
         git \
         wget \
         vim
-    RUN apt-get update
+
+    #Configure BerkeleyDB
+    ENV BERKELEYDB_VERSION=db-4.8.30.NC
+    ENV BERKELEYDB_PREFIX=/opt/${BERKELEYDB_VERSION}
+    RUN wget https://download.oracle.com/berkeley-db/${BERKELEYDB_VERSION}.tar.gz
+    RUN tar -xzf *.tar.gz
+    RUN sed s/__atomic_compare_exchange/__atomic_compare_exchange_db/g -i ${BERKELEYDB_VERSION}/dbinc/atomic.h
+    RUN mkdir -p ${BERKELEYDB_PREFIX}
+
+    WORKDIR /${BERKELEYDB_VERSION}/build_unix
+
+    RUN ../dist/configure --enable-cxx --disable-shared --with-pic --prefix=${BERKELEYDB_PREFIX}
+    RUN make -j4
+    RUN make install
+    RUN rm -rf ${BERKELEYDB_PREFIX}/docs
 
 
-    #setup base directory
-    RUN mkdir -p /marachain
-    WORKDIR /marachain
+    #Setup base directory
+    RUN mkdir -p /opt/marachain
+    WORKDIR /opt/marachain
 
     #Copy submodules
     COPY . ./
 
-    #configure sidechain node
-    WORKDIR /marachain
+    #Configure sidechain node
+    WORKDIR /opt/marachain
     RUN ./autogen.sh \
-     && ./configure \
+     && ./configure LDFLAGS=-L`ls -d /opt/db*`/lib/ CPPFLAGS=-I`ls -d /opt/db*`/include/ \
      && make && make install 
 
-    WORKDIR /marachain/src
-    CMD ["./bitcoind"]
+    WORKDIR /opt/marachain/src
+
+    EXPOSE 19011
+    EXPOSE 19010
+
+    CMD ["sh","../entrypoint.sh"]
