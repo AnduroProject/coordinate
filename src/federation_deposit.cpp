@@ -21,7 +21,24 @@ void addDeposit(std::vector<FederationTxOut> txOuts) {
    }
 }
 
+bool isSignatureAlreadyExist(std::vector<FederationTxOut> txOuts) {
+    bool isExist = true;
+    for (const FederationTxOut& txOut : txOuts) {
+       std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(txOut.block_height);
+       if(pending_deposits.size()>0) {
+         if(pending_deposits.size()==1 && pending_deposits[0].nValue == 0) {
+            resetDeposit(txOut.block_height);
+         } else {
+            isExist = false;
+            break;
+         }
+       }
+    }
+   return isExist;
+}
+
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
+   
    if(txOuts.size()==0) {
       return false;
    }
@@ -53,9 +70,9 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue mainstr(UniValue::VOBJ);
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
-   mainstr.pushKV("network", "regtest");
    mainstr.pushKV("federationaddress", block.nextAddress);
    mainstr.pushKV("witness", txOuts[0].witness);
+   mainstr.pushKV("network", getNetworkText(chainman));
 
    std::string messagestr = "federation -sv '"  + mainstr.write() + "'";
    LogPrintf("******************messagestr********************* %s \n",messagestr);
@@ -74,6 +91,17 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    LogPrintf("failed to check condition");
 
    return false;
+}
+
+std::string getNetworkText(ChainstateManager& chainman) {
+   std::string networkIDString = chainman.GetParams().NetworkIDString();
+   std::string networkText = "testnet";
+   if (networkIDString.compare("regtest") == 0) {
+      networkText = "regtest";
+   } else if(networkIDString.compare("main") == 0) {
+      networkText = "mainnet";
+   }
+   return networkText;
 }
 
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman) {
@@ -98,7 +126,7 @@ bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateMan
    UniValue mainstr(UniValue::VOBJ);
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
-   mainstr.pushKV("network", "regtest");
+   mainstr.pushKV("network", getNetworkText(chainman));
    mainstr.pushKV("federationaddress", block.nextAddress);
    mainstr.pushKV("witness", pegWitness);
 

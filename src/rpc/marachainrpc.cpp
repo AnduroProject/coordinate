@@ -85,15 +85,9 @@ static RPCHelpMan getPendingDeposit() {
                 {
                      {RPCResult::Type::OBJ, "", "",
                         {
-                            {RPCResult::Type::ARR, "vout", "",
-                            {
-                                {RPCResult::Type::OBJ, "", "",
-                                {
-                                    {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
-                                    {RPCResult::Type::NUM, "n", "index"},
-                                    {RPCResult::Type::NUM, "n", "block_height"},
-                                }},
-                            }},
+                            {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
+                            {RPCResult::Type::NUM, "n", "index"},
+                            {RPCResult::Type::NUM, "n", "block_height"},
                         }
                      }
                 }},
@@ -107,13 +101,8 @@ static RPCHelpMan getPendingDeposit() {
         {
                 UniValue result(UniValue::VOBJ);
                 result.pushKV("total", ValueFromAmount(listPendingDepositTotal(-1)));
-
-                
                 UniValue deposits(UniValue::VARR);
                 std::vector<FederationTxOut> txList = listPendingDepositTransaction(-1);
- 
-                UniValue txresult(UniValue::VOBJ);
-                UniValue vout(UniValue::VARR);
                 uint64_t index = 0;
                 for (const FederationTxOut& eout : txList) {
                     UniValue toutresult(UniValue::VOBJ);
@@ -121,10 +110,8 @@ static RPCHelpMan getPendingDeposit() {
                     toutresult.pushKV("value", ValueFromAmount(eout.nValue));
                     toutresult.pushKV("block_height", eout.block_height);
                     index = index + 1;
-                    vout.push_back(toutresult);
+                    deposits.push_back(toutresult);
                 }
-                txresult.pushKV("vout", vout);
-                deposits.push_back(txresult);
                 result.pushKV("deposits", deposits);
                 return result;
         }

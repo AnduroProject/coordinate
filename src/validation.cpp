@@ -4011,13 +4011,13 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         if (new_block) *new_block = false;
         BlockValidationState state;
 
-        // if(block->vtx.size() == 1) {
-        //     const CTransaction& tx = *block->vtx[0];
-        //     LogPrintf("%s: AcceptBlock tx (%s)", __func__, tx.ToString());
-        //     if(tx.vout.size() == 2) {
-        //         return error("%s: AcceptBlock FAILED (%s)", __func__, "no transactions available");
-        //     }
-        // } 
+        const CTransaction& tx = *block->vtx[0];
+        LogPrintf("%s: AcceptBlock tx (%s)", __func__, tx.ToString());
+        if(tx.vout.size() == 2) {
+            return error("%s: AcceptBlock FAILED (%s)", __func__, "no witness available");
+        }
+        //TODO : need to validate witness
+
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
         // Therefore, the following critical section must include the CheckBlock() call as well.

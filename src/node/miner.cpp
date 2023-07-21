@@ -164,16 +164,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int resize = 1;
 
     std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
-    
+     LogPrintf("***************coinbase transaction details - 1 \n");
     if(pending_deposits.size()>0) {
         if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
             int tIndex = 1;
             for (const FederationTxOut& tx_out : pending_deposits) {
+                if (tx_out.nValue > 0) {
                     resize = resize + 2;
                     tIndex = tIndex + 1;
+                }
             }
         }
         resize = resize + 1;
+        LogPrintf("***************coinbase transaction details - 2 : %i \n",resize);
     }
 
 
@@ -201,10 +204,16 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         pblock->nextAddress = getNextAddress(m_chainstate.m_chainman);
         pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
     } else {
-        FederationTxOut& tx_out = pending_deposits[0];
-        pblock->pegTime = tx_out.pegTime;
-        pblock->nextAddress = tx_out.nextAddress;
-        pblock->nextIndex = tx_out.nextIndex;
+        if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+            pblock->pegTime = 0;
+            pblock->nextAddress = getNextAddress(m_chainstate.m_chainman);
+            pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+        } else {
+            FederationTxOut& tx_out = pending_deposits[0];
+            pblock->pegTime = tx_out.pegTime;
+            pblock->nextAddress = tx_out.nextAddress;
+            pblock->nextIndex = tx_out.nextIndex;
+        }
     }
 
 
@@ -219,9 +228,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[0].nValue = nFees;
     int incr = 1;
     int oIncr = 1;
+    LogPrintf("***************coinbase transaction details - 3 %i \n",nFees);
     if(pending_deposits.size()>0) {
         if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
-            for (const FederationTxOut& tx_out : pending_deposits) {
+            if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+                LogPrintf("***************coinbase transaction details - 4 \n");
+            } else {
+                for (const FederationTxOut& tx_out : pending_deposits) {
                     coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
                     coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
                     UniValue tx_out_addtional(UniValue::VOBJ);
@@ -234,32 +247,34 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                     coinbaseTx.vout[oIncr] = out;
                     oIncr = oIncr + 1;
                     incr = incr + 1;
+                }
             }
+            LogPrintf("***************coinbase transaction details - 5 : %s \n",pending_deposits[0].witness);
             UniValue tx_out_addtional(UniValue::VOBJ);
+            LogPrintf("***************coinbase transaction details - 51 \n");
             tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
+            LogPrintf("***************coinbase transaction details - 52 \n");
             std::string finalHex = string_to_hex(tx_out_addtional.write());
+            LogPrintf("***************coinbase transaction details - 53 \n");
             std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+            LogPrintf("***************coinbase transaction details - 54 \n");
             CTxOut out(0, CScript() << OP_RETURN << data);
+            LogPrintf("***************coinbase transaction details - 55 \n");
             coinbaseTx.vout[oIncr] = out;
         }
     }
-    
 
+    LogPrintf("***************coinbase transaction details - 6 \n");
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
-
-    // // Create deposit transaction.
-    // CMutableTransaction depositTx;
-    // depositTx.vin.resize(1);
-    // depositTx.vin[0].prevout.SetNull();
-    // depositTx.vout.resize(1);
-
-    // depositTx.vin[0].scriptSig = CScript() << nHeight + 1 << OP_0;
 
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
 
+    LogPrintf("***************coinbase transaction details - 7 \n");
 
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
     pblocktemplate->vTxFees[0] = -nFees;
+
+    LogPrintf("***************coinbase transaction details - 8 %i \n",nFees);
 
     LogPrintf("CreateNewBlock(): block weight: %u txs: %u fees: %ld sigops %d\n", GetBlockWeight(*pblock), nBlockTx, nFees, nBlockSigOpsCost);
 

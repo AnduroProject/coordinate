@@ -63,7 +63,7 @@ public:
     }
 };
 
-
+std::string getNetworkText(ChainstateManager& chainman);
 std::string exec(const char* cmd);
 std::string string_to_hex(const std::string& in);
 void addDeposit(std::vector<FederationTxOut> txOuts);
@@ -71,6 +71,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman);
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height);
 CAmount listPendingDepositTotal(int32_t block_height);
+bool isSignatureAlreadyExist(std::vector<FederationTxOut> txOuts);
 void resetDeposit(int32_t block_height);
 void resetPegInfo(std::string pegInfoIn);
 void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn);

@@ -106,7 +106,7 @@ static RPCHelpMan sendrawtransaction()
                     RPCTypeCheckObj(o,
                     {
                         {"address", UniValueType(UniValue::VSTR)},
-                        {"amount", UniValueType(UniValue::VSTR)},
+                        {"amount", UniValueType(UniValue::VNUM)},
                         {"witness", UniValueType(UniValue::VSTR)},
                         {"peg_hash", UniValueType(UniValue::VSTR)},
                         {"block_height", UniValueType(UniValue::VNUM)},
@@ -118,7 +118,11 @@ static RPCHelpMan sendrawtransaction()
                     tOuts.push_back(out);
                 }
                 if(isSpecialTxoutValid(tOuts,chainman)) {
-                    addDeposit(tOuts);
+                    if(isSignatureAlreadyExist(tOuts)) {
+                         addDeposit(tOuts);
+                    } else {
+                         throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout Already Exist");
+                    }
                 } else {
                     throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
                 }

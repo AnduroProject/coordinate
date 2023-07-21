@@ -223,6 +223,7 @@ struct Params {
     int nAuxpowStartHeight;
     bool fStrictChainId;
     int nLegacyBlocksBefore; // -1 for "always allow"
+    std::string nextAddress;
 
     /** Consensus rule interface.  */
     std::unique_ptr<ConsensusRules> rules;
