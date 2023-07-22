@@ -3558,6 +3558,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     {
         nSigOps += GetLegacySigOpCount(*tx);
     }
+
     if (nSigOps * WITNESS_SCALE_FACTOR > MAX_BLOCK_SIGOPS_COST)
         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops", "out-of-bounds SigOpCount");
 
@@ -4010,14 +4011,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         CBlockIndex *pindex = nullptr;
         if (new_block) *new_block = false;
         BlockValidationState state;
-
-        const CTransaction& tx = *block->vtx[0];
-        LogPrintf("%s: AcceptBlock tx (%s)", __func__, tx.ToString());
-        if(tx.vout.size() == 2) {
-            return error("%s: AcceptBlock FAILED (%s)", __func__, "no witness available");
-        }
-        //TODO : need to validate witness
-
+  
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
         // Therefore, the following critical section must include the CheckBlock() call as well.
@@ -4030,6 +4024,14 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         // not very expensive, the anti-DoS benefits of caching failure (of a definitely-invalid block) are not substantial.
         bool ret = CheckBlock(*block, state, GetConsensus());
         if (ret) {
+
+            // federation check block
+            bool verifyFederationCheck = verifyFederation(ActiveChain(),*block);
+            if (!verifyFederationCheck) {
+                GetMainSignals().BlockChecked(*block, state);
+                return error("%s: AcceptBlock FAILED (%s)", __func__, "Federation witness failed");
+            }
+
             // Store to disk
             ret = ActiveChainstate().AcceptBlock(block, state, &pindex, force_processing, nullptr, new_block, min_pow_checked);
         }

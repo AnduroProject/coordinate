@@ -1420,7 +1420,7 @@ libbitcoin_common_a-federation_deposit.o: federation_deposit.cpp \
   /opt/homebrew/include/boost/preprocessor/repetition/repeat_from_to.hpp \
   /opt/homebrew/include/boost/utility/enable_if.hpp util/check.h \
   key_io.h key.h support/allocators/secure.h support/lockedpool.h \
-  util/message.h univalue/include/univalue.h
+  util/message.h rpc/client.h univalue/include/univalue.h core_io.h
 
 federation_deposit.h:
 
@@ -4388,4 +4388,8 @@ support/lockedpool.h:
 
 util/message.h:
 
+rpc/client.h:
+
 univalue/include/univalue.h:
+
+core_io.h:

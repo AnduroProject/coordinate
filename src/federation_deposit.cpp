@@ -5,7 +5,9 @@
 
 #include <federation_deposit.h>
 #include <node/blockstorage.h>
+#include <rpc/client.h>
 #include <univalue.h>
+#include <core_io.h>
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
@@ -43,7 +45,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
       return false;
    }
    CChain& active_chain = chainman.ActiveChain();
-   int blockindex = chainman.ActiveChain().Height();
+   int blockindex = active_chain.Height();
    if(txOuts[0].block_height <= blockindex) {
       blockindex = blockindex - 1;
    }
@@ -244,6 +246,11 @@ std::string string_to_hex(const std::string& in) {
     return ss.str(); 
 }
 
+std::string hex_to_str(const std::string& in) {
+   std::string s {in};
+   return s;
+}
+
 std::string exec(const char* cmd)
 {
     std::array<char, 128> buffer;
@@ -270,4 +277,39 @@ std::string exec(const char* cmd)
     }
     
     return result;
+}
+
+bool verifyFederation(CChain& activeChain, const CBlock& block) {
+   LogPrintf("*********************** verifyCoinbase *********************** \n");
+   if(block.vtx[0]->vout.size() < 3) {
+      return false;
+   }
+   LogPrintf("current block %i \n",activeChain.Height());
+   CBlock prevblock;
+   if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(activeChain[activeChain.Height()]), Params().GetConsensus())) {
+      return false;
+   }
+
+   // LogPrintf("previous address %s \n",prevblock.nextAddress);
+   // LogPrintf("current address %s \n",block.nextAddress);
+   // std::vector<FederationTxOut> tOuts;
+   // if(block.vtx[0]->vout.size() == 3) {
+   //    CTxOut witnessOut = block.vtx[0]->vout[block.vtx[0]->vout.size()-2];
+   //    std::vector<unsigned char> txData(ParseHex(ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"")));
+   //    const std::string witnessStr(txData.begin(), txData.end());
+   //    UniValue val(UniValue::VOBJ);
+   //    if (!val.read(witnessStr)) {
+   //       return false
+   //    }
+   //    const CTxDestination coinbaseScript = DecodeDestination(prevblock.nextAddress);
+   //    const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+   //    FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", activeChain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress);
+   //    tOuts.push_back(out);
+   // }
+
+   // if(!isSpecialTxoutValid(tOuts,activeChain)) {
+   //    return false;
+   // }
+
+   return true;
 }

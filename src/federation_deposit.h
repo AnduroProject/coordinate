@@ -66,7 +66,9 @@ public:
 std::string getNetworkText(ChainstateManager& chainman);
 std::string exec(const char* cmd);
 std::string string_to_hex(const std::string& in);
+std::string hex_to_str(const std::string& in);
 void addDeposit(std::vector<FederationTxOut> txOuts);
+bool verifyFederation(CChain& activeChain, const CBlock& block);
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman);
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman);
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height);
