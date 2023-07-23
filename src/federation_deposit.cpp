@@ -280,15 +280,15 @@ std::string exec(const char* cmd)
 }
 
 bool verifyFederation(CChain& activeChain, const CBlock& block) {
-   LogPrintf("*********************** verifyCoinbase *********************** \n");
-   if(block.vtx[0]->vout.size() < 3) {
-      return false;
-   }
-   LogPrintf("current block %i \n",activeChain.Height());
-   CBlock prevblock;
-   if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(activeChain[activeChain.Height()]), Params().GetConsensus())) {
-      return false;
-   }
+   // LogPrintf("*********************** verifyCoinbase *********************** \n");
+   // if(block.vtx[0]->vout.size() < 3) {
+   //    return false;
+   // }
+   // LogPrintf("current block %i \n",activeChain.Height());
+   // CBlock prevblock;
+   // if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(activeChain[activeChain.Height()]), Params().GetConsensus())) {
+   //    return false;
+   // }
 
    // LogPrintf("previous address %s \n",prevblock.nextAddress);
    // LogPrintf("current address %s \n",block.nextAddress);
