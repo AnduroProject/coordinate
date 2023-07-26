@@ -281,9 +281,9 @@ std::string exec(const char* cmd)
 
 bool verifyFederation(CChain& activeChain, const CBlock& block) {
    LogPrintf("*********************** verifyCoinbase *********************** %s \n", block.vtx[0]->ToString());
-   // if(block.vtx[0]->vout.size() < 3 && activeChain.Height() > 1) {
-   //    return false;
-   // }
+   if(block.vtx[0]->vout.size() < 3 && activeChain.Height() > 1) {
+      return false;
+   }
    // LogPrintf("current block %i \n",activeChain.Height());
    // CBlock prevblock;
    // if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(activeChain[activeChain.Height()]), Params().GetConsensus())) {
