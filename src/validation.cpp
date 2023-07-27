@@ -1533,7 +1533,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     /* If there is no auxpow, just check the block hash.  */
     if (!block.auxpow)
     {
-        if(block.GetHash().ToString().compare("f0e5a7b51d369c1273aa4cac0bc2d8a5ba472e748e21b45154abdbf319a69424") == 0 || block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0 ) {
+        if(block.GetHash().ToString().compare("4080d0a74a58ebfebe19094d38d26de040ea4889c0edf6dd184f54c0890343fd") == 0 || block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0 ) {
             return true;
         } else {
             return error("%s : block hash no auxpow on block with auxpow version",
