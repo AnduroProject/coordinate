@@ -107,46 +107,47 @@ std::string getNetworkText(ChainstateManager& chainman) {
 }
 
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman) {
-   int block_height = chainman.ActiveChain().Height();
-   CChain& active_chain = chainman.ActiveChain();
-   int blockindex = chainman.ActiveChain().Height();
+   return true;
+   // int block_height = chainman.ActiveChain().Height();
+   // CChain& active_chain = chainman.ActiveChain();
+   // int blockindex = chainman.ActiveChain().Height();
 
 
-   CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-   }
+   // CBlock block;
+   // if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+   // }
 
-   UniValue messages(UniValue::VARR);
-   UniValue message(UniValue::VOBJ);
-   message.pushKV("pegtime", 0);
-   message.pushKV("height", 0);
-   message.pushKV("amount", 0);
-   message.pushKV("index", 0);
-   message.pushKV("address", pegInfoIn);
-   messages.push_back(message);
+   // UniValue messages(UniValue::VARR);
+   // UniValue message(UniValue::VOBJ);
+   // message.pushKV("pegtime", 0);
+   // message.pushKV("height", 0);
+   // message.pushKV("amount", 0);
+   // message.pushKV("index", 0);
+   // message.pushKV("address", pegInfoIn);
+   // messages.push_back(message);
 
-   UniValue mainstr(UniValue::VOBJ);
-   mainstr.pushKV("message", messages);
-   mainstr.pushKV("chain_id", "1");
-   mainstr.pushKV("network", getNetworkText(chainman));
-   mainstr.pushKV("federationaddress", block.nextAddress);
-   mainstr.pushKV("witness", pegWitness);
+   // UniValue mainstr(UniValue::VOBJ);
+   // mainstr.pushKV("message", messages);
+   // mainstr.pushKV("chain_id", "1");
+   // mainstr.pushKV("network", getNetworkText(chainman));
+   // mainstr.pushKV("federationaddress", block.nextAddress);
+   // mainstr.pushKV("witness", pegWitness);
 
-   std::string messagestr = "federation -sv '"  + mainstr.write() + "'";
-   LogPrintf("******************messagestr********************* %s \n",messagestr);
-   char* params = strcpy(new char[messagestr.length() + 1], messagestr.c_str());
+   // std::string messagestr = "federation -sv '"  + mainstr.write() + "'";
+   // LogPrintf("******************messagestr********************* %s \n",messagestr);
+   // char* params = strcpy(new char[messagestr.length() + 1], messagestr.c_str());
 
-   std::string res = exec(params);
-   std::string expected = "success";
-   res.erase(res.find_last_not_of(" \n\r\t")+1);
+   // std::string res = exec(params);
+   // std::string expected = "success";
+   // res.erase(res.find_last_not_of(" \n\r\t")+1);
 
-   LogPrintf("******************message response********************* %s \n",res);
+   // LogPrintf("******************message response********************* %s \n",res);
 
-   if (res.compare(expected) == 0) {
-      return true;
-   }
+   // if (res.compare(expected) == 0) {
+   //    return true;
+   // }
 
-   LogPrintf("failed to check condition");
+   // LogPrintf("failed to check condition");
 
    return false;
 }

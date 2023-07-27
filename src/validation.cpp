@@ -1522,6 +1522,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
        the chain ID is correct.  Legacy blocks are not allowed since
        the merge-mining start, which is checked in AcceptBlockHeader
        where the height is known.  */
+    
     if (!block.IsLegacy() && params.fStrictChainId
         && block.GetChainId() != params.nAuxpowChainId)
         return error("%s : block does not have our chain ID"
@@ -1532,7 +1533,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     /* If there is no auxpow, just check the block hash.  */
     if (!block.auxpow)
     {
-        if(block.GetHash().ToString().compare("f24886db2e909d340b5a7695aacf35afc4f82b7d0835b6e3f029c198a1494a28") == 0 || block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0 ) {
+        if(block.GetHash().ToString().compare("f0e5a7b51d369c1273aa4cac0bc2d8a5ba472e748e21b45154abdbf319a69424") == 0 || block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0 ) {
             return true;
         } else {
             return error("%s : block hash no auxpow on block with auxpow version",
