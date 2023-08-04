@@ -72,6 +72,32 @@ static RPCHelpMan submitAuxBlock()
 
 }
 
+static RPCHelpMan hasPegOut()
+{
+    return RPCHelpMan{
+        "haspegout",
+        "check peg out already done",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "result", /*optional=*/true, "Only returns true if submit completed successfully"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("haspegout", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            if(getPegInfo().compare("") == 0) {
+                return false;
+            }
+            return true;
+        }
+    };
+
+}
+
 static RPCHelpMan getPendingDeposit() {
         return RPCHelpMan{
         "getpendingdeposit",
@@ -141,6 +167,7 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &createAuxBlock},
         {"marachain", &submitAuxBlock},
         {"marachain", &getPendingDeposit},
+        {"marachain", &hasPegOut},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

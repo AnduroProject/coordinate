@@ -83,8 +83,8 @@ static RPCHelpMan sendrawtransaction()
                 std::string pegExpected = "";
                 if (request.params[2].get_str().compare(pegExpected) != 0) {
                     ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                    if(isPegInfoValid(request.params[2].get_str(),request.params[6].get_str(),chainman)) {
-                        addFederationPegout(request.params[2].get_str(),request.params[6].get_str());
+                    if(isPegInfoValid(request.params[2].get_str(),request.params[6].get_str(),chainman, request.params[5].getInt<int32_t>())) {
+                        addFederationPegout(request.params[2].get_str(),request.params[6].get_str(), request.params[5].getInt<int32_t>());
                     } else {
                         throw JSONRPCError(RPC_WALLET_ERROR, "Pegout is invalid");
                         return "fail";

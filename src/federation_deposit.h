@@ -70,15 +70,16 @@ std::string hex_to_str(const std::string& in);
 void addDeposit(std::vector<FederationTxOut> txOuts);
 bool verifyFederation(CChain& activeChain, const CBlock& block);
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman);
-bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman);
+bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman, int32_t block_height);
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height);
 CAmount listPendingDepositTotal(int32_t block_height);
 bool isSignatureAlreadyExist(std::vector<FederationTxOut> txOuts);
 void resetDeposit(int32_t block_height);
 void resetPegInfo(std::string pegInfoIn);
-void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn);
+void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn, int32_t block_height);
 std::string getPegInfo();
 std::string getPegWitness();
+int32_t getPegHeight();
 
 std::string getNextAddress(ChainstateManager& chainman);
 int32_t getNextIndex(ChainstateManager& chainman);

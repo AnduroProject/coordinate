@@ -185,19 +185,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LogPrintf("address ******************** %s \n",getNextAddress(m_chainstate.m_chainman));
     std::string pegExpected = "";
     if (getPegInfo().compare(pegExpected) != 0) {
-        // if(isPegInfoValid(getPegInfo(),getPegWitness(),m_chainstate.m_chainman)) {
+        if(isPegInfoValid(getPegInfo(),getPegWitness(),m_chainstate.m_chainman, getPegHeight())) {
             pblock->pegInfo = getPegInfo();
             pblock->pegWitness = getPegWitness();
-        // } else {
-        //     // if (nBlockTx == 0 && tIndex == 1) {
-        //     //     return nullptr;
-        //     // }
-        // }
-    } else {
-        // if (nBlockTx == 0 && tIndex == 1) {
-        //     return nullptr;
-        // }
-    }
+        } 
+    } 
 
     if(pending_deposits.size() == 0) {
         pblock->pegTime = 0;
