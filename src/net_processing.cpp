@@ -3919,19 +3919,20 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         // being fed a bogus chain when we started up for the first time and
         // getting partitioned off the honest network for serving that chain to
         // others.
-        if (m_chainman.ActiveTip() == nullptr ||
-                (m_chainman.ActiveTip()->nChainWork < m_chainman.MinimumChainWork() && !pfrom.HasPermission(NetPermissionFlags::Download))) {
-            LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because active chain has too little work; sending empty response\n", pfrom.GetId());
-            // Just respond with an empty headers message, to tell the peer to
-            // go away but not treat us as unresponsive.
-            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::HEADERS, std::vector<CBlock>()));
-            return;
-        }
+        // if (m_chainman.ActiveTip() == nullptr ||
+        //         (m_chainman.ActiveTip()->nChainWork < m_chainman.MinimumChainWork() && !pfrom.HasPermission(NetPermissionFlags::Download))) {
+        //     LogPrint(BCLog::NET, "Ignoring getheaders from peer=%d because active chain has too little work; sending empty response\n", pfrom.GetId());
+        //     // Just respond with an empty headers message, to tell the peer to
+        //     // go away but not treat us as unresponsive.
+        //     m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::HEADERS, std::vector<CBlock>()));
+        //     return;
+        // }
 
         CNodeState *nodestate = State(pfrom.GetId());
         const CBlockIndex* pindex = nullptr;
         if (locator.IsNull())
         {
+            LogPrintf("*************  it is coming here1 ************* ");
             // If locator is null, return the hashStop block
             pindex = m_chainman.m_blockman.LookupBlockIndex(hashStop);
             if (!pindex) {
@@ -3947,9 +3948,16 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         {
             // Find the last block the caller has in the main chain
             pindex = m_chainman.ActiveChainstate().FindForkInGlobalIndex(locator);
-            if (pindex)
-                pindex = m_chainman.ActiveChain().Next(pindex);
+            LogPrintf("*************  it is coming here2 ************* %d \n", pindex->ToString());
+            
+            if (pindex) {
+               pindex = m_chainman.ActiveChain().Next(pindex);
+            //    LogPrintf("*************  it is coming here2 ************* %d \n", pindex->ToString());
+            }
+   
         }
+
+        // LogPrintf("*************  it is coming here3 ************* %d \n",pindex->nHeight);
 
         // we must use CBlocks, as CBlockHeaders won't include the 0x00 nTx count at the end
         std::vector<CBlock> vHeaders;
