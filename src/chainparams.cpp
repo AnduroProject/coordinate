@@ -98,8 +98,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 709632; // Approximately November 12th, 2021
 
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000003404ba0801921119f903495e");
-        consensus.defaultAssumeValid = uint256S("0x00000000000000000009c97098b5295f7e5f183ac811fb5d1534040adb93cabd"); // 751565
+        consensus.nMinimumChainWork = uint256S("000000000000000000000000000000000000000000000002540e3a82637546a2");
+        consensus.defaultAssumeValid = uint256S("0xae28b6c95c6009b4e86fc56c6ee84b0be0591482da861f842df34f42f5f02520"); // 751565
 
 
         consensus.nAuxpowChainId = 0x0001;
@@ -146,7 +146,7 @@ public:
         vSeeds.emplace_back("dnsseed.emzy.de."); // Stephan Oeste
         vSeeds.emplace_back("seed.bitcoin.wiz.biz."); // Jason Maurice*/
 
-        vSeeds.emplace_back("seed1.mara.technology."); // Matt Corallo, only supports x9
+        // vSeeds.emplace_back("seed1.mara.technology."); // Matt Corallo, only supports x9
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -265,7 +265,7 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed1.mara.technology.");
+        // vSeeds.emplace_back("seed1.mara.technology.");
         // vSeeds.emplace_back("seed.tbtc.petertodd.org.");
         // vSeeds.emplace_back("seed.testnet.bitcoin.sprovoost.nl.");
         // vSeeds.emplace_back("testnet-seed.bluematt.me."); // Just a static list of stable node(s), only supports x9
