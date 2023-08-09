@@ -42,24 +42,33 @@ static RPCHelpMan sendrawtransaction()
         "\nRelated RPCs: createrawtransaction, signrawtransactionwithkey\n",
         {
             {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
-            {"inputs", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "The inputs",
-                {
-                    {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "block signature from federation",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                    {
+                    {"inputs", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "The inputs",
                         {
-                            {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address"},
-                            {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin amount"},
-                            {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin witness"},
-                            {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"},
-                            {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block_height to sign"},
+                            {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                                {
+                                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin amount"},
+                                    {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin witness"},
+                                    {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"},
+                                    {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block_height to sign"},
+                                },
+                            },
                         },
                     },
-                },
+                    {"peginfo", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "peg out information "},
+                    {"nextaddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next address to sign"},
+                    {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next address to sign"},
+                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to sign"},
+                    {"pegwitness", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the peg info"},
+                    }
+                }
+              }
             },
-            {"peginfo", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "peg out information "},
-            {"nextaddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next address to sign"},
-            {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next address to sign"},
-            {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to sign"},
-            {"pegwitness", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the peg info"},
+
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
              "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
                  "/kvB.\nSet to 0 to accept any fee rate.\n"},
@@ -79,53 +88,53 @@ static RPCHelpMan sendrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if(!request.params[2].isNull()) { 
-                std::string pegExpected = "";
-                if (request.params[2].get_str().compare(pegExpected) != 0) {
-                    ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                    if(isPegInfoValid(request.params[2].get_str(),request.params[6].get_str(),chainman, request.params[5].getInt<int32_t>())) {
-                        addFederationPegout(request.params[2].get_str(),request.params[6].get_str(), request.params[5].getInt<int32_t>());
-                    } else {
-                        throw JSONRPCError(RPC_WALLET_ERROR, "Pegout is invalid");
-                        return "fail";
-                    }
-                    return "sucess";
-                }
-            }
-
             if(!request.params[1].isNull()) {
                 if (request.params[1].isNull()) {
                     throw JSONRPCError(RPC_WALLET_ERROR, "Transaction out are empty");
                     return "fail";
                 }
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                const UniValue& output_params = request.params[1].get_array();
+                const UniValue& main_params = request.params[1].get_array();
                 std::vector<FederationTxOut> tOuts;
-                for (unsigned int idx = 0; idx < output_params.size(); idx++) {
-                    const UniValue& o = output_params[idx].get_obj();
-                    RPCTypeCheckObj(o,
+                std::vector<FederationTxOut> mainOuts;
+                for (unsigned int idx = 0; idx < main_params.size(); idx++) {
+                    const UniValue& fedParams = main_params[idx].get_obj();
+                    RPCTypeCheckObj(fedParams,
                     {
-                        {"address", UniValueType(UniValue::VSTR)},
-                        {"amount", UniValueType(UniValue::VNUM)},
-                        {"witness", UniValueType(UniValue::VSTR)},
-                        {"peg_hash", UniValueType(UniValue::VSTR)},
-                        {"block_height", UniValueType(UniValue::VNUM)},
+                        {"inputs", UniValueType(UniValue::VARR)},
+                        {"nextindex", UniValueType(UniValue::VNUM)},
+                        {"nextaddress", UniValueType(UniValue::VSTR)},
+                        {"peginfo", UniValueType(UniValue::VSTR)},
+                        {"pegwitness", UniValueType(UniValue::VSTR)},
+                        {"pegtime", UniValueType(UniValue::VNUM)},
                     });
-                    const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
-                    const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                    FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),request.params[5].getInt<int32_t>(),request.params[4].getInt<int32_t>(),request.params[3].get_str());
+                    const UniValue output_params = find_value(fedParams, "inputs").get_array();
+    
+                    for (unsigned int idx = 0; idx < output_params.size(); idx++) {
+                        const UniValue& o = output_params[idx].get_obj();
+                        RPCTypeCheckObj(o,
+                        {
+                            {"address", UniValueType(UniValue::VSTR)},
+                            {"amount", UniValueType(UniValue::VNUM)},
+                            {"witness", UniValueType(UniValue::VSTR)},
+                            {"peg_hash", UniValueType(UniValue::VSTR)},
+                            {"block_height", UniValueType(UniValue::VNUM)},
+                        });
+                        const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
+                        const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "nextaddress").get_str(),find_value(fedParams, "peginfo").get_str(),find_value(fedParams, "pegwitness").get_str());
 
-                    tOuts.push_back(out);
-                }
-                if(isSpecialTxoutValid(tOuts,chainman)) {
-                    if(isSignatureAlreadyExist(tOuts)) {
-                         addDeposit(tOuts);
-                    } else {
-                         throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout Already Exist");
+                        tOuts.push_back(out);
                     }
-                } else {
-                    throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
+                    if(!isSpecialTxoutValid(tOuts,chainman)) {
+                        throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
+                    }
+                    for (const FederationTxOut& txOut : tOuts) {
+                        mainOuts.push_back(txOut);
+                    }
+                    tOuts.clear();
                 }
+                addDeposit(mainOuts);
                 return "sucess";
             } else {
                 CMutableTransaction mtx;

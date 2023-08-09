@@ -50,6 +50,7 @@
 #include <memory>
 #include <optional>
 #include <typeinfo>
+#include <federation_deposit.h>
 
 using node::ReadBlockFromDisk;
 using node::ReadRawBlockFromDisk;
@@ -79,6 +80,9 @@ static constexpr auto STALE_CHECK_INTERVAL{10min};
 static constexpr auto EXTRA_PEER_CHECK_INTERVAL{45s};
 /** Minimum time an outbound-peer-eviction candidate must be connected for, in order to evict */
 static constexpr auto MINIMUM_CONNECT_TIME{30s};
+/** Minimum time an outbound-peer-eviction candidate must be connected for, in order to evict */
+static constexpr auto PEG_CHECK_TIME{5s};
+
 /** SHA256("main address relay")[0:8] */
 static constexpr uint64_t RANDOMIZER_ID_ADDRESS_RELAY = 0x3cac0035b5866b90ULL;
 /// Age after which a stale block will no longer be served if requested as
@@ -378,6 +382,9 @@ struct Peer {
 
     /** Time of the last getheaders message to this peer */
     NodeClock::time_point m_last_getheaders_timestamp GUARDED_BY(NetEventsInterface::g_msgproc_mutex){};
+
+    /** Time of the last getheaders message to this peer */
+    NodeClock::time_point m_last_peg_req_timestamp GUARDED_BY(NetEventsInterface::g_msgproc_mutex){};
 
     /** Protects m_headers_sync **/
     Mutex m_headers_sync_mutex;
@@ -687,6 +694,8 @@ private:
      *  We use mockable time for ping timeouts, so setmocktime may cause pings
      *  to time out. */
     void MaybeSendPing(CNode& node_to, Peer& peer, std::chrono::microseconds now);
+
+    void MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);;
 
     /** Send `addr` messages on a regular schedule. */
     void MaybeSendAddr(CNode& node, Peer& peer, std::chrono::microseconds current_time) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex);
@@ -3948,11 +3957,10 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         {
             // Find the last block the caller has in the main chain
             pindex = m_chainman.ActiveChainstate().FindForkInGlobalIndex(locator);
-            LogPrintf("*************  it is coming here2 ************* %d \n", pindex->ToString());
+    
             
             if (pindex) {
                pindex = m_chainman.ActiveChain().Next(pindex);
-            //    LogPrintf("*************  it is coming here2 ************* %d \n", pindex->ToString());
             }
    
         }
@@ -4654,7 +4662,26 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         return;
     }
+    
+    if (msg_type == NetMsgType::PEGREQUEST) {
+        uint32_t currentHeight = 0;
+        vRecv >> currentHeight;
+        int incr = 0;
+        while(incr<3) {
+            std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
+            if(pending_pegs.size()>0) {
+            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PEGRESPONSE, pending_pegs));
+            }
+            incr = incr + 1;
+        }
+    }
 
+    if (msg_type == NetMsgType::PEGRESPONSE) {
+        std::vector<FederationTxOut> vData;
+        vRecv >> vData;
+        addDeposit(vData);
+    }
+   
     if (msg_type == NetMsgType::PONG) {
         const auto ping_end = time_received;
         uint64_t nonce = 0;
@@ -5139,6 +5166,21 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
     }
 }
 
+void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now)
+{
+    const auto current_time = NodeClock::now();
+    if (current_time - peer.m_last_peg_req_timestamp > PEG_CHECK_TIME) {
+        peer.m_last_peg_req_timestamp = current_time;
+        LOCK(cs_main);
+        int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
+        std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        if (pending_pegs.size() == 0) {
+            const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
+            m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PEGREQUEST, currentHeight));
+        }
+    }
+}
+
 void PeerManagerImpl::MaybeSendPing(CNode& node_to, Peer& peer, std::chrono::microseconds now)
 {
     if (m_connman.ShouldRunInactivityChecks(node_to, std::chrono::duration_cast<std::chrono::seconds>(now)) &&
@@ -5176,7 +5218,6 @@ void PeerManagerImpl::MaybeSendPing(CNode& node_to, Peer& peer, std::chrono::mic
             peer.m_ping_nonce_sent = nonce;
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PING, nonce));
         } else {
-            // Peer is too old to support ping command with nonce, pong will never arrive.
             peer.m_ping_nonce_sent = 0;
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PING));
         }
@@ -5390,6 +5431,7 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
         return true;
     }
 
+    MaybeSendPeg(*pto, *peer, current_time);
     MaybeSendPing(*pto, *peer, current_time);
 
     // MaybeSendPing may have marked peer for disconnection

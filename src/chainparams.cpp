@@ -146,7 +146,7 @@ public:
         vSeeds.emplace_back("dnsseed.emzy.de."); // Stephan Oeste
         vSeeds.emplace_back("seed.bitcoin.wiz.biz."); // Jason Maurice*/
 
-        // vSeeds.emplace_back("seed1.mara.technology."); // Matt Corallo, only supports x9
+        vSeeds.emplace_back("seed1.mara.technology."); // Mara
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);

@@ -146,7 +146,7 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   LOCK (cs);
 
   const auto& node = EnsureAnyNodeContext (request);
-  // auxMiningCheck (node);
+  auxMiningCheck (node);
   const auto& mempool = EnsureMemPool (node);
   const auto& chainman = EnsureChainman (node);
 
@@ -171,7 +171,7 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
                              const std::string& auxpowHex) const
 {
   const auto& node = EnsureAnyNodeContext (request);
-  // auxMiningCheck (node);
+  auxMiningCheck (node);
   auto& chainman = EnsureChainman (node);
 
   std::shared_ptr<CBlock> shared_block;

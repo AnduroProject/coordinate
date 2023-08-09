@@ -26,6 +26,8 @@ public:
     CScript scriptPubKey;
     std::string peg_hash;
     std::string witness;
+    std::string pegInfo;
+    std::string pegWitness;
     int32_t block_height;
     std::string nextAddress;
     int32_t pegTime;
@@ -35,7 +37,7 @@ public:
         SetNull();
     }
 
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn) {
+    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn, std::string pegInfoIn, std::string pegWitnessIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
@@ -44,10 +46,12 @@ public:
         pegTime = pegTimeIn;
         nextIndex = nextIndexIn;
         nextAddress = nextAddressIn;
+        pegInfo = pegInfoIn;
+        pegWitness = pegWitnessIn;
     }
 
     SERIALIZE_METHODS(FederationTxOut, obj) { 
-        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.nextAddress, obj.pegTime, obj.nextIndex); 
+        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.nextAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness); 
     }
 
     void SetNull()
@@ -55,6 +59,8 @@ public:
         nValue = -1;
         scriptPubKey.clear();
         peg_hash = "";
+        pegInfo= "";
+        pegWitness = "";
         witness = "";
         block_height = 0;
         nextAddress = "";
@@ -68,19 +74,14 @@ std::string exec(const char* cmd);
 std::string string_to_hex(const std::string& in);
 std::string hex_to_str(const std::string& in);
 void addDeposit(std::vector<FederationTxOut> txOuts);
-bool verifyFederation(CChain& activeChain, const CBlock& block);
+bool verifyFederation(ChainstateManager& chainman, const CBlock& block);
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman);
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman, int32_t block_height);
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height);
 CAmount listPendingDepositTotal(int32_t block_height);
-bool isSignatureAlreadyExist(std::vector<FederationTxOut> txOuts);
+bool isSignatureAlreadyExist(FederationTxOut txOut);
 void resetDeposit(int32_t block_height);
-void resetPegInfo(std::string pegInfoIn);
 void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn, int32_t block_height);
-std::string getPegInfo();
-std::string getPegWitness();
-int32_t getPegHeight();
-
 std::string getNextAddress(ChainstateManager& chainman);
 int32_t getNextIndex(ChainstateManager& chainman);
 

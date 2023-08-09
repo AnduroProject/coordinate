@@ -1522,7 +1522,6 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
        the chain ID is correct.  Legacy blocks are not allowed since
        the merge-mining start, which is checked in AcceptBlockHeader
        where the height is known.  */
-    return true;
     if (!block.IsLegacy() && params.fStrictChainId
         && block.GetChainId() != params.nAuxpowChainId)
         return error("%s : block does not have our chain ID"
@@ -2437,8 +2436,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     );
 
     resetDeposit(pindex->nHeight);
-
-    resetPegInfo(block.pegInfo);
 
     return true;
 }
@@ -4031,7 +4028,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         if (ret) {
 
             // federation check block
-            bool verifyFederationCheck = verifyFederation(ActiveChain(),*block);
+            bool verifyFederationCheck = verifyFederation(m_active_chainstate->m_chainman,*block);
             if (!verifyFederationCheck) {
                 GetMainSignals().BlockChecked(*block, state);
                 return error("%s: AcceptBlock FAILED (%s)", __func__, "Federation witness failed");

@@ -89,10 +89,14 @@ static RPCHelpMan hasPegOut()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if(getPegInfo().compare("") == 0) {
-                return false;
+            std::vector<FederationTxOut> txList = listPendingDepositTransaction(-1);
+            bool hasPegout = false;
+            for (const FederationTxOut& eout : txList) {
+                if(eout.pegInfo.compare("") != 0) {
+                   hasPegout = true;
+                }
             }
-            return true;
+            return hasPegout;
         }
     };
 
