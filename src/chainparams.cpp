@@ -116,10 +116,10 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xf9;
+        pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb4;
-        pchMessageStart[3] = 0xd9;
+        pchMessageStart[2] = 0xb6;
+        pchMessageStart[3] = 0xd6;
         nDefaultPort = 8333;
         nPruneAfterHeight = 100000;
         m_assumed_blockchain_size = 496;
@@ -146,7 +146,9 @@ public:
         vSeeds.emplace_back("dnsseed.emzy.de."); // Stephan Oeste
         vSeeds.emplace_back("seed.bitcoin.wiz.biz."); // Jason Maurice*/
 
-        vSeeds.emplace_back("seed1.mara.technology."); // Mara
+        vSeeds.emplace_back("seed4.mara.technology."); // Mara
+        vSeeds.emplace_back("seed5.mara.technology."); // Mara
+        vSeeds.emplace_back("seed6.mara.technology."); // Mara
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -247,10 +249,10 @@ public:
         consensus.nextAddress = "tb1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
 
 
-        pchMessageStart[0] = 0x0b;
-        pchMessageStart[1] = 0x11;
-        pchMessageStart[2] = 0x09;
-        pchMessageStart[3] = 0x07;
+        pchMessageStart[0] = 0xf6;
+        pchMessageStart[1] = 0xbe;
+        pchMessageStart[2] = 0xb6;
+        pchMessageStart[3] = 0xd6;
         nDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         m_assumed_blockchain_size = 42;
@@ -264,6 +266,9 @@ public:
 
         vFixedSeeds.clear();
         vSeeds.clear();
+        vSeeds.emplace_back("seed1.mara.technology."); // Mara
+        vSeeds.emplace_back("seed2.mara.technology."); // Mara
+        vSeeds.emplace_back("seed3.mara.technology."); // Mara
         // // nodes with support for servicebits filtering should be at the top
         // vSeeds.emplace_back("seed1.mara.technology.");
         // vSeeds.emplace_back("seed.tbtc.petertodd.org.");
@@ -473,10 +478,10 @@ public:
 
         consensus.nextAddress = "bcrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
 
-        pchMessageStart[0] = 0xfa;
-        pchMessageStart[1] = 0xbf;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xda;
+        pchMessageStart[0] = 0xf6;
+        pchMessageStart[1] = 0xbe;
+        pchMessageStart[2] = 0xb6;
+        pchMessageStart[3] = 0xd6;
         nDefaultPort = 18444;
         nPruneAfterHeight = args.GetBoolArg("-fastprune", false) ? 100 : 1000;
         m_assumed_blockchain_size = 0;
