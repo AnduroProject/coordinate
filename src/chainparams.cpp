@@ -236,8 +236,8 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
 
-        consensus.nMinimumChainWork = uint256S("0x00000000000000000000000000000000000000000000076f6e7cbd0beade5d20");
-        consensus.defaultAssumeValid = uint256S("0x0000000000000004877fa2d36316398528de4f347df2f8a96f76613a298ce060"); // 2344474
+        consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000100010001");
+        consensus.defaultAssumeValid = uint256S("0xadf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab"); // 2344474
 
         consensus.nAuxpowStartHeight = 0;
         consensus.nAuxpowChainId = 0x0001;
