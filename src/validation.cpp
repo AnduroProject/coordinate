@@ -1645,16 +1645,19 @@ bool Chainstate::IsInitialBlockDownload() const
     if (m_cached_finished_ibd.load(std::memory_order_relaxed))
         return false;
     if (m_chainman.m_blockman.LoadingBlocks()) {
+        LogPrintf("+++++++++++++++++++ checking here 1 +++++++++++++++++++++ \n");
         return true;
     }
     if (m_chain.Tip() == nullptr)
         return true;
     if (m_chain.Tip()->nChainWork < m_chainman.MinimumChainWork()) {
+        LogPrintf("+++++++++++++++++++ checking here 2 +++++++++++++++++++++ \n");
         return true;
     }
-    if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
-        return true;
-    }
+    // if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
+    //     LogPrintf("+++++++++++++++++++ checking here 3 +++++++++++++++++++++ \n");
+    //     return true;
+    // }
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     m_cached_finished_ibd.store(true, std::memory_order_relaxed);
     return false;
