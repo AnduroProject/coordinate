@@ -37,10 +37,10 @@ void auxMiningCheck(const node::NodeContext& node)
     throw JSONRPCError (RPC_CLIENT_NOT_CONNECTED,
                         "MaraChain is not connected!");
 
-  if (chainman.ActiveChainstate ().IsInitialBlockDownload ()
-        && !Params ().MineBlocksOnDemand ())
-    throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
-                        "MaraChain is downloading blocks...");
+  // if (chainman.ActiveChainstate ().IsInitialBlockDownload ()
+  //       && !Params ().MineBlocksOnDemand ())
+  //   throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+  //                       "MaraChain is downloading blocks...");
 
   /* This should never fail, since the chain is already
      past the point of merge-mining start.  Check nevertheless.  */
