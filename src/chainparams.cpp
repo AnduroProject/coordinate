@@ -221,7 +221,7 @@ public:
         consensus.nPowTargetTimespan = 1 * 1 * 60 * 60; // two weeks
         consensus.nPowTargetSpacing = 2 * 60;
         consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.nMinDifficultySince = 1394838000; // 15 Mar 2014
+        consensus.nMinDifficultySince = 0; // 15 Mar 2014
         consensus.fPowNoRetargeting = false;
         consensus.nRuleChangeActivationThreshold = 27; // 90% of 2016
         consensus.nMinerConfirmationWindow = 30; // nPowTargetTimespan / nPowTargetSpacing
