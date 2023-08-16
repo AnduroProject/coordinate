@@ -22,14 +22,13 @@
         libminiupnpc-dev \
         libnatpmp-dev \
         libzmq3-dev \
-        systemtap-sdt-dev 
+        systemtap-sdt-dev \
+        curl 
 
     #configure nodejs 16.x
     RUN curl -s https://deb.nodesource.com/setup_16.x | bash
     RUN apt install nodejs -y
-    RUN apt install npm -y
     
-
     #Setup base directory
     RUN mkdir -p /opt/marachain
     WORKDIR /opt/marachain
