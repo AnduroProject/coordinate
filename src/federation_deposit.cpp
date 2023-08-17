@@ -265,15 +265,19 @@ std::string exec(const char* cmd)
     return result;
 }
 
+bool isFederationValidationActive() {
+   return isValidationActivate;
+}
+
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
-
-   if(!isValidationActivate) {
-      if(listPendingDepositTransaction(active_chain.Height()+1).size()>0) {
-         LogPrintf("*********************** federation Validation not activated123 *********************** %i \n",listPendingDepositTransaction(-1).size());
+   
+   if(listPendingDepositTransaction(active_chain.Height()+1).size()>0) {
          isValidationActivate = true;
-      }
+   }
+
+   if(!isFederationValidationActive()) {
       return true;
    }
 

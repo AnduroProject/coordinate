@@ -1645,19 +1645,17 @@ bool Chainstate::IsInitialBlockDownload() const
     if (m_cached_finished_ibd.load(std::memory_order_relaxed))
         return false;
     if (m_chainman.m_blockman.LoadingBlocks()) {
-        LogPrintf("+++++++++++++++++++ checking here 1 +++++++++++++++++++++ \n");
         return true;
     }
     if (m_chain.Tip() == nullptr)
         return true;
     if (m_chain.Tip()->nChainWork < m_chainman.MinimumChainWork()) {
-        LogPrintf("+++++++++++++++++++ checking here 2 +++++++++++++++++++++ \n");
         return true;
     }
-    // if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
-    //     LogPrintf("+++++++++++++++++++ checking here 3 +++++++++++++++++++++ \n");
-    //     return true;
-    // }
+    if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
+        return true;
+    }
+    
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     m_cached_finished_ibd.store(true, std::memory_order_relaxed);
     return false;
@@ -2383,10 +2381,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
 
 
-    if (totalAmount > blockReward) {
-        LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
-        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
-    }
+    // if (totalAmount > blockReward && isFederationValidationActive()) {
+    //     LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
+    //     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+    // }
 
     if (!control.Wait()) {
         LogPrintf("ERROR: %s: CheckQueue failed\n", __func__);
