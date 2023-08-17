@@ -1652,9 +1652,10 @@ bool Chainstate::IsInitialBlockDownload() const
     if (m_chain.Tip()->nChainWork < m_chainman.MinimumChainWork()) {
         return true;
     }
-    if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
-        return true;
-    }
+    
+    // if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
+    //     return true;
+    // }
     
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     m_cached_finished_ibd.store(true, std::memory_order_relaxed);
