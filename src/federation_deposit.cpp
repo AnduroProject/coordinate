@@ -14,6 +14,7 @@ using node::BlockManager;
 using node::ReadBlockFromDisk;
 
 std::vector<FederationTxOut> tDeposits;
+bool isValidationActivate = false;
 
 void addDeposit(std::vector<FederationTxOut> txOuts) {
    if (txOuts.size() == 0) {
@@ -265,8 +266,17 @@ std::string exec(const char* cmd)
 }
 
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
-
+   LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
+
+   if(!isValidationActivate) {
+      if(listPendingDepositTransaction(active_chain.Height()+1).size()>0) {
+         LogPrintf("*********************** federation Validation not activated123 *********************** %i \n",listPendingDepositTransaction(-1).size());
+         isValidationActivate = true;
+      }
+      return true;
+   }
+
 
    LogPrintf("*********************** verifyCoinbase *********************** %s \n", block.vtx[0]->ToString());
    if(block.vtx[0]->vout.size() < 3) {
