@@ -1652,7 +1652,7 @@ bool Chainstate::IsInitialBlockDownload() const
     if (m_chain.Tip()->nChainWork < m_chainman.MinimumChainWork()) {
         return true;
     }
-    
+    // disable this for avoid time when sidechain is active
     // if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
     //     return true;
     // }
@@ -2381,7 +2381,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     const CTransaction &dtx = *(block.vtx[0]);
 
 
-
+    // disabled this code due to validation is migrated from federation_deposit.cpp
     // if (totalAmount > blockReward && isFederationValidationActive()) {
     //     LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
     //     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");

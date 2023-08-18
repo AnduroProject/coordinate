@@ -108,7 +108,7 @@ public:
         consensus.nLegacyBlocksBefore = 0; //19200; by dev
 
         consensus.rules.reset(new Consensus::MainNetConsensus());
-
+        // current address going to sign next block
         consensus.nextAddress = "bc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqa7xx5c";
 
         /**
@@ -245,7 +245,7 @@ public:
         consensus.nLegacyBlocksBefore = -1;
 
         consensus.rules.reset(new Consensus::TestNetConsensus());
-
+        // current address going to sign next block
         consensus.nextAddress = "tb1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
 
 
@@ -396,6 +396,7 @@ public:
         consensus.nLegacyBlocksBefore = 0;
 
         consensus.rules.reset(new Consensus::TestNetConsensus());
+        // current address going to sign next block
         consensus.nextAddress = "tb1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
@@ -475,7 +476,7 @@ public:
         consensus.nLegacyBlocksBefore = 0;
 
         consensus.rules.reset(new Consensus::RegTestConsensus());
-
+        // current address going to sign next block  
         consensus.nextAddress = "bcrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
 
         pchMessageStart[0] = 0xf6;
