@@ -32,12 +32,14 @@ public:
     std::string nextAddress;
     int32_t pegTime;
     int32_t nextIndex;
+    std::string depositAddress;
+    std::string burnAddress;
     FederationTxOut()
     {
         SetNull();
     }
 
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn, std::string pegInfoIn, std::string pegWitnessIn) {
+    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn, std::string pegInfoIn, std::string pegWitnessIn, std::string depositAddressIn, std::string burnAddressIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
@@ -48,10 +50,12 @@ public:
         nextAddress = nextAddressIn;
         pegInfo = pegInfoIn;
         pegWitness = pegWitnessIn;
+        depositAddress = depositAddressIn;
+        burnAddress = burnAddressIn;
     }
 
     SERIALIZE_METHODS(FederationTxOut, obj) { 
-        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.nextAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness); 
+        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.nextAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness, obj.depositAddress, obj.burnAddress); 
     }
 
     void SetNull()
@@ -66,9 +70,18 @@ public:
         nextAddress = "";
         pegTime = 0;
         nextIndex = 0;
+        depositAddress = "";
+        burnAddress = "";
     }
 };
 
+std::vector<FederationTxOut> tDeposits;
+bool isValidationActivate = false;
+std::string depositAddress = "";
+std::string burnAddress = "";
+
+std::string getDepositAddress();
+std::string getBurnAddress();
 std::string getNetworkText(ChainstateManager& chainman);
 std::string exec(const char* cmd);
 std::string string_to_hex(const std::string& in);

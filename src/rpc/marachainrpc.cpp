@@ -102,6 +102,51 @@ static RPCHelpMan hasPegOut()
 
 }
 
+
+static RPCHelpMan federationDepositAddress()
+{
+    return RPCHelpMan{
+        "federationdepositaddress",
+        "Federation current deposit address",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation deposit address"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("federationdepositaddress", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            return getDepositAddress();
+        }
+    };
+
+}
+
+static RPCHelpMan federationWithdrawAddress()
+{
+    return RPCHelpMan{
+        "federationburnaddress",
+        "Federation current burn address",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation burn address"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("federationburnaddress", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            return getBurnAddress();
+        }
+    };
+
+}
+
 static RPCHelpMan getPendingDeposit() {
         return RPCHelpMan{
         "getpendingdeposit",
@@ -172,6 +217,8 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &submitAuxBlock},
         {"marachain", &getPendingDeposit},
         {"marachain", &hasPegOut},
+        {"marachain", &federationDepositAddress},
+        {"marachain", &federationWithdrawAddress},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

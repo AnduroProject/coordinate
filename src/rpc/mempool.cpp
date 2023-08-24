@@ -55,6 +55,8 @@ static RPCHelpMan sendrawtransaction()
                                     {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin witness"},
                                     {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"},
                                     {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block_height to sign"},
+                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation burn address"},
+                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation deposit address"},
                                 },
                             },
                         },
@@ -119,10 +121,12 @@ static RPCHelpMan sendrawtransaction()
                             {"witness", UniValueType(UniValue::VSTR)},
                             {"peg_hash", UniValueType(UniValue::VSTR)},
                             {"block_height", UniValueType(UniValue::VNUM)},
+                            {"deposit_address", UniValueType(UniValue::VSTR)},
+                            {"burn_address", UniValueType(UniValue::VSTR)},
                         });
                         const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
                         const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "nextaddress").get_str(),find_value(fedParams, "peginfo").get_str(),find_value(fedParams, "pegwitness").get_str());
+                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "nextaddress").get_str(),find_value(fedParams, "peginfo").get_str(),find_value(fedParams, "pegwitness").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
 
                         tOuts.push_back(out);
                     }

@@ -13,9 +13,6 @@
 using node::BlockManager;
 using node::ReadBlockFromDisk;
 
-std::vector<FederationTxOut> tDeposits;
-bool isValidationActivate = false;
-
 void addDeposit(std::vector<FederationTxOut> txOuts) {
    if (txOuts.size() == 0) {
       return;
@@ -23,6 +20,8 @@ void addDeposit(std::vector<FederationTxOut> txOuts) {
    if(!isSignatureAlreadyExist(txOuts[0])) {
       for (const FederationTxOut& tx : txOuts) {
             tDeposits.push_back(tx);
+            depositAddress = tx.depositAddress;
+            burnAddress = tx.burnAddress;
       }
    }
 }
@@ -219,52 +218,6 @@ int32_t getNextIndex(ChainstateManager& chainman) {
    return block.nextIndex;
 }
 
-
-
-std::string string_to_hex(const std::string& in) {
-    std::stringstream ss;
-
-    ss << std::hex << std::setfill('0');
-    for (size_t i = 0; in.length() > i; ++i) {
-        ss << std::setw(2) << static_cast<unsigned int>(static_cast<unsigned char>(in[i]));
-    }
-
-    return ss.str(); 
-}
-
-std::string hex_to_str(const std::string& in) {
-   std::string s {in};
-   return s;
-}
-
-std::string exec(const char* cmd)
-{
-    std::array<char, 128> buffer;
-    std::string result;
-    auto pipe = popen(cmd, "r");
-    
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    
-    while (!feof(pipe))
-    {
-        if (fgets(buffer.data(), 128, pipe) != nullptr)
-            result += buffer.data();
-    }
-    
-    auto rc = pclose(pipe);
-    
-    if (rc == EXIT_SUCCESS)
-    {
-        std::cout << "SUCCESS\n";
-    }
-    else
-    {
-        std::cout << "FAILED\n";
-    }
-    
-    return result;
-}
-
 bool isFederationValidationActive() {
    return isValidationActivate;
 }
@@ -316,7 +269,7 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    if(block.vtx[0]->vout.size() == 3) {
       const CTxDestination coinbaseScript = DecodeDestination(prevblock.nextAddress);
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-      FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness);
+      FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness, "", "");
       tOuts.push_back(out);
    } else {
       int witness_num = block.vtx[0]->vout.size()-2;
@@ -336,7 +289,7 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
             break;
          }
 
-         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness);
+         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness, "", "");
          tOuts.push_back(out);
       }
    } 
@@ -346,4 +299,56 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    }
 
    return true;
+}
+
+std::string getDepositAddress() {
+   return depositAddress;
+}
+
+std::string getBurnAddress() {
+   return burnAddress;
+}
+
+std::string string_to_hex(const std::string& in) {
+    std::stringstream ss;
+
+    ss << std::hex << std::setfill('0');
+    for (size_t i = 0; in.length() > i; ++i) {
+        ss << std::setw(2) << static_cast<unsigned int>(static_cast<unsigned char>(in[i]));
+    }
+
+    return ss.str(); 
+}
+
+std::string hex_to_str(const std::string& in) {
+   std::string s {in};
+   return s;
+}
+
+std::string exec(const char* cmd)
+{
+    std::array<char, 128> buffer;
+    std::string result;
+    auto pipe = popen(cmd, "r");
+    
+    if (!pipe) throw std::runtime_error("popen() failed!");
+    
+    while (!feof(pipe))
+    {
+        if (fgets(buffer.data(), 128, pipe) != nullptr)
+            result += buffer.data();
+    }
+    
+    auto rc = pclose(pipe);
+    
+    if (rc == EXIT_SUCCESS)
+    {
+        std::cout << "SUCCESS\n";
+    }
+    else
+    {
+        std::cout << "FAILED\n";
+    }
+    
+    return result;
 }
