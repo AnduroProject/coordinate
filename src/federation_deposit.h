@@ -75,10 +75,7 @@ public:
     }
 };
 
-std::vector<FederationTxOut> tDeposits;
-bool isValidationActivate = false;
-std::string depositAddress = "";
-std::string burnAddress = "";
+
 
 std::string getDepositAddress();
 std::string getBurnAddress();

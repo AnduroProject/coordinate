@@ -13,6 +13,11 @@
 using node::BlockManager;
 using node::ReadBlockFromDisk;
 
+std::vector<FederationTxOut> tDeposits;
+bool isValidationActivate = false;
+std::string depositAddress = "";
+std::string burnAddress = "";
+
 void addDeposit(std::vector<FederationTxOut> txOuts) {
    if (txOuts.size() == 0) {
       return;
