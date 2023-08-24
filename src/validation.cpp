@@ -2376,16 +2376,15 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              Ticks<MillisecondsDouble>(time_connect) / num_blocks_total);
 
     CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
-    CAmount depositAmount = listPendingDepositTotal(pindex->nHeight);
-    CAmount totalAmount = block.vtx[0]->GetValueOut() - depositAmount;
+    if(block.vtx[0]->vout.size()>0) {
+        CAmount totalAmount = block.vtx[0]->vout[0].nValue;
+        if (totalAmount > blockReward) {
+           LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
+           return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+        }
+    }
+
     const CTransaction &dtx = *(block.vtx[0]);
-
-
-    // disabled this code due to validation is migrated from federation_deposit.cpp
-    // if (totalAmount > blockReward && isFederationValidationActive()) {
-    //     LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
-    //     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
-    // }
 
     if (!control.Wait()) {
         LogPrintf("ERROR: %s: CheckQueue failed\n", __func__);

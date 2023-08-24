@@ -4663,20 +4663,20 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         return;
     }
     
-    if (msg_type == NetMsgType::PEGREQUEST) {
+    if (msg_type == NetMsgType::PREBLOCKSIGNREQUEST) {
         uint32_t currentHeight = 0;
         vRecv >> currentHeight;
         int incr = 0;
         while(incr<3) {
             std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
             if(pending_pegs.size()>0) {
-            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PEGRESPONSE, pending_pegs));
+            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PREBLOCKSIGNREPONSE, pending_pegs));
             }
             incr = incr + 1;
         }
     }
 
-    if (msg_type == NetMsgType::PEGRESPONSE) {
+    if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
         addDeposit(vData);
@@ -5176,7 +5176,7 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
-            m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PEGREQUEST, currentHeight));
+            m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
         }
     }
 }

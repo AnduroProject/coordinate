@@ -181,7 +181,7 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
     LogPrintf("full block ******************** %s \n",block.ToString());
-    result.pushKV("nextaddress", block.nextAddress.empty() ? "" : block.nextAddress);
+    result.pushKV("currentaddress", block.currentAddress.empty() ? "" : block.currentAddress);
     result.pushKV("nextindex", block.nextIndex);
     result.pushKV("peginfo", block.pegInfo);
     result.pushKV("pegwitness", block.pegWitness);

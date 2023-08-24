@@ -27,7 +27,7 @@ public:
     std::string pegInfo;
     std::string pegWitness;
     int32_t pegTime;
-    std::string nextAddress;
+    std::string currentAddress;
     int32_t nextIndex;
 
     CBlockHeader()
@@ -50,7 +50,7 @@ public:
         READWRITE(obj.pegInfo);
         READWRITE(obj.pegWitness);
         READWRITE(obj.pegTime);
-        READWRITE(obj.nextAddress);
+        READWRITE(obj.currentAddress);
         READWRITE(obj.nextIndex);
     }
 
@@ -60,7 +60,7 @@ public:
         pegInfo = "";
         pegWitness = "";
         pegTime = 0;
-        nextAddress = "";
+        currentAddress = "";
         nextIndex = 0;
         auxpow.reset();
     }

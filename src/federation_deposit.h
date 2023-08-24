@@ -29,7 +29,7 @@ public:
     std::string pegInfo;
     std::string pegWitness;
     int32_t block_height;
-    std::string nextAddress;
+    std::string currentAddress;
     int32_t pegTime;
     int32_t nextIndex;
     std::string depositAddress;
@@ -39,7 +39,7 @@ public:
         SetNull();
     }
 
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string nextAddressIn, std::string pegInfoIn, std::string pegWitnessIn, std::string depositAddressIn, std::string burnAddressIn) {
+    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string currentAddressIn, std::string pegInfoIn, std::string pegWitnessIn, std::string depositAddressIn, std::string burnAddressIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
@@ -47,7 +47,7 @@ public:
         block_height = block_heightIn;
         pegTime = pegTimeIn;
         nextIndex = nextIndexIn;
-        nextAddress = nextAddressIn;
+        currentAddress = currentAddressIn;
         pegInfo = pegInfoIn;
         pegWitness = pegWitnessIn;
         depositAddress = depositAddressIn;
@@ -55,7 +55,7 @@ public:
     }
 
     SERIALIZE_METHODS(FederationTxOut, obj) { 
-        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.nextAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness, obj.depositAddress, obj.burnAddress); 
+        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.currentAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness, obj.depositAddress, obj.burnAddress); 
     }
 
     void SetNull()
@@ -67,7 +67,7 @@ public:
         pegWitness = "";
         witness = "";
         block_height = 0;
-        nextAddress = "";
+        currentAddress = "";
         pegTime = 0;
         nextIndex = 0;
         depositAddress = "";
@@ -96,7 +96,7 @@ CAmount listPendingDepositTotal(int32_t block_height);
 bool isSignatureAlreadyExist(FederationTxOut txOut);
 void resetDeposit(int32_t block_height);
 void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn, int32_t block_height);
-std::string getNextAddress(ChainstateManager& chainman);
+std::string getCurrentAddress(ChainstateManager& chainman);
 int32_t getNextIndex(ChainstateManager& chainman);
 
 

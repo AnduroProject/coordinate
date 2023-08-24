@@ -68,7 +68,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue mainstr(UniValue::VOBJ);
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
-   mainstr.pushKV("federationaddress", block.nextAddress);
+   mainstr.pushKV("federationaddress", block.currentAddress);
    mainstr.pushKV("witness", txOuts[0].witness);
    mainstr.pushKV("network", getNetworkText(chainman));
 
@@ -123,7 +123,7 @@ bool isPegInfoValid(std::string pegInfoIn, std::string pegWitnessIn, ChainstateM
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
    mainstr.pushKV("network", getNetworkText(chainman));
-   mainstr.pushKV("federationaddress", block.nextAddress);
+   mainstr.pushKV("federationaddress", block.currentAddress);
    mainstr.pushKV("witness", pegWitnessIn);
 
    std::string messagestr = "federation -sv '"  + mainstr.write() + "'";
@@ -198,14 +198,14 @@ void resetDeposit(int32_t block_height) {
    tDeposits = tDepositsNew;
 }
 
-std::string getNextAddress(ChainstateManager& chainman) {
+std::string getCurrentAddress(ChainstateManager& chainman) {
    int block_height = chainman.ActiveChain().Height();
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
    }
-   return block.nextAddress;
+   return block.currentAddress;
 }
 
 int32_t getNextIndex(ChainstateManager& chainman) {
@@ -245,8 +245,8 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       return false;
    }
 
-   LogPrintf("previous address %s \n",prevblock.nextAddress);
-   LogPrintf("current address %s \n",block.nextAddress);
+   LogPrintf("previous address %s \n",prevblock.currentAddress);
+   LogPrintf("current address %s \n",block.currentAddress);
 
    CTxOut witnessOut = block.vtx[0]->vout[block.vtx[0]->vout.size()-2];
    std::vector<unsigned char> txData(ParseHex(ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"")));
@@ -267,9 +267,9 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
 
    std::vector<FederationTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
-      const CTxDestination coinbaseScript = DecodeDestination(prevblock.nextAddress);
+      const CTxDestination coinbaseScript = DecodeDestination(prevblock.currentAddress);
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-      FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness, "", "");
+      FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentAddress, block.pegInfo, block.pegWitness, "", "");
       tOuts.push_back(out);
    } else {
       int witness_num = block.vtx[0]->vout.size()-2;
@@ -289,7 +289,7 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
             break;
          }
 
-         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.nextAddress, block.pegInfo, block.pegWitness, "", "");
+         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentAddress, block.pegInfo, block.pegWitness, "", "");
          tOuts.push_back(out);
       }
    } 
