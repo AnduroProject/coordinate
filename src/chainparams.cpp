@@ -109,7 +109,7 @@ public:
 
         consensus.rules.reset(new Consensus::MainNetConsensus());
         // current address going to sign next block
-        consensus.currentAddress = "bc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqa7xx5c";
+        consensus.currentAddress = "cc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqa7xx5c";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -156,7 +156,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x88, 0xB2, 0x1E};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
-        bech32_hrp = "bc";
+        bech32_hrp = "cc";
 
         // by dev vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
         // vFixedSeeds.clear();
@@ -281,7 +281,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp = "tb";
+        bech32_hrp = "tc";
 
         // BY DEV
         // vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
@@ -397,7 +397,7 @@ public:
 
         consensus.rules.reset(new Consensus::TestNetConsensus());
         // current address going to sign next block
-        consensus.currentAddress = "tb1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
+        consensus.currentAddress = "tc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
@@ -421,7 +421,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp = "tb";
+        bech32_hrp = "tc";
 
         fDefaultConsistencyChecks = false;
         fRequireStandard = true;
@@ -477,7 +477,7 @@ public:
 
         consensus.rules.reset(new Consensus::RegTestConsensus());
         // current address going to sign next block  
-        consensus.currentAddress = "bcrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
+        consensus.currentAddress = "ccrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
 
         pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
@@ -533,7 +533,7 @@ public:
         base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
-        bech32_hrp = "bcrt";
+        bech32_hrp = "ccrt";
     }
 
     /**
