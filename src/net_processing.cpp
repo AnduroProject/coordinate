@@ -4679,7 +4679,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
-        addDeposit(vData);
+        if(!isSpecialTxoutValid(vData,m_chainman)) {
+           addDeposit(vData);
+        }
     }
    
     if (msg_type == NetMsgType::PONG) {

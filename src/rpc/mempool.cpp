@@ -42,30 +42,30 @@ static RPCHelpMan sendrawtransaction()
         "\nRelated RPCs: createrawtransaction, signrawtransactionwithkey\n",
         {
             {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
-            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "block signature from federation",
+            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pre signed block signature details from federation",
               {
                 {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                     {
-                    {"inputs", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "The inputs",
+                    {"inputs", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pegin input details",
                         {
                             {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                                 {
-                                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address"},
-                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "The bitcoin amount"},
-                                    {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin witness"},
-                                    {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin peg_hash"},
-                                    {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block_height to sign"},
-                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation burn address"},
-                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation deposit address"},
+                                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address which will get deposit as pegin"},
+                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
+                                    {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Pegin witness which hold leaf and signature for particular pegin"},
+                                    {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "Bitcoin transaction hash which used to initiate pegin"},
+                                    {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
+                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation deposit address"},
+                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation burn address"},
                                 },
                             },
                         },
                     },
-                    {"peginfo", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "peg out information "},
-                    {"currentaddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next address to sign"},
-                    {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next address to sign"},
-                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to sign"},
-                    {"pegwitness", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the peg info"},
+                    {"peginfo", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "last pegout receipts details for building cache across federation"},
+                    {"currentaddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current address to sign the pegin and pegout receipts"},
+                    {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The time which federation used to sign the presigned block"},
+                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from federation"},
+                    {"pegwitness", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Pegin witness which hold leaf and signature for particular pegout"},
                     }
                 }
               }
