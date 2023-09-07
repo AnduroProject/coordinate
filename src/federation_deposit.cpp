@@ -73,6 +73,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue mainstr(UniValue::VOBJ);
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
+   mainstr.pushKV("chain_type", "1");
    mainstr.pushKV("federationaddress", block.currentAddress);
    mainstr.pushKV("witness", txOuts[0].witness);
    mainstr.pushKV("network", getNetworkText(chainman));
@@ -127,6 +128,7 @@ bool isPegInfoValid(std::string pegInfoIn, std::string pegWitnessIn, ChainstateM
    UniValue mainstr(UniValue::VOBJ);
    mainstr.pushKV("message", messages);
    mainstr.pushKV("chain_id", "1");
+   mainstr.pushKV("chain_type", "1");
    mainstr.pushKV("network", getNetworkText(chainman));
    mainstr.pushKV("federationaddress", block.currentAddress);
    mainstr.pushKV("witness", pegWitnessIn);
