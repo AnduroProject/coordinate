@@ -109,7 +109,7 @@ public:
 
         consensus.rules.reset(new Consensus::MainNetConsensus());
         // current address going to sign next block
-        consensus.currentAddress = "cc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqa7xx5c";
+        consensus.currentAddress = "bc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqa7xx5c";
 
         /**
          * The message start string is designed to be unlikely to occur in normal data.
@@ -397,7 +397,7 @@ public:
 
         consensus.rules.reset(new Consensus::TestNetConsensus());
         // current address going to sign next block
-        consensus.currentAddress = "tc1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
+        consensus.currentAddress = "tb1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq2ksfwh";
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
@@ -477,7 +477,7 @@ public:
 
         consensus.rules.reset(new Consensus::RegTestConsensus());
         // current address going to sign next block  
-        consensus.currentAddress = "ccrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
+        consensus.currentAddress = "bcrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlq8060md";
 
         pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
