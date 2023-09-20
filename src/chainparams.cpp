@@ -12,7 +12,9 @@
 #include <script/interpreter.h>
 #include <util/string.h>
 #include <util/system.h>
-
+#include <univalue.h>
+#include <rpc/util.h>
+#include <federation_deposit.h>
 #include <assert.h>
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentAddress)
@@ -20,10 +22,22 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     CMutableTransaction txNew;
     txNew.nVersion = 1;
     txNew.vin.resize(1);
-    txNew.vout.resize(1);
+    txNew.vout.resize(2);
     txNew.vin[0].scriptSig = CScript() << 486604799 << CScriptNum(4) << std::vector<unsigned char>((const unsigned char*)pszTimestamp, (const unsigned char*)pszTimestamp + strlen(pszTimestamp));
     txNew.vout[0].nValue = genesisReward;
     txNew.vout[0].scriptPubKey = genesisOutputScript;
+
+
+    UniValue tx_out_addtional(UniValue::VOBJ);
+    tx_out_addtional.pushKV("current_address", currentAddress);
+    tx_out_addtional.pushKV("current_index", 0);
+    tx_out_addtional.pushKV("peg_time", 0);
+    tx_out_addtional.pushKV("pegout_witness", "");
+    tx_out_addtional.pushKV("pegout_history", "");
+    std::string finalHex = string_to_hex(tx_out_addtional.write());
+    std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+    CTxOut out(0, CScript() << OP_RETURN << data);
+    txNew.vout[1] = out;
 
     CBlock genesis;
     genesis.nTime    = nTime;

@@ -19,6 +19,68 @@
 #include <logging.h>
 #include <util/message.h>
 
+class FederationWitness {
+    public:
+     std::vector<std::string> allkeys;
+     std::vector<std::string> redeemkeys;
+     std::string signature;
+
+     FederationWitness() {
+        SetNull();
+     }
+
+     FederationWitness(std::vector<std::string> allkeysIn, std::vector<std::string> redeemkeysIn, std::string signatureIn) {
+        allkeys = allkeysIn;
+        redeemkeys = redeemkeysIn;
+        signature = signatureIn;
+     }
+
+     SERIALIZE_METHODS(FederationWitness, obj) { 
+        READWRITE(obj.allkeys, obj.signature, obj.redeemkeys); 
+     }
+
+     void SetNull()
+     {
+        allkeys.clear();
+        redeemkeys.clear();
+        signature = "";
+     }
+
+};
+
+class FederationHeader {
+   public:
+    std::string pegInfo;
+    std::string pegWitness;
+    int32_t pegTime;
+    std::string currentAddress;
+    int32_t nextIndex;
+
+    FederationHeader() {
+        SetNull();
+    }
+
+    FederationHeader(std::string pegInfoIn, std::string pegWitnessIn, int32_t pegTimeIn, std::string currentAddressIn, int32_t nextIndexIn) {
+        pegInfo = pegInfoIn;
+        pegWitness = pegWitnessIn;
+        pegTime = pegTimeIn;
+        currentAddress = currentAddressIn;
+        nextIndex = nextIndexIn;
+     }
+
+    SERIALIZE_METHODS(FederationHeader, obj) { 
+        READWRITE(obj.pegInfo, obj.pegWitness, obj.pegTime, obj.currentAddress, obj.nextIndex); 
+    }
+
+    void SetNull() {
+        pegInfo = "";
+        pegWitness = "";
+        pegTime = 0;
+        currentAddress = "";
+        nextIndex = 0;
+    }
+};
+
 class FederationTxOut
 {
 public:
@@ -34,6 +96,7 @@ public:
     int32_t nextIndex;
     std::string depositAddress;
     std::string burnAddress;
+
     FederationTxOut()
     {
         SetNull();
