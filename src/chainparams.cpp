@@ -491,7 +491,7 @@ public:
 
         consensus.rules.reset(new Consensus::RegTestConsensus());
         // current address going to sign next block  
-        consensus.currentAddress = "ccrt1pxd5q7m9wpp8yc6z4ask5lefpf4yfdzk5pd7pslgamew3h64kzqlqm88twk";
+        consensus.currentAddress = "ccrt1pz9jz9r7ykvmz9snvxreyv7xz65jg73gplv5507leg2mam49ll02s2u4jzp";
 
         pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
