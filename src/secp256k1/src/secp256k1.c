@@ -21,11 +21,13 @@
 #include "../include/secp256k1_preallocated.h"
 
 #include "assumptions.h"
+#include "checkmem.h"
 #include "util.h"
 
 #include "field_impl.h"
 #include "scalar_impl.h"
 #include "group_impl.h"
+#include "eccommit_impl.h"
 #include "ecmult_impl.h"
 #include "ecmult_const_impl.h"
 #include "ecmult_gen_impl.h"
@@ -40,8 +42,24 @@
 # error "secp256k1.h processed without SECP256K1_BUILD defined while building secp256k1.c"
 #endif
 
-#if defined(VALGRIND)
-# include <valgrind/memcheck.h>
+#ifdef ENABLE_MODULE_GENERATOR
+# include "../include/secp256k1_generator.h"
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+# include "../include/secp256k1_rangeproof.h"
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_S2C
+# include "../include/secp256k1_ecdsa_s2c.h"
+static void secp256k1_ecdsa_s2c_opening_save(secp256k1_ecdsa_s2c_opening* opening, secp256k1_ge* ge);
+#else
+typedef void secp256k1_ecdsa_s2c_opening;
+static void secp256k1_ecdsa_s2c_opening_save(secp256k1_ecdsa_s2c_opening* opening, secp256k1_ge* ge) {
+    (void) opening;
+    (void) ge;
+    VERIFY_CHECK(0);
+}
 #endif
 
 #define ARG_CHECK(cond) do { \
@@ -51,9 +69,10 @@
     } \
 } while(0)
 
-#define ARG_CHECK_NO_RETURN(cond) do { \
+#define ARG_CHECK_VOID(cond) do { \
     if (EXPECT(!(cond), 0)) { \
         secp256k1_callback_call(&ctx->illegal_callback, #cond); \
+        return; \
     } \
 } while(0)
 
@@ -75,6 +94,15 @@ static const secp256k1_context secp256k1_context_static_ = {
 const secp256k1_context *secp256k1_context_static = &secp256k1_context_static_;
 const secp256k1_context *secp256k1_context_no_precomp = &secp256k1_context_static_;
 
+/* Helper function that determines if a context is proper, i.e., is not the static context or a copy thereof.
+ *
+ * This is intended for "context" functions such as secp256k1_context_clone. Function which need specific
+ * features of a context should still check for these features directly. For example, a function that needs
+ * ecmult_gen should directly check for the existence of the ecmult_gen context. */
+static int secp256k1_context_is_proper(const secp256k1_context* ctx) {
+    return secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx);
+}
+
 void secp256k1_selftest(void) {
     if (!secp256k1_selftest_passes()) {
         secp256k1_callback_call(&default_error_callback, "self test failed");
@@ -92,13 +120,19 @@ size_t secp256k1_context_preallocated_size(unsigned int flags) {
             return 0;
     }
 
+    if (EXPECT(!SECP256K1_CHECKMEM_RUNNING() && (flags & SECP256K1_FLAGS_BIT_CONTEXT_DECLASSIFY), 0)) {
+            secp256k1_callback_call(&default_illegal_callback,
+                                    "Declassify flag requires running with memory checking");
+            return 0;
+    }
+
     return ret;
 }
 
 size_t secp256k1_context_preallocated_clone_size(const secp256k1_context* ctx) {
-    size_t ret = sizeof(secp256k1_context);
     VERIFY_CHECK(ctx != NULL);
-    return ret;
+    ARG_CHECK(secp256k1_context_is_proper(ctx));
+    return sizeof(secp256k1_context);
 }
 
 secp256k1_context* secp256k1_context_preallocated_create(void* prealloc, unsigned int flags) {
@@ -139,6 +173,7 @@ secp256k1_context* secp256k1_context_preallocated_clone(const secp256k1_context*
     secp256k1_context* ret;
     VERIFY_CHECK(ctx != NULL);
     ARG_CHECK(prealloc != NULL);
+    ARG_CHECK(secp256k1_context_is_proper(ctx));
 
     ret = (secp256k1_context*)prealloc;
     *ret = *ctx;
@@ -150,6 +185,8 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
     size_t prealloc_size;
 
     VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_context_is_proper(ctx));
+
     prealloc_size = secp256k1_context_preallocated_clone_size(ctx);
     ret = (secp256k1_context*)checked_malloc(&ctx->error_callback, prealloc_size);
     ret = secp256k1_context_preallocated_clone(ctx, ret);
@@ -157,21 +194,33 @@ secp256k1_context* secp256k1_context_clone(const secp256k1_context* ctx) {
 }
 
 void secp256k1_context_preallocated_destroy(secp256k1_context* ctx) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
-    if (ctx != NULL) {
-        secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
+    ARG_CHECK_VOID(ctx == NULL || secp256k1_context_is_proper(ctx));
+
+    /* Defined as noop */
+    if (ctx == NULL) {
+        return;
     }
+
+    secp256k1_ecmult_gen_context_clear(&ctx->ecmult_gen_ctx);
 }
 
 void secp256k1_context_destroy(secp256k1_context* ctx) {
-    if (ctx != NULL) {
-        secp256k1_context_preallocated_destroy(ctx);
-        free(ctx);
+    ARG_CHECK_VOID(ctx == NULL || secp256k1_context_is_proper(ctx));
+
+    /* Defined as noop */
+    if (ctx == NULL) {
+        return;
     }
+
+    secp256k1_context_preallocated_destroy(ctx);
+    free(ctx);
 }
 
 void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
+    /* We compare pointers instead of checking secp256k1_context_is_proper() here
+       because setting callbacks is allowed on *copies* of the static context:
+       it's harmless and makes testing easier. */
+    ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
         fun = secp256k1_default_illegal_callback_fn;
     }
@@ -180,7 +229,10 @@ void secp256k1_context_set_illegal_callback(secp256k1_context* ctx, void (*fun)(
 }
 
 void secp256k1_context_set_error_callback(secp256k1_context* ctx, void (*fun)(const char* message, void* data), const void* data) {
-    ARG_CHECK_NO_RETURN(ctx != secp256k1_context_static);
+    /* We compare pointers instead of checking secp256k1_context_is_proper() here
+       because setting callbacks is allowed on *copies* of the static context:
+       it's harmless and makes testing easier. */
+    ARG_CHECK_VOID(ctx != secp256k1_context_static);
     if (fun == NULL) {
         fun = secp256k1_default_error_callback_fn;
     }
@@ -199,17 +251,10 @@ void secp256k1_scratch_space_destroy(const secp256k1_context *ctx, secp256k1_scr
 }
 
 /* Mark memory as no-longer-secret for the purpose of analysing constant-time behaviour
- *  of the software. This is setup for use with valgrind but could be substituted with
- *  the appropriate instrumentation for other analysis tools.
+ *  of the software.
  */
 static SECP256K1_INLINE void secp256k1_declassify(const secp256k1_context* ctx, const void *p, size_t len) {
-#if defined(VALGRIND)
-    if (EXPECT(ctx->declassify,0)) VALGRIND_MAKE_MEM_DEFINED(p, len);
-#else
-    (void)ctx;
-    (void)p;
-    (void)len;
-#endif
+    if (EXPECT(ctx->declassify, 0)) SECP256K1_CHECKMEM_DEFINE(p, len);
 }
 
 static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge, const secp256k1_pubkey* pubkey) {
@@ -223,8 +268,8 @@ static int secp256k1_pubkey_load(const secp256k1_context* ctx, secp256k1_ge* ge,
     } else {
         /* Otherwise, fall back to 32-byte big endian for X and Y. */
         secp256k1_fe x, y;
-        secp256k1_fe_set_b32(&x, pubkey->data);
-        secp256k1_fe_set_b32(&y, pubkey->data + 32);
+        ARG_CHECK(secp256k1_fe_set_b32_limit(&x, pubkey->data));
+        ARG_CHECK(secp256k1_fe_set_b32_limit(&y, pubkey->data + 32));
         secp256k1_ge_set_xy(ge, &x, &y);
     }
     ARG_CHECK(!secp256k1_fe_is_zero(&ge->x));
@@ -475,7 +520,7 @@ static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *m
 const secp256k1_nonce_function secp256k1_nonce_function_rfc6979 = nonce_function_rfc6979;
 const secp256k1_nonce_function secp256k1_nonce_function_default = nonce_function_rfc6979;
 
-static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, int* recid, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
+static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_scalar* r, secp256k1_scalar* s, int* recid, secp256k1_sha256* s2c_sha, secp256k1_ecdsa_s2c_opening *s2c_opening, const unsigned char* s2c_data32, const unsigned char *msg32, const unsigned char *seckey, secp256k1_nonce_function noncefp, const void* noncedata) {
     secp256k1_scalar sec, non, msg;
     int ret = 0;
     int is_sec_valid;
@@ -490,6 +535,11 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
     if (noncefp == NULL) {
         noncefp = secp256k1_nonce_function_default;
     }
+    /* sign-to-contract commitments only work with the default nonce function,
+     * because we need to ensure that s2c_data is actually hashed into the nonce and
+     * not just ignored. Otherwise an attacker can exfiltrate the secret key by
+     * signing the same message thrice with different commitments. */
+    VERIFY_CHECK(s2c_data32 == NULL || noncefp == secp256k1_nonce_function_default);
 
     /* Fail if the secret key is invalid. */
     is_sec_valid = secp256k1_scalar_set_b32_seckey(&sec, seckey);
@@ -505,6 +555,30 @@ static int secp256k1_ecdsa_sign_inner(const secp256k1_context* ctx, secp256k1_sc
         /* The nonce is still secret here, but it being invalid is is less likely than 1:2^255. */
         secp256k1_declassify(ctx, &is_nonce_valid, sizeof(is_nonce_valid));
         if (is_nonce_valid) {
+            if (s2c_data32 != NULL) {
+                secp256k1_gej nonce_pj;
+                secp256k1_ge nonce_p;
+
+                /* Compute original nonce commitment/pubkey */
+                secp256k1_ecmult_gen(&ctx->ecmult_gen_ctx, &nonce_pj, &non);
+                secp256k1_ge_set_gej(&nonce_p, &nonce_pj);
+                if (s2c_opening != NULL) {
+                    secp256k1_ecdsa_s2c_opening_save(s2c_opening, &nonce_p);
+                }
+
+                /* Because the nonce is valid, the nonce point isn't the point
+                 * at infinity and we can declassify that information to be able to
+                 * serialize the point. */
+                secp256k1_declassify(ctx, &nonce_p.infinity, sizeof(nonce_p.infinity));
+
+                /* Tweak nonce with s2c commitment. */
+                ret = secp256k1_ec_commit_seckey(&non, &nonce_p, s2c_sha, s2c_data32, 32);
+                secp256k1_declassify(ctx, &ret, sizeof(ret)); /* may be secret that the tweak falied, but happens with negligible probability */
+                if (!ret) {
+                    break;
+                }
+            }
+
             ret = secp256k1_ecdsa_sig_sign(&ctx->ecmult_gen_ctx, r, s, &sec, &msg, &non, recid);
             /* The final signature is no longer a secret, nor is the fact that we were successful or not. */
             secp256k1_declassify(ctx, &ret, sizeof(ret));
@@ -540,7 +614,7 @@ int secp256k1_ecdsa_sign(const secp256k1_context* ctx, secp256k1_ecdsa_signature
     ARG_CHECK(signature != NULL);
     ARG_CHECK(seckey != NULL);
 
-    ret = secp256k1_ecdsa_sign_inner(ctx, &r, &s, NULL, msghash32, seckey, noncefp, noncedata);
+    ret = secp256k1_ecdsa_sign_inner(ctx, &r, &s, NULL, NULL, NULL, NULL, msghash32, seckey, noncefp, noncedata);
     secp256k1_ecdsa_signature_save(signature, &r, &s);
     return ret;
 }
@@ -725,6 +799,8 @@ int secp256k1_ec_pubkey_tweak_mul(const secp256k1_context* ctx, secp256k1_pubkey
 
 int secp256k1_context_randomize(secp256k1_context* ctx, const unsigned char *seed32) {
     VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(secp256k1_context_is_proper(ctx));
+
     if (secp256k1_ecmult_gen_context_is_built(&ctx->ecmult_gen_ctx)) {
         secp256k1_ecmult_gen_blind(&ctx->ecmult_gen_ctx, seed32);
     }
@@ -770,6 +846,36 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
     return 1;
 }
 
+/* Outputs 33 zero bytes if the given group element is the point at infinity and
+ * otherwise outputs the compressed serialization */
+static void secp256k1_ge_serialize_ext(unsigned char *out33, secp256k1_ge* ge) {
+    if (secp256k1_ge_is_infinity(ge)) {
+        memset(out33, 0, 33);
+    } else {
+        int ret;
+        size_t size = 33;
+        ret = secp256k1_eckey_pubkey_serialize(ge, out33, &size, 1);
+        /* Serialize must succeed because the point is not at infinity */
+        VERIFY_CHECK(ret && size == 33);
+    }
+}
+
+/* Outputs the point at infinity if the given byte array is all zero, otherwise
+ * attempts to parse compressed point serialization. */
+static int secp256k1_ge_parse_ext(secp256k1_ge* ge, const unsigned char *in33) {
+    unsigned char zeros[33] = { 0 };
+
+    if (memcmp(in33, zeros, sizeof(zeros)) == 0) {
+        secp256k1_ge_set_infinity(ge);
+        return 1;
+    }
+    return secp256k1_eckey_pubkey_parse(ge, in33, 33);
+}
+
+#ifdef ENABLE_MODULE_BPPP
+# include "modules/bppp/main_impl.h"
+#endif
+
 #ifdef ENABLE_MODULE_ECDH
 # include "modules/ecdh/main_impl.h"
 #endif
@@ -784,4 +890,36 @@ int secp256k1_tagged_sha256(const secp256k1_context* ctx, unsigned char *hash32,
 
 #ifdef ENABLE_MODULE_SCHNORRSIG
 # include "modules/schnorrsig/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_ELLSWIFT
+# include "modules/ellswift/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_S2C
+# include "modules/ecdsa_s2c/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_ECDSA_ADAPTOR
+# include "modules/ecdsa_adaptor/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_MUSIG
+# include "modules/musig/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_GENERATOR
+# include "modules/generator/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_RANGEPROOF
+# include "modules/rangeproof/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_WHITELIST
+# include "modules/whitelist/main_impl.h"
+#endif
+
+#ifdef ENABLE_MODULE_SURJECTIONPROOF
+# include "modules/surjection/main_impl.h"
 #endif

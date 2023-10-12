@@ -380,20 +380,21 @@ libbitcoin_cli_a_OBJECTS = $(am_libbitcoin_cli_a_OBJECTS)
 libbitcoin_common_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_common_a_LIBADD =
 am__libbitcoin_common_a_SOURCES_DIST = auxpow.cpp \
-	federation_deposit.cpp base58.cpp bech32.cpp chainparams.cpp \
-	coins.cpp common/bloom.cpp common/interfaces.cpp \
-	common/run_command.cpp compressor.cpp core_read.cpp \
-	core_write.cpp deploymentinfo.cpp external_signer.cpp \
-	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
-	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
-	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
-	protocol.cpp psbt.cpp rpc/external_signer.cpp \
-	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
-	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
-	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
-	warnings.cpp addrdb.h addrman.h addrman_impl.h attributes.h \
-	auxpow.h federation_deposit.h banman.h base58.h bech32.h \
-	blockencodings.h blockfilter.h chain.h chainparams.h \
+	federation_deposit.cpp federation_validator.cpp base58.cpp \
+	bech32.cpp chainparams.cpp coins.cpp common/bloom.cpp \
+	common/interfaces.cpp common/run_command.cpp compressor.cpp \
+	core_read.cpp core_write.cpp deploymentinfo.cpp \
+	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
+	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
+	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
+	policy/policy.cpp protocol.cpp psbt.cpp \
+	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
+	rpc/request.cpp rpc/util.cpp scheduler.cpp \
+	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
+	script/signingprovider.cpp script/standard.cpp warnings.cpp \
+	addrdb.h addrman.h addrman_impl.h attributes.h auxpow.h \
+	federation_deposit.h federation_validator.h banman.h base58.h \
+	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -464,6 +465,7 @@ am__objects_2 =  \
 	common/libbitcoin_common_a-url.$(OBJEXT)
 am_libbitcoin_common_a_OBJECTS = libbitcoin_common_a-auxpow.$(OBJEXT) \
 	libbitcoin_common_a-federation_deposit.$(OBJEXT) \
+	libbitcoin_common_a-federation_validator.$(OBJEXT) \
 	libbitcoin_common_a-base58.$(OBJEXT) \
 	libbitcoin_common_a-bech32.$(OBJEXT) \
 	libbitcoin_common_a-chainparams.$(OBJEXT) \
@@ -580,22 +582,22 @@ am__libbitcoin_node_a_SOURCES_DIST = addrdb.cpp addrman.cpp banman.cpp \
 	txmempool.cpp txorphanage.cpp txrequest.cpp validation.cpp \
 	validationinterface.cpp versionbits.cpp addrdb.h addrman.h \
 	addrman_impl.h attributes.h auxpow.h federation_deposit.h \
-	banman.h base58.h bech32.h blockencodings.h blockfilter.h \
-	chain.h chainparams.h chainparamsbase.h chainparamsseeds.h \
-	checkqueue.h clientversion.h coins.h common/bloom.h \
-	common/run_command.h common/url.h compat/assumptions.h \
-	compat/byteswap.h compat/compat.h compat/cpuid.h \
-	compat/endian.h compressor.h consensus/consensus.h \
-	consensus/tx_check.h consensus/tx_verify.h core_io.h \
-	core_memusage.h cuckoocache.h dbwrapper.h deploymentinfo.h \
-	deploymentstatus.h external_signer.h flatfile.h fs.h \
-	headerssync.h httprpc.h httpserver.h i2p.h index/base.h \
-	index/blockfilterindex.h index/coinstatsindex.h \
-	index/disktxpos.h index/txindex.h indirectmap.h init.h \
-	init/common.h interfaces/chain.h interfaces/echo.h \
-	interfaces/handler.h interfaces/init.h interfaces/ipc.h \
-	interfaces/node.h interfaces/wallet.h kernel/chain.h \
-	kernel/chainstatemanager_opts.h kernel/checks.h \
+	federation_validator.h banman.h base58.h bech32.h \
+	blockencodings.h blockfilter.h chain.h chainparams.h \
+	chainparamsbase.h chainparamsseeds.h checkqueue.h \
+	clientversion.h coins.h common/bloom.h common/run_command.h \
+	common/url.h compat/assumptions.h compat/byteswap.h \
+	compat/compat.h compat/cpuid.h compat/endian.h compressor.h \
+	consensus/consensus.h consensus/tx_check.h \
+	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
+	dbwrapper.h deploymentinfo.h deploymentstatus.h \
+	external_signer.h flatfile.h fs.h headerssync.h httprpc.h \
+	httpserver.h i2p.h index/base.h index/blockfilterindex.h \
+	index/coinstatsindex.h index/disktxpos.h index/txindex.h \
+	indirectmap.h init.h init/common.h interfaces/chain.h \
+	interfaces/echo.h interfaces/handler.h interfaces/init.h \
+	interfaces/ipc.h interfaces/node.h interfaces/wallet.h \
+	kernel/chain.h kernel/chainstatemanager_opts.h kernel/checks.h \
 	kernel/coinstats.h kernel/context.h kernel/cs_main.h \
 	kernel/mempool_entry.h kernel/mempool_limits.h \
 	kernel/mempool_options.h kernel/mempool_persist.h \
@@ -792,8 +794,9 @@ am__libbitcoin_wallet_a_SOURCES_DIST = wallet/coincontrol.cpp \
 	wallet/spend.cpp wallet/transaction.cpp wallet/wallet.cpp \
 	wallet/walletdb.cpp wallet/walletutil.cpp \
 	wallet/coinselection.cpp addrdb.h addrman.h addrman_impl.h \
-	attributes.h auxpow.h federation_deposit.h banman.h base58.h \
-	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
+	attributes.h auxpow.h federation_deposit.h \
+	federation_validator.h banman.h base58.h bech32.h \
+	blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -1549,15 +1552,16 @@ am_libbitcoinconsensus_la_rpath = -rpath \
 #	$(LIBUNIVALUE) $(LIBLEVELDB) \
 #	$(LIBMEMENV) $(LIBSECP256K1)
 am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
-	arith_uint256.cpp auxpow.cpp federation_deposit.cpp chain.cpp \
-	chainparamsbase.cpp chainparams.cpp clientversion.cpp \
-	coins.cpp compressor.cpp consensus/merkle.cpp \
-	consensus/tx_check.cpp consensus/tx_verify.cpp core_read.cpp \
-	dbwrapper.cpp deploymentinfo.cpp deploymentstatus.cpp \
-	flatfile.cpp fs.cpp hash.cpp kernel/chain.cpp \
-	kernel/checks.cpp kernel/coinstats.cpp kernel/context.cpp \
-	kernel/cs_main.cpp kernel/mempool_persist.cpp key.cpp \
-	logging.cpp node/blockstorage.cpp node/chainstate.cpp \
+	arith_uint256.cpp auxpow.cpp federation_deposit.cpp \
+	federation_validator.cpp chain.cpp chainparamsbase.cpp \
+	chainparams.cpp clientversion.cpp coins.cpp compressor.cpp \
+	consensus/merkle.cpp consensus/tx_check.cpp \
+	consensus/tx_verify.cpp core_read.cpp dbwrapper.cpp \
+	deploymentinfo.cpp deploymentstatus.cpp flatfile.cpp fs.cpp \
+	hash.cpp kernel/chain.cpp kernel/checks.cpp \
+	kernel/coinstats.cpp kernel/context.cpp kernel/cs_main.cpp \
+	kernel/mempool_persist.cpp key.cpp logging.cpp \
+	node/blockstorage.cpp node/chainstate.cpp \
 	node/interface_ui.cpp node/utxo_snapshot.cpp \
 	policy/feerate.cpp policy/fees.cpp policy/packages.cpp \
 	policy/policy.cpp policy/rbf.cpp policy/settings.cpp pow.cpp \
@@ -1579,6 +1583,7 @@ am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
 #	libbitcoinkernel_la-arith_uint256.lo \
 #	libbitcoinkernel_la-auxpow.lo \
 #	libbitcoinkernel_la-federation_deposit.lo \
+#	libbitcoinkernel_la-federation_validator.lo \
 #	libbitcoinkernel_la-chain.lo \
 #	libbitcoinkernel_la-chainparamsbase.lo \
 #	libbitcoinkernel_la-chainparams.lo \
@@ -2417,6 +2422,7 @@ am__depfiles_remade =  \
 	./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po \
 	./$(DEPDIR)/libbitcoin_common_a-external_signer.Po \
 	./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po \
+	./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po \
 	./$(DEPDIR)/libbitcoin_common_a-key.Po \
 	./$(DEPDIR)/libbitcoin_common_a-key_io.Po \
 	./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po \
@@ -2490,6 +2496,7 @@ am__depfiles_remade =  \
 	./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo \
+	./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-fs.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-hash.Plo \
@@ -3633,7 +3640,7 @@ am__relativize = \
     dir1=`echo "$$dir1" | sed -e "$$sed_rest"`; \
   done; \
   reldir="$$dir2"
-ACLOCAL = ${SHELL} '/Users/jk/MIKE/sidechain/build-aux/missing' aclocal-1.16
+ACLOCAL = ${SHELL} '/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing' aclocal-1.16
 AMTAR = $${TAR-tar}
 AM_DEFAULT_VERBOSITY = 0
 ANDROID_ARCH = 
@@ -3642,9 +3649,9 @@ ARFLAGS = cr
 ARM_CRC_CXXFLAGS = -march=armv8-a+crc
 ARM_SHANI_CXXFLAGS = -march=armv8-a+crypto
 AS = as
-AUTOCONF = ${SHELL} '/Users/jk/MIKE/sidechain/build-aux/missing' autoconf
-AUTOHEADER = ${SHELL} '/Users/jk/MIKE/sidechain/build-aux/missing' autoheader
-AUTOMAKE = ${SHELL} '/Users/jk/MIKE/sidechain/build-aux/missing' automake-1.16
+AUTOCONF = ${SHELL} '/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing' autoconf
+AUTOHEADER = ${SHELL} '/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing' autoheader
+AUTOMAKE = ${SHELL} '/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing' automake-1.16
 AVX2_CXXFLAGS = 
 AWK = awk
 BDB_CFLAGS = -I/opt/homebrew/opt/berkeley-db@4/include
@@ -3704,10 +3711,10 @@ EGREP = /usr/bin/grep -E
 ENABLE_EXTERNAL_SIGNER = 
 ERROR_CXXFLAGS = 
 ETAGS = etags
-EVENT_CFLAGS = -I/opt/homebrew/Cellar/libevent/2.1.12/include
-EVENT_LIBS = -L/opt/homebrew/Cellar/libevent/2.1.12/lib -levent
-EVENT_PTHREADS_CFLAGS = -D_THREAD_SAFE -I/opt/homebrew/Cellar/libevent/2.1.12/include
-EVENT_PTHREADS_LIBS = -L/opt/homebrew/Cellar/libevent/2.1.12/lib -levent_pthreads -levent
+EVENT_CFLAGS = -I/opt/homebrew/Cellar/libevent/2.1.12_1/include
+EVENT_LIBS = -L/opt/homebrew/Cellar/libevent/2.1.12_1/lib -levent
+EVENT_PTHREADS_CFLAGS = -D_THREAD_SAFE -I/opt/homebrew/Cellar/libevent/2.1.12_1/include
+EVENT_PTHREADS_LIBS = -L/opt/homebrew/Cellar/libevent/2.1.12_1/lib -levent_pthreads -levent
 EXEEXT = 
 EXTENDED_FUNCTIONAL_TESTS = 
 FGREP = /usr/bin/grep -F
@@ -3738,7 +3745,7 @@ INSTALL_NAME_TOOL =
 INSTALL_PROGRAM = ${INSTALL}
 INSTALL_SCRIPT = ${INSTALL}
 INSTALL_STRIP_PROGRAM = $(install_sh) -c -s
-LCONVERT = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lconvert
+LCONVERT = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lconvert
 LCOV = 
 LCOV_OPTS = 
 LD = /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld
@@ -3752,20 +3759,20 @@ LIBTOOL_APP_LDFLAGS =
 LIPO = lipo
 LLVM_COV = 
 LN_S = ln -s
-LRELEASE = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lrelease
+LRELEASE = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lrelease
 LTLIBOBJS = 
 LTO_CXXFLAGS = 
 LTO_LDFLAGS = 
 LT_SYS_LIBRARY_PATH = 
-LUPDATE = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lupdate
+LUPDATE = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lupdate
 MAINT = 
-MAKEINFO = ${SHELL} '/Users/jk/MIKE/sidechain/build-aux/missing' makeinfo
+MAKEINFO = ${SHELL} '/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing' makeinfo
 MAKENSIS = 
 MANIFEST_TOOL = :
 MINIUPNPC_CPPFLAGS = -I/opt/homebrew/opt/miniupnpc/include
 MINIUPNPC_LIBS = -L/opt/homebrew/opt/miniupnpc/lib -lminiupnpc -lminiupnpc -lminiupnpc
 MKDIR_P = .././build-aux/install-sh -c -d
-MOC = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/moc
+MOC = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/moc
 MOC_DEFS = -DHAVE_CONFIG_H -I$(srcdir) -DQ_OS_MAC
 MPGEN_PREFIX = 
 NATPMP_CPPFLAGS = -I/opt/homebrew/opt/libnatpmp/include
@@ -3806,11 +3813,11 @@ QT_ACCESSIBILITY_CFLAGS =
 QT_ACCESSIBILITY_LIBS = 
 QT_CLIPBOARD_CFLAGS = 
 QT_CLIPBOARD_LIBS = 
-QT_CORE_CFLAGS = -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_CORE_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
-QT_DBUS_CFLAGS = -DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_DBUS_INCLUDES = -DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_DBUS_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
+QT_CORE_CFLAGS = -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_CORE_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
+QT_DBUS_CFLAGS = -DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_DBUS_INCLUDES = -DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_DBUS_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
 QT_DEVICEDISCOVERY_CFLAGS = 
 QT_DEVICEDISCOVERY_LIBS = 
 QT_EDID_CFLAGS = 
@@ -3825,27 +3832,27 @@ QT_FONTDATABASE_CFLAGS =
 QT_FONTDATABASE_LIBS = 
 QT_GRAPHICS_CFLAGS = 
 QT_GRAPHICS_LIBS = 
-QT_GUI_CFLAGS = -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_GUI_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
-QT_INCLUDES = -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers 
+QT_GUI_CFLAGS = -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_GUI_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
+QT_INCLUDES = -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers 
 QT_INPUT_CFLAGS = 
 QT_INPUT_LIBS = 
 QT_LDFLAGS = 
-QT_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore  -framework Foundation -framework AppKit
-QT_NETWORK_CFLAGS = -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_NETWORK_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
+QT_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore  -framework Foundation -framework AppKit
+QT_NETWORK_CFLAGS = -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_NETWORK_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
 QT_PIE_FLAGS = 
 QT_SELECT = qt5
 QT_SERVICE_CFLAGS = 
 QT_SERVICE_LIBS = 
-QT_TEST_CFLAGS = -DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_TEST_INCLUDES = -DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_TEST_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
+QT_TEST_CFLAGS = -DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_TEST_INCLUDES = -DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_TEST_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
 QT_THEME_CFLAGS = 
 QT_THEME_LIBS = 
 QT_TRANSLATION_DIR = 
-QT_WIDGETS_CFLAGS = -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers
-QT_WIDGETS_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore
+QT_WIDGETS_CFLAGS = -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers
+QT_WIDGETS_LIBS = -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore
 QT_WINDOWSUIAUTOMATION_CFLAGS = 
 QT_WINDOWSUIAUTOMATION_LIBS = 
 QT_XCBQPA_CFLAGS = 
@@ -3853,12 +3860,12 @@ QT_XCBQPA_LIBS =
 QT_XKBCOMMON_CFLAGS = 
 QT_XKBCOMMON_LIBS = 
 RANLIB = ranlib
-RCC = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/rcc
+RCC = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/rcc
 RELDFLAGS = 
 RUNTIME_LDFLAGS = 
 SANITIZER_CXXFLAGS = 
 SANITIZER_LDFLAGS = 
-SED = /usr/bin/sed
+SED = /opt/homebrew/bin/gsed
 SET_MAKE = 
 SHELL = /bin/sh
 SQLITE_CFLAGS = 
@@ -3867,7 +3874,7 @@ SSE41_CXXFLAGS =
 SSE42_CXXFLAGS = 
 STRIP = strip
 TESTDEFS = 
-UIC = /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/uic
+UIC = /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/uic
 USE_BDB = 
 USE_QRCODE = 
 USE_SQLITE = 
@@ -3880,10 +3887,10 @@ XGETTEXT = /opt/homebrew/bin/xgettext
 XORRISOFS = 
 ZMQ_CFLAGS = -I/opt/homebrew/Cellar/zeromq/4.3.4/include -I/opt/homebrew/Cellar/libsodium/1.0.18_1/include
 ZMQ_LIBS = -L/opt/homebrew/Cellar/zeromq/4.3.4/lib -lzmq
-abs_builddir = /Users/jk/MIKE/sidechain/src
-abs_srcdir = /Users/jk/MIKE/sidechain/src
-abs_top_builddir = /Users/jk/MIKE/sidechain
-abs_top_srcdir = /Users/jk/MIKE/sidechain
+abs_builddir = /Users/jk/MIKE/federation/mara-sidechain-node/src
+abs_srcdir = /Users/jk/MIKE/federation/mara-sidechain-node/src
+abs_top_builddir = /Users/jk/MIKE/federation/mara-sidechain-node
+abs_top_srcdir = /Users/jk/MIKE/federation/mara-sidechain-node
 ac_ct_AR = ar
 ac_ct_CC = gcc
 ac_ct_CXX = g++
@@ -3915,7 +3922,7 @@ host_vendor = apple
 htmldir = ${docdir}
 includedir = ${prefix}/include
 infodir = ${datarootdir}/info
-install_sh = ${SHELL} /Users/jk/MIKE/sidechain/build-aux/install-sh
+install_sh = ${SHELL} /Users/jk/MIKE/federation/mara-sidechain-node/build-aux/install-sh
 libdir = ${exec_prefix}/lib
 libexecdir = ${exec_prefix}/libexec
 localedir = ${datarootdir}/locale
@@ -3984,6 +3991,7 @@ BITCOIN_CORE_H = \
   attributes.h \
   auxpow.h \
   federation_deposit.h \
+  federation_validator.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -4391,18 +4399,18 @@ libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) \
 	$(BOOST_CPPFLAGS) $(am__append_18)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = auxpow.cpp federation_deposit.cpp \
-	base58.cpp bech32.cpp chainparams.cpp coins.cpp \
-	common/bloom.cpp common/interfaces.cpp common/run_command.cpp \
-	compressor.cpp core_read.cpp core_write.cpp deploymentinfo.cpp \
-	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
-	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
-	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
-	policy/policy.cpp protocol.cpp psbt.cpp \
-	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
-	rpc/request.cpp rpc/util.cpp scheduler.cpp \
-	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
-	script/signingprovider.cpp script/standard.cpp warnings.cpp \
-	$(BITCOIN_CORE_H) $(am__append_19)
+	federation_validator.cpp base58.cpp bech32.cpp chainparams.cpp \
+	coins.cpp common/bloom.cpp common/interfaces.cpp \
+	common/run_command.cpp compressor.cpp core_read.cpp \
+	core_write.cpp deploymentinfo.cpp external_signer.cpp \
+	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
+	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
+	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
+	protocol.cpp psbt.cpp rpc/external_signer.cpp \
+	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
+	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
+	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
+	warnings.cpp $(BITCOIN_CORE_H) $(am__append_19)
 #
 
 # util #
@@ -4578,6 +4586,7 @@ bitcoin_chainstate_LDADD = $(LIBBITCOINKERNEL)
 #  arith_uint256.cpp \
 #  auxpow.cpp \
 #  federation_deposit.cpp \
+#  federation_validator.cpp \
 #  chain.cpp \
 #  chainparamsbase.cpp \
 #  chainparams.cpp \
@@ -7844,6 +7853,7 @@ include ./$(DEPDIR)/libbitcoin_common_a-core_write.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-external_signer.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po # am--include-marker
+include ./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-key.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-key_io.Po # am--include-marker
 include ./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po # am--include-marker
@@ -7917,6 +7927,7 @@ include ./$(DEPDIR)/libbitcoinkernel_la-dbwrapper.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo # am--include-marker
+include ./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-fs.Plo # am--include-marker
 include ./$(DEPDIR)/libbitcoinkernel_la-hash.Plo # am--include-marker
@@ -8754,6 +8765,20 @@ libbitcoin_common_a-federation_deposit.obj: federation_deposit.cpp
 #	$(AM_V_CXX)source='federation_deposit.cpp' object='libbitcoin_common_a-federation_deposit.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_deposit.obj `if test -f 'federation_deposit.cpp'; then $(CYGPATH_W) 'federation_deposit.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_deposit.cpp'; fi`
+
+libbitcoin_common_a-federation_validator.o: federation_validator.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-federation_validator.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo -c -o libbitcoin_common_a-federation_validator.o `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo $(DEPDIR)/libbitcoin_common_a-federation_validator.Po
+#	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoin_common_a-federation_validator.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_validator.o `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+
+libbitcoin_common_a-federation_validator.obj: federation_validator.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-federation_validator.obj -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo -c -o libbitcoin_common_a-federation_validator.obj `if test -f 'federation_validator.cpp'; then $(CYGPATH_W) 'federation_validator.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_validator.cpp'; fi`
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo $(DEPDIR)/libbitcoin_common_a-federation_validator.Po
+#	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoin_common_a-federation_validator.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_validator.obj `if test -f 'federation_validator.cpp'; then $(CYGPATH_W) 'federation_validator.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_validator.cpp'; fi`
 
 libbitcoin_common_a-base58.o: base58.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-base58.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-base58.Tpo -c -o libbitcoin_common_a-base58.o `test -f 'base58.cpp' || echo '$(srcdir)/'`base58.cpp
@@ -14488,6 +14513,13 @@ libbitcoinkernel_la-federation_deposit.lo: federation_deposit.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoinkernel_la-federation_deposit.lo `test -f 'federation_deposit.cpp' || echo '$(srcdir)/'`federation_deposit.cpp
 
+libbitcoinkernel_la-federation_validator.lo: federation_validator.cpp
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT libbitcoinkernel_la-federation_validator.lo -MD -MP -MF $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo -c -o libbitcoinkernel_la-federation_validator.lo `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo $(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
+#	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoinkernel_la-federation_validator.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoinkernel_la-federation_validator.lo `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+
 libbitcoinkernel_la-chain.lo: chain.cpp
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT libbitcoinkernel_la-chain.lo -MD -MP -MF $(DEPDIR)/libbitcoinkernel_la-chain.Tpo -c -o libbitcoinkernel_la-chain.lo `test -f 'chain.cpp' || echo '$(srcdir)/'`chain.cpp
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoinkernel_la-chain.Tpo $(DEPDIR)/libbitcoinkernel_la-chain.Plo
@@ -19870,6 +19902,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-external_signer.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po
+	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key_io.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po
@@ -19943,6 +19976,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo
+	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-fs.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-hash.Plo
@@ -20757,6 +20791,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-external_signer.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po
+	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key_io.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po
@@ -20830,6 +20865,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo
+	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-fs.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-hash.Plo

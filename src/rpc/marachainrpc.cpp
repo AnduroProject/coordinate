@@ -7,6 +7,7 @@
 #include <rpc/auxpow_miner.h>
 #include <core_io.h>
 #include <federation_deposit.h>
+#include <federation_validator.h>
 
 static RPCHelpMan createAuxBlock()
 {
@@ -101,7 +102,6 @@ static RPCHelpMan hasPegOut()
     };
 
 }
-
 
 static RPCHelpMan federationDepositAddress()
 {
@@ -210,6 +210,234 @@ static std::vector<RPCArg> CreateTxDoc()
     };
 }
 
+static RPCHelpMan getFederationPubkey()
+{
+    return RPCHelpMan{
+        "getfederationpubkey",
+        "get pubkey combined for the federation",
+        {
+            {"xpubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation root public keys"},
+            {"derivationindex", RPCArg::Type::NUM, RPCArg::Optional::NO, "current derviation index of xpub"}
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation pub key"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationpubkey", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            std::string xPubStr = request.params[0].get_str();
+            const unsigned int derivationIndex = request.params[1].getInt<unsigned int>();
+            return HexStr(getPubKeyAtDerviationIndex(xPubStr, derivationIndex));
+        }
+    };
+}
+
+static RPCHelpMan getFederationCombinedPubkey()
+{
+    return RPCHelpMan{
+        "getfederationcombinedpubkey",
+        "get pubkey combined for the federation",
+        {
+            {"xpubkeys", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array for all federation root public keys",
+                {
+                    {"xpubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
+                },
+            },
+            {"derivationindex", RPCArg::Type::NUM, RPCArg::Optional::NO, "current derviation index of xpub"}
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation combined pub key"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationcombinedpubkey", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            std::vector<std::string> xPubStr;
+            const unsigned int derivationIndex = request.params[1].getInt<unsigned int>();
+            const auto xPubStrRequest = request.params[0].get_array();
+            for (size_t i = 0; i < xPubStrRequest.size(); i++) {
+               xPubStr.push_back(xPubStrRequest[i].get_str());
+            }
+            return getCombinePubkeyForDerivationIndex(xPubStr, derivationIndex);
+        }
+    };
+}
+
+static RPCHelpMan getFederationGenerateNonce()
+{
+    return RPCHelpMan{
+        "getfederationgeneratenonce",
+        "get pubkey combined for the federation",
+        {
+            {"xprivkey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation root private key"},
+            {"derivationindex", RPCArg::Type::NUM, RPCArg::Optional::NO, "current derviation index of xpub"},
+            {"message", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation message to generate nonce"},
+            {"session", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation session for current nonce"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation pub key"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationgeneratenonce", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            const unsigned int derivationIndex = request.params[1].getInt<unsigned int>();
+            return getSchnorrNonce(request.params[3].get_str(), request.params[2].get_str(), request.params[0].get_str(), derivationIndex);
+        }
+    };
+}
+
+static RPCHelpMan getFederationCombinedNonces()
+{
+    return RPCHelpMan{
+        "getfederationcombinednonce",
+        "get pubkey combined for the federation",
+        {
+            {"nonces", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array for all federation root nonce for partial signature",
+                {
+                    {"nonce", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
+                },
+            },
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation combined pub key"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationcombinednonce", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            std::vector<std::string> noncesStr;
+            const auto noncesStrRequest = request.params[0].get_array();
+            for (size_t i = 0; i < noncesStrRequest.size(); i++) {
+               noncesStr.push_back(noncesStrRequest[i].get_str());
+            }
+            return getSchnorrNonceCombined(noncesStr);
+        }
+    };
+}
+
+static RPCHelpMan getFederationGeneratePartialSign()
+{
+    return RPCHelpMan{
+        "getfederationgeneratepartialsign",
+        "generate partial signature for federation node",
+        {    
+            {"xprivkey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation root private key"},
+            {"derivationindex", RPCArg::Type::NUM, RPCArg::Optional::NO, "current derviation index of xpub"},
+            {"message", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation message to generate nonce"},
+            {"session", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation session for current nonce"},
+            {"nonce", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation combined nonce"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation partial signature"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationgeneratepartialsign", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            const unsigned int derivationIndex = request.params[1].getInt<unsigned int>();
+            return getSchnorrPartialSign(request.params[4].get_str(), request.params[3].get_str(), request.params[2].get_str(), request.params[0].get_str(), derivationIndex);
+        }
+    };
+}
+
+static RPCHelpMan getFederationCombinedSignatures()
+{
+    return RPCHelpMan{
+        "getfederationcombinedsignatures",
+        "combine signature for the federation",
+        {
+            {"signatures", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array for all federation signature",
+                {
+                    {"signature", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
+                },
+            },
+            {"message", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation message to generate nonce"},
+            {"nonce", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation combined nonce"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation combined signature"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationcombinedsignatures", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            std::vector<std::string> signaturesStr;
+            const auto signaturesStrRequest = request.params[0].get_array();
+            for (size_t i = 0; i < signaturesStrRequest.size(); i++) {
+               signaturesStr.push_back(signaturesStrRequest[i].get_str());
+            }
+            return getSchnorrSignatureCombined(signaturesStr, request.params[2].get_str(), request.params[1].get_str());
+        }
+    };
+}
+
+static RPCHelpMan getFederationVerifySignature()
+{
+    return RPCHelpMan{
+        "getfederationverifysignature",
+        "verify signature for the federation",
+        {
+            {"allkeys", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array for all federation pub keys",
+                {
+                    {"pubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
+                },
+            },
+            {"redeemkeys", RPCArg::Type::ARR, RPCArg::Optional::NO, "An array for all federation redeem pub keys",
+                {
+                    {"pubkey", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, ""},
+                },
+            },
+            {"signature", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation full signature to be verified"},
+            {"message", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation message to be verified"},
+            {"aggkey", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "federation aggregated pub key"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "result", /*optional=*/true, "Returns federation signature valid or not"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getfederationverifysignature", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            std::vector<std::string> allKeysArray;
+            const auto allKeysArrayRequest = request.params[0].get_array();
+            for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
+               allKeysArray.push_back(allKeysArrayRequest[i].get_str());
+            }
+
+            std::vector<std::string> redeemKeysArray;
+            const auto redeemKeysArrayRequest = request.params[1].get_array();
+            for (size_t i = 0; i < redeemKeysArrayRequest.size(); i++) {
+               redeemKeysArray.push_back(redeemKeysArrayRequest[i].get_str());
+            }
+
+            return verifyFederationSchnorrSignature(allKeysArray, redeemKeysArray, request.params[4].get_str(), request.params[2].get_str(), request.params[3].get_str());
+        }
+    };
+}
+
 void RegisterMarachainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -219,8 +447,17 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &hasPegOut},
         {"marachain", &federationDepositAddress},
         {"marachain", &federationWithdrawAddress},
+        {"marachain", &getFederationPubkey},
+        {"marachain", &getFederationCombinedPubkey},
+        {"marachain", &getFederationGenerateNonce},
+        {"marachain", &getFederationCombinedNonces},
+        {"marachain", &getFederationGeneratePartialSign},
+        {"marachain", &getFederationCombinedSignatures},
+        {"marachain", &getFederationVerifySignature},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
     }
 }
+
+

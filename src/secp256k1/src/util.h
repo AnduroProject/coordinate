@@ -1,5 +1,5 @@
 /***********************************************************************
- * Copyright (c) 2013, 2014 Pieter Wuille                              *
+ * Copyright (c) 2013-2015 Pieter Wuille, Gregory Maxwell              *
  * Distributed under the MIT software license, see the accompanying    *
  * file COPYING or https://www.opensource.org/licenses/mit-license.php.*
  ***********************************************************************/
@@ -7,9 +7,7 @@
 #ifndef SECP256K1_UTIL_H
 #define SECP256K1_UTIL_H
 
-#if defined HAVE_CONFIG_H
-#include "libsecp256k1-config.h"
-#endif
+#include "../include/secp256k1.h"
 
 #include <stdlib.h>
 #include <stdint.h>
@@ -20,6 +18,51 @@
 #define STR(x) STR_(x)
 #define DEBUG_CONFIG_MSG(x) "DEBUG_CONFIG: " x
 #define DEBUG_CONFIG_DEF(x) DEBUG_CONFIG_MSG(#x "=" STR(x))
+
+/* Debug helper for printing arrays of unsigned char. */
+#define PRINT_BUF(buf, len) do { \
+    printf("%s[%lu] = ", #buf, (unsigned long)len); \
+    print_buf_plain(buf, len); \
+} while(0)
+
+static void print_buf_plain(const unsigned char *buf, size_t len) {
+    size_t i;
+    printf("{");
+    for (i = 0; i < len; i++) {
+        if (i % 8 == 0) {
+            printf("\n    ");
+        } else {
+            printf(" ");
+        }
+        printf("0x%02X,", buf[i]);
+    }
+    printf("\n}\n");
+}
+
+# if (!defined(__STDC_VERSION__) || (__STDC_VERSION__ < 199901L) )
+#  if SECP256K1_GNUC_PREREQ(2,7)
+#   define SECP256K1_INLINE __inline__
+#  elif (defined(_MSC_VER))
+#   define SECP256K1_INLINE __inline
+#  else
+#   define SECP256K1_INLINE
+#  endif
+# else
+#  define SECP256K1_INLINE inline
+# endif
+
+/** Assert statically that expr is an integer constant expression, and run stmt.
+ *
+ * Useful for example to enforce that magnitude arguments are constant.
+ */
+#define ASSERT_INT_CONST_AND_DO(expr, stmt) do { \
+    switch(42) { \
+        case /* ERROR: integer argument is not constant */ expr: \
+            break; \
+        default: ; \
+    } \
+    stmt; \
+} while(0)
 
 typedef struct {
     void (*fn)(const char *text, void* data);
@@ -101,35 +144,8 @@ static const secp256k1_callback default_error_callback = {
 #define VERIFY_SETUP(stmt)
 #endif
 
-/* Define `VG_UNDEF` and `VG_CHECK` when VALGRIND is defined  */
-#if !defined(VG_CHECK)
-# if defined(VALGRIND)
-#  include <valgrind/memcheck.h>
-#  define VG_UNDEF(x,y) VALGRIND_MAKE_MEM_UNDEFINED((x),(y))
-#  define VG_CHECK(x,y) VALGRIND_CHECK_MEM_IS_DEFINED((x),(y))
-# else
-#  define VG_UNDEF(x,y)
-#  define VG_CHECK(x,y)
-# endif
-#endif
-
-/* Like `VG_CHECK` but on VERIFY only */
-#if defined(VERIFY)
-#define VG_CHECK_VERIFY(x,y) VG_CHECK((x), (y))
-#else
-#define VG_CHECK_VERIFY(x,y)
-#endif
-
 static SECP256K1_INLINE void *checked_malloc(const secp256k1_callback* cb, size_t size) {
     void *ret = malloc(size);
-    if (ret == NULL) {
-        secp256k1_callback_call(cb, "Out of memory");
-    }
-    return ret;
-}
-
-static SECP256K1_INLINE void *checked_realloc(const secp256k1_callback* cb, void *ptr, size_t size) {
-    void *ret = realloc(ptr, size);
     if (ret == NULL) {
         secp256k1_callback_call(cb, "Out of memory");
     }
@@ -146,6 +162,32 @@ static SECP256K1_INLINE void *checked_realloc(const secp256k1_callback* cb, void
 #endif
 
 #define ROUND_TO_ALIGN(size) ((((size) + ALIGNMENT - 1) / ALIGNMENT) * ALIGNMENT)
+
+/* Extract the sign of an int64, take the abs and return a uint64, constant time. */
+SECP256K1_INLINE static int secp256k1_sign_and_abs64(uint64_t *out, int64_t in) {
+    uint64_t mask0, mask1;
+    int ret;
+    ret = in < 0;
+    mask0 = ret + ~((uint64_t)0);
+    mask1 = ~mask0;
+    *out = (uint64_t)in;
+    *out = (*out & mask0) | ((~*out + 1) & mask1);
+    return ret;
+}
+
+SECP256K1_INLINE static int secp256k1_clz64_var(uint64_t x) {
+    int ret;
+    if (!x) {
+        return 64;
+    }
+# if defined(HAVE_BUILTIN_CLZLL)
+    ret = __builtin_clzll(x);
+# else
+    /*FIXME: debruijn fallback. */
+    for (ret = 0; ((x & (1ULL << 63)) == 0); x <<= 1, ret++);
+# endif
+    return ret;
+}
 
 /* Macro for restrict, when available and not in a VERIFY build. */
 #if defined(SECP256K1_BUILD) && defined(VERIFY)
@@ -274,7 +316,7 @@ static SECP256K1_INLINE int secp256k1_ctz32_var_debruijn(uint32_t x) {
         0x10, 0x07, 0x0C, 0x1A, 0x1F, 0x17, 0x12, 0x05, 0x15, 0x09, 0x0F, 0x0B,
         0x1E, 0x11, 0x08, 0x0E, 0x1D, 0x0D, 0x1C, 0x1B
     };
-    return debruijn[((x & -x) * 0x04D7651F) >> 27];
+    return debruijn[(uint32_t)((x & -x) * 0x04D7651FU) >> 27];
 }
 
 /* Determine the number of trailing zero bits in a (non-zero) 64-bit x.
@@ -287,7 +329,7 @@ static SECP256K1_INLINE int secp256k1_ctz64_var_debruijn(uint64_t x) {
         63, 52, 6, 26, 37, 40, 33, 47, 61, 45, 43, 21, 23, 58, 17, 10,
         51, 25, 36, 32, 60, 20, 57, 16, 50, 31, 19, 15, 30, 14, 13, 12
     };
-    return debruijn[((x & -x) * 0x022FDD63CC95386D) >> 58];
+    return debruijn[(uint64_t)((x & -x) * 0x022FDD63CC95386DU) >> 58];
 }
 
 /* Determine the number of trailing zero bits in a (non-zero) 32-bit x. */
@@ -340,6 +382,30 @@ SECP256K1_INLINE static void secp256k1_write_be32(unsigned char* p, uint32_t x) 
     p[2] = x >>  8;
     p[1] = x >> 16;
     p[0] = x >> 24;
+}
+
+/* Read a uint64_t in big endian */
+SECP256K1_INLINE static uint64_t secp256k1_read_be64(const unsigned char* p) {
+    return (uint64_t)p[0] << 56 |
+           (uint64_t)p[1] << 48 |
+           (uint64_t)p[2] << 40 |
+           (uint64_t)p[3] << 32 |
+           (uint64_t)p[4] << 24 |
+           (uint64_t)p[5] << 16 |
+           (uint64_t)p[6] << 8  |
+           (uint64_t)p[7];
+}
+
+/* Write a uint64_t in big endian */
+SECP256K1_INLINE static void secp256k1_write_be64(unsigned char* p, uint64_t x) {
+    p[7] = x;
+    p[6] = x >>  8;
+    p[5] = x >> 16;
+    p[4] = x >> 24;
+    p[3] = x >> 32;
+    p[2] = x >> 40;
+    p[1] = x >> 48;
+    p[0] = x >> 56;
 }
 
 #endif /* SECP256K1_UTIL_H */

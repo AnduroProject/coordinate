@@ -87,7 +87,8 @@
         "utility": "cpp",
         "__verbose_abort": "cpp",
         "shared_mutex": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "filesystem": "cpp"
     },
     "cmake.sourceDirectory": "/Users/jk/MIKE/maranodegit/src/crc32c"
 }

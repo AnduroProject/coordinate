@@ -380,20 +380,21 @@ libbitcoin_cli_a_OBJECTS = $(am_libbitcoin_cli_a_OBJECTS)
 libbitcoin_common_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_common_a_LIBADD =
 am__libbitcoin_common_a_SOURCES_DIST = auxpow.cpp \
-	federation_deposit.cpp base58.cpp bech32.cpp chainparams.cpp \
-	coins.cpp common/bloom.cpp common/interfaces.cpp \
-	common/run_command.cpp compressor.cpp core_read.cpp \
-	core_write.cpp deploymentinfo.cpp external_signer.cpp \
-	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
-	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
-	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
-	protocol.cpp psbt.cpp rpc/external_signer.cpp \
-	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
-	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
-	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
-	warnings.cpp addrdb.h addrman.h addrman_impl.h attributes.h \
-	auxpow.h federation_deposit.h banman.h base58.h bech32.h \
-	blockencodings.h blockfilter.h chain.h chainparams.h \
+	federation_deposit.cpp federation_validator.cpp base58.cpp \
+	bech32.cpp chainparams.cpp coins.cpp common/bloom.cpp \
+	common/interfaces.cpp common/run_command.cpp compressor.cpp \
+	core_read.cpp core_write.cpp deploymentinfo.cpp \
+	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
+	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
+	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
+	policy/policy.cpp protocol.cpp psbt.cpp \
+	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
+	rpc/request.cpp rpc/util.cpp scheduler.cpp \
+	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
+	script/signingprovider.cpp script/standard.cpp warnings.cpp \
+	addrdb.h addrman.h addrman_impl.h attributes.h auxpow.h \
+	federation_deposit.h federation_validator.h banman.h base58.h \
+	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -464,6 +465,7 @@ am__libbitcoin_common_a_SOURCES_DIST = auxpow.cpp \
 @USE_LIBEVENT_TRUE@	common/libbitcoin_common_a-url.$(OBJEXT)
 am_libbitcoin_common_a_OBJECTS = libbitcoin_common_a-auxpow.$(OBJEXT) \
 	libbitcoin_common_a-federation_deposit.$(OBJEXT) \
+	libbitcoin_common_a-federation_validator.$(OBJEXT) \
 	libbitcoin_common_a-base58.$(OBJEXT) \
 	libbitcoin_common_a-bech32.$(OBJEXT) \
 	libbitcoin_common_a-chainparams.$(OBJEXT) \
@@ -580,22 +582,22 @@ am__libbitcoin_node_a_SOURCES_DIST = addrdb.cpp addrman.cpp banman.cpp \
 	txmempool.cpp txorphanage.cpp txrequest.cpp validation.cpp \
 	validationinterface.cpp versionbits.cpp addrdb.h addrman.h \
 	addrman_impl.h attributes.h auxpow.h federation_deposit.h \
-	banman.h base58.h bech32.h blockencodings.h blockfilter.h \
-	chain.h chainparams.h chainparamsbase.h chainparamsseeds.h \
-	checkqueue.h clientversion.h coins.h common/bloom.h \
-	common/run_command.h common/url.h compat/assumptions.h \
-	compat/byteswap.h compat/compat.h compat/cpuid.h \
-	compat/endian.h compressor.h consensus/consensus.h \
-	consensus/tx_check.h consensus/tx_verify.h core_io.h \
-	core_memusage.h cuckoocache.h dbwrapper.h deploymentinfo.h \
-	deploymentstatus.h external_signer.h flatfile.h fs.h \
-	headerssync.h httprpc.h httpserver.h i2p.h index/base.h \
-	index/blockfilterindex.h index/coinstatsindex.h \
-	index/disktxpos.h index/txindex.h indirectmap.h init.h \
-	init/common.h interfaces/chain.h interfaces/echo.h \
-	interfaces/handler.h interfaces/init.h interfaces/ipc.h \
-	interfaces/node.h interfaces/wallet.h kernel/chain.h \
-	kernel/chainstatemanager_opts.h kernel/checks.h \
+	federation_validator.h banman.h base58.h bech32.h \
+	blockencodings.h blockfilter.h chain.h chainparams.h \
+	chainparamsbase.h chainparamsseeds.h checkqueue.h \
+	clientversion.h coins.h common/bloom.h common/run_command.h \
+	common/url.h compat/assumptions.h compat/byteswap.h \
+	compat/compat.h compat/cpuid.h compat/endian.h compressor.h \
+	consensus/consensus.h consensus/tx_check.h \
+	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
+	dbwrapper.h deploymentinfo.h deploymentstatus.h \
+	external_signer.h flatfile.h fs.h headerssync.h httprpc.h \
+	httpserver.h i2p.h index/base.h index/blockfilterindex.h \
+	index/coinstatsindex.h index/disktxpos.h index/txindex.h \
+	indirectmap.h init.h init/common.h interfaces/chain.h \
+	interfaces/echo.h interfaces/handler.h interfaces/init.h \
+	interfaces/ipc.h interfaces/node.h interfaces/wallet.h \
+	kernel/chain.h kernel/chainstatemanager_opts.h kernel/checks.h \
 	kernel/coinstats.h kernel/context.h kernel/cs_main.h \
 	kernel/mempool_entry.h kernel/mempool_limits.h \
 	kernel/mempool_options.h kernel/mempool_persist.h \
@@ -792,8 +794,9 @@ am__libbitcoin_wallet_a_SOURCES_DIST = wallet/coincontrol.cpp \
 	wallet/spend.cpp wallet/transaction.cpp wallet/wallet.cpp \
 	wallet/walletdb.cpp wallet/walletutil.cpp \
 	wallet/coinselection.cpp addrdb.h addrman.h addrman_impl.h \
-	attributes.h auxpow.h federation_deposit.h banman.h base58.h \
-	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
+	attributes.h auxpow.h federation_deposit.h \
+	federation_validator.h banman.h base58.h bech32.h \
+	blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -1549,15 +1552,16 @@ libbitcoinconsensus_la_LINK = $(LIBTOOL) $(AM_V_lt) --tag=CXX \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	$(LIBUNIVALUE) $(LIBLEVELDB) \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	$(LIBMEMENV) $(LIBSECP256K1)
 am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
-	arith_uint256.cpp auxpow.cpp federation_deposit.cpp chain.cpp \
-	chainparamsbase.cpp chainparams.cpp clientversion.cpp \
-	coins.cpp compressor.cpp consensus/merkle.cpp \
-	consensus/tx_check.cpp consensus/tx_verify.cpp core_read.cpp \
-	dbwrapper.cpp deploymentinfo.cpp deploymentstatus.cpp \
-	flatfile.cpp fs.cpp hash.cpp kernel/chain.cpp \
-	kernel/checks.cpp kernel/coinstats.cpp kernel/context.cpp \
-	kernel/cs_main.cpp kernel/mempool_persist.cpp key.cpp \
-	logging.cpp node/blockstorage.cpp node/chainstate.cpp \
+	arith_uint256.cpp auxpow.cpp federation_deposit.cpp \
+	federation_validator.cpp chain.cpp chainparamsbase.cpp \
+	chainparams.cpp clientversion.cpp coins.cpp compressor.cpp \
+	consensus/merkle.cpp consensus/tx_check.cpp \
+	consensus/tx_verify.cpp core_read.cpp dbwrapper.cpp \
+	deploymentinfo.cpp deploymentstatus.cpp flatfile.cpp fs.cpp \
+	hash.cpp kernel/chain.cpp kernel/checks.cpp \
+	kernel/coinstats.cpp kernel/context.cpp kernel/cs_main.cpp \
+	kernel/mempool_persist.cpp key.cpp logging.cpp \
+	node/blockstorage.cpp node/chainstate.cpp \
 	node/interface_ui.cpp node/utxo_snapshot.cpp \
 	policy/feerate.cpp policy/fees.cpp policy/packages.cpp \
 	policy/policy.cpp policy/rbf.cpp policy/settings.cpp pow.cpp \
@@ -1579,6 +1583,7 @@ am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-arith_uint256.lo \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-auxpow.lo \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-federation_deposit.lo \
+@BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-federation_validator.lo \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-chain.lo \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-chainparamsbase.lo \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@	libbitcoinkernel_la-chainparams.lo \
@@ -2417,6 +2422,7 @@ am__depfiles_remade =  \
 	./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po \
 	./$(DEPDIR)/libbitcoin_common_a-external_signer.Po \
 	./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po \
+	./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po \
 	./$(DEPDIR)/libbitcoin_common_a-key.Po \
 	./$(DEPDIR)/libbitcoin_common_a-key_io.Po \
 	./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po \
@@ -2490,6 +2496,7 @@ am__depfiles_remade =  \
 	./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo \
+	./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-fs.Plo \
 	./$(DEPDIR)/libbitcoinkernel_la-hash.Plo \
@@ -3984,6 +3991,7 @@ BITCOIN_CORE_H = \
   attributes.h \
   auxpow.h \
   federation_deposit.h \
+  federation_validator.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -4391,18 +4399,18 @@ libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) \
 	$(BOOST_CPPFLAGS) $(am__append_18)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = auxpow.cpp federation_deposit.cpp \
-	base58.cpp bech32.cpp chainparams.cpp coins.cpp \
-	common/bloom.cpp common/interfaces.cpp common/run_command.cpp \
-	compressor.cpp core_read.cpp core_write.cpp deploymentinfo.cpp \
-	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
-	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
-	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
-	policy/policy.cpp protocol.cpp psbt.cpp \
-	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
-	rpc/request.cpp rpc/util.cpp scheduler.cpp \
-	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
-	script/signingprovider.cpp script/standard.cpp warnings.cpp \
-	$(BITCOIN_CORE_H) $(am__append_19)
+	federation_validator.cpp base58.cpp bech32.cpp chainparams.cpp \
+	coins.cpp common/bloom.cpp common/interfaces.cpp \
+	common/run_command.cpp compressor.cpp core_read.cpp \
+	core_write.cpp deploymentinfo.cpp external_signer.cpp \
+	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
+	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
+	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
+	protocol.cpp psbt.cpp rpc/external_signer.cpp \
+	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
+	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
+	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
+	warnings.cpp $(BITCOIN_CORE_H) $(am__append_19)
 #
 
 # util #
@@ -4578,6 +4586,7 @@ bitcoin_chainstate_LDADD = $(LIBBITCOINKERNEL)
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  arith_uint256.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  auxpow.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  federation_deposit.cpp \
+@BUILD_BITCOIN_KERNEL_LIB_TRUE@  federation_validator.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  chain.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  chainparamsbase.cpp \
 @BUILD_BITCOIN_KERNEL_LIB_TRUE@  chainparams.cpp \
@@ -7844,6 +7853,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-external_signer.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-key.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-key_io.Po@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po@am__quote@ # am--include-marker
@@ -7917,6 +7927,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo@am__quote@ # am--include-marker
+@AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-fs.Plo@am__quote@ # am--include-marker
 @AMDEP_TRUE@@am__include@ @am__quote@./$(DEPDIR)/libbitcoinkernel_la-hash.Plo@am__quote@ # am--include-marker
@@ -8754,6 +8765,20 @@ libbitcoin_common_a-federation_deposit.obj: federation_deposit.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='federation_deposit.cpp' object='libbitcoin_common_a-federation_deposit.obj' libtool=no @AMDEPBACKSLASH@
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_deposit.obj `if test -f 'federation_deposit.cpp'; then $(CYGPATH_W) 'federation_deposit.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_deposit.cpp'; fi`
+
+libbitcoin_common_a-federation_validator.o: federation_validator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-federation_validator.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo -c -o libbitcoin_common_a-federation_validator.o `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo $(DEPDIR)/libbitcoin_common_a-federation_validator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoin_common_a-federation_validator.o' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_validator.o `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+
+libbitcoin_common_a-federation_validator.obj: federation_validator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-federation_validator.obj -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo -c -o libbitcoin_common_a-federation_validator.obj `if test -f 'federation_validator.cpp'; then $(CYGPATH_W) 'federation_validator.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_validator.cpp'; fi`
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo $(DEPDIR)/libbitcoin_common_a-federation_validator.Po
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoin_common_a-federation_validator.obj' libtool=no @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_validator.obj `if test -f 'federation_validator.cpp'; then $(CYGPATH_W) 'federation_validator.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_validator.cpp'; fi`
 
 libbitcoin_common_a-base58.o: base58.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-base58.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-base58.Tpo -c -o libbitcoin_common_a-base58.o `test -f 'base58.cpp' || echo '$(srcdir)/'`base58.cpp
@@ -14488,6 +14513,13 @@ libbitcoinkernel_la-federation_deposit.lo: federation_deposit.cpp
 @AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
 @am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoinkernel_la-federation_deposit.lo `test -f 'federation_deposit.cpp' || echo '$(srcdir)/'`federation_deposit.cpp
 
+libbitcoinkernel_la-federation_validator.lo: federation_validator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT libbitcoinkernel_la-federation_validator.lo -MD -MP -MF $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo -c -o libbitcoinkernel_la-federation_validator.lo `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+@am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo $(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	$(AM_V_CXX)source='federation_validator.cpp' object='libbitcoinkernel_la-federation_validator.lo' libtool=yes @AMDEPBACKSLASH@
+@AMDEP_TRUE@@am__fastdepCXX_FALSE@	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+@am__fastdepCXX_FALSE@	$(AM_V_CXX@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoinkernel_la-federation_validator.lo `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
+
 libbitcoinkernel_la-chain.lo: chain.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT libbitcoinkernel_la-chain.lo -MD -MP -MF $(DEPDIR)/libbitcoinkernel_la-chain.Tpo -c -o libbitcoinkernel_la-chain.lo `test -f 'chain.cpp' || echo '$(srcdir)/'`chain.cpp
 @am__fastdepCXX_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoinkernel_la-chain.Tpo $(DEPDIR)/libbitcoinkernel_la-chain.Plo
@@ -19870,6 +19902,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-external_signer.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po
+	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key_io.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po
@@ -19943,6 +19976,7 @@ distclean: distclean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo
+	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-fs.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-hash.Plo
@@ -20757,6 +20791,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-deploymentinfo.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-external_signer.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_deposit.Po
+	-rm -f ./$(DEPDIR)/libbitcoin_common_a-federation_validator.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-key_io.Po
 	-rm -f ./$(DEPDIR)/libbitcoin_common_a-merkleblock.Po
@@ -20830,6 +20865,7 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentinfo.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-deploymentstatus.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_deposit.Plo
+	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-flatfile.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-fs.Plo
 	-rm -f ./$(DEPDIR)/libbitcoinkernel_la-hash.Plo
