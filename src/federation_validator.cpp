@@ -48,17 +48,36 @@ std::string getSchnorrNonce(std::string sessionIdIn, std::string messageIn, std:
     unsigned char result[66];
     secp256k1_musig_pubnonce_serialize(ctx,result,&signerNonceItem.pubnonce);
 
-    LogPrintf("log characters1 %c \n",result);
+    std::string resultStr =  HexStr(result);
 
-    unsigned char result1[66];
-    memcpy(result1, result, 66);
+    // auto newData = ParseHex(resultStr);
+      
 
-    LogPrintf("log characters1 %c \n",result1);
+    // unsigned char* test = reinterpret_cast<unsigned char*>(newData->data());
 
-    // std::string result;
+    // secp256k1_musig_pubnonce pubnonce;
+    // if(!secp256k1_musig_pubnonce_parse(ctx, &pubnonce, test)) {
+    //      LogPrintf("log characters1 cast failed \n");
+    // }
 
+    // LogPrintf("log characters1 %c \n",result);
 
-    return "testing";
+    // LogPrintf("log characters1 cast %c \n",test);
+
+    // LogPrintf("log characters1 %s \n",resultStr);
+
+    // unsigned char result1[66];
+    // if(!secp256k1_musig_pubnonce_serialize(ctx,result1,&pubnonce)) {
+    //       LogPrintf("log characters2 failed \n");
+    // };
+
+    // std::string resultStr1 =  HexStr(result1);
+
+    // LogPrintf("log characters2 %c \n",result1);
+
+    // LogPrintf("log characters2 %s \n",resultStr1);
+
+    return resultStr;
 }
 
 std::string getSchnorrNonceCombined(std::vector<std::string> nonces) {
@@ -66,8 +85,9 @@ std::string getSchnorrNonceCombined(std::vector<std::string> nonces) {
     ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     const secp256k1_musig_pubnonce *pubnonces[nonces.size()];
     for (size_t i = 0; i < nonces.size(); i++) {
-      unsigned char *pubNonceStr;
-      std::copy( nonces[i].begin(), nonces[i].end(), pubNonceStr );
+      auto pubNonceItem = ParseHex(nonces[i]);
+      unsigned char *pubNonceStr = reinterpret_cast<unsigned char*>(pubNonceItem.data());
+
       secp256k1_musig_pubnonce pubnonce;
       secp256k1_musig_pubnonce_parse(ctx, &pubnonce, pubNonceStr);
       pubnonces[i] = &pubnonce;
@@ -76,11 +96,10 @@ std::string getSchnorrNonceCombined(std::vector<std::string> nonces) {
     secp256k1_musig_aggnonce agg_pubnonce;
     secp256k1_musig_nonce_agg(ctx, &agg_pubnonce, pubnonces, nonces.size());
 
-    unsigned char result;
-    secp256k1_musig_aggnonce_serialize(ctx,&result,&agg_pubnonce);
+    unsigned char result[66];
+    secp256k1_musig_aggnonce_serialize(ctx,result,&agg_pubnonce);
     
-    std::string nonceResult((char*) result);
-    return nonceResult;
+    return HexStr(result);
 }
 
 std::string getSchnorrPartialSign(std::string aggNoncesIn, std::string sessionIdIn, std::string messageIn, std::string xPrivKey, unsigned int derivationIndex) {
@@ -92,27 +111,38 @@ std::string getSchnorrPartialSign(std::string aggNoncesIn, std::string sessionId
     secp256k1_musig_partial_sig partial_sig;
 
     secp256k1_musig_aggnonce agg_pubnonce;
-    unsigned char *aggNoncesStr;
-    std::copy(aggNoncesIn.begin(), aggNoncesIn.end(), aggNoncesStr);
-    secp256k1_musig_aggnonce_parse(ctx, &agg_pubnonce, aggNoncesStr);
 
+    auto aggNoncesStrHex = ParseHex(aggNoncesIn);
+    unsigned char *aggNoncesStr = reinterpret_cast<unsigned char*>(aggNoncesStrHex.data());
+    LogPrintf("message %c \n",aggNoncesStr);
+
+    if(!secp256k1_musig_aggnonce_parse(ctx, &agg_pubnonce, aggNoncesStr)) {
+        LogPrintf("error on agg nonce parse \n");
+    }
 
     secp256k1_keypair keypair = generateKeypair(ctx,xPrivKey,derivationIndex);
     
     struct signerNonce signerNonceItem = generateSignerNonce(ctx,sessionIdIn,messageIn,xPrivKey,derivationIndex);
 
-    unsigned char *msg;
-    std::copy(messageIn.begin(),messageIn.end(),msg);
+    unsigned char* msg = reinterpret_cast<unsigned char*>(messageIn.data());
+    LogPrintf("message %c \n",msg);
 
-    secp256k1_musig_nonce_process(ctx, &session, &agg_pubnonce, msg, cache, NULL);
+    if(!secp256k1_musig_nonce_process(ctx, &session, &agg_pubnonce, msg, cache, NULL)) {
+        LogPrintf("error on secp256k1_musig_nonce_process \n");
+    }
+
+    LogPrintf("message1 %c \n",msg);
     
     secp256k1_musig_partial_sign(ctx, &partial_sig, &signerNonceItem.secnonce, &keypair, cache, &session);
 
-    unsigned char result;
-    secp256k1_musig_partial_sig_serialize(ctx,&result,&partial_sig);
+    LogPrintf("message2 %c \n",msg);
+
+    unsigned char result[32];
+    secp256k1_musig_partial_sig_serialize(ctx,result,&partial_sig);
+
+    LogPrintf("message3 %c \n",msg);
     
-    std::string partialSigResult((char*) result);
-    return partialSigResult;
+    return HexStr(result);
 }
 
 std::string getSchnorrSignatureCombined(std::vector<std::string> signaturesIn, std::string aggNoncesIn, std::string messageIn) {
@@ -223,18 +253,9 @@ secp256k1_keypair generateKeypair(const secp256k1_context* ctx, std::string xPri
 signerNonce generateSignerNonce(const secp256k1_context* ctx, std::string sessionIdIn, std::string messageIn, std::string xPrivKey, unsigned int derivationIndex) {
 
     struct signerNonce signerNonceItem;
-    // unsigned char session_id[sessionIdIn.length()];
-    // std::strcpy((char*)session_id, sessionIdIn.c_str());
-    // unsigned char msg[messageIn.length()];
-    // std::strcpy((char*)msg, messageIn.c_str());
 
-    unsigned char session_id[] = "test";
-    unsigned char msg[] = "test";
-
-    // LogPrintf("session_id %c \n", session_id);
-    // LogPrintf("msg %c \n", msg);
-    // std::copy( sessionIdIn.begin(), sessionIdIn.end(), session_id );
-    // std::copy( messageIn.begin(), messageIn.end(), msg );
+    unsigned char* session_id = reinterpret_cast<unsigned char*>(sessionIdIn.data());
+    unsigned char* msg = reinterpret_cast<unsigned char*>(messageIn.data());
 
     CKey key = getKeyAtDerviationIndex(xPrivKey,derivationIndex);
 
