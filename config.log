@@ -30,8 +30,8 @@ Kernel configured for up to 8 processors.
 Processor type: arm64e (ARM64E)
 Processors active: 0 1 2 3 4 5 6 7
 Primary memory available: 8.00 gigabytes
-Default processor set: 362 tasks, 2516 threads, 8 processors
-Load average: 1.91, Mach factor: 6.09
+Default processor set: 375 tasks, 2793 threads, 8 processors
+Load average: 0.93, Mach factor: 7.05
 /bin/machine           = unknown
 /usr/bin/oslevel       = unknown
 /bin/universe          = unknown
@@ -586,9 +586,9 @@ configure:9454: checking the name lister (/usr/bin/nm -B) interface
 configure:9462: gcc -c -g -O2  conftest.c >&5
 configure:9465: /usr/bin/nm -B "conftest.o"
 configure:9468: output
-000000000000024c S _some_variable
+0000000000000258 S _some_variable
 0000000000000000 t ltmp0
-000000000000024c s ltmp1
+0000000000000258 s ltmp1
 configure:9475: result: BSD nm
 configure:9478: checking whether ln -s works
 configure:9482: result: yes
@@ -1709,19 +1709,19 @@ configure:23759: checking for ARMv8 SHA-NI intrinsics
 configure:23781: g++ -std=c++17 -c -march=armv8-a+crypto -g -O2  conftest.cpp >&5
 configure:23781: $? = 0
 configure:23783: result: yes
-configure:24761: checking for brew
-configure:24782: found /opt/homebrew/bin/brew
-configure:24793: result: brew
-configure:25267: checking whether the linker accepts -Wl,-headerpad_max_install_names
-configure:25287: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-headerpad_max_install_names conftest.cpp  >&5
-configure:25287: $? = 0
-configure:25298: result: yes
-configure:25472: checking whether byte ordering is bigendian
-configure:25488: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:25488: $? = 0
-configure:25534: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:25534: $? = 0
-configure:25553: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:24762: checking for brew
+configure:24783: found /opt/homebrew/bin/brew
+configure:24794: result: brew
+configure:25268: checking whether the linker accepts -Wl,-headerpad_max_install_names
+configure:25288: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-headerpad_max_install_names conftest.cpp  >&5
+configure:25288: $? = 0
+configure:25299: result: yes
+configure:25473: checking whether byte ordering is bigendian
+configure:25489: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:25489: $? = 0
+configure:25535: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:25535: $? = 0
+configure:25554: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:31:11: error: expected ';' after expression
                  not big endian
                         ^
@@ -1733,7 +1733,7 @@ conftest.cpp:31:12: error: use of undeclared identifier 'endian'
                  not big endian
                          ^
 3 errors generated.
-configure:25553: $? = 1
+configure:25554: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -1771,16 +1771,16 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:25687: result: no
-configure:25711: checking how to run the C preprocessor
-configure:25737: gcc -E  conftest.c
-configure:25737: $? = 0
-configure:25752: gcc -E  conftest.c
+configure:25688: result: no
+configure:25712: checking how to run the C preprocessor
+configure:25738: gcc -E  conftest.c
+configure:25738: $? = 0
+configure:25753: gcc -E  conftest.c
 conftest.c:24:10: fatal error: 'ac_nonexistent.h' file not found
 #include <ac_nonexistent.h>
          ^~~~~~~~~~~~~~~~~~
 1 error generated.
-configure:25752: $? = 1
+configure:25753: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -1806,15 +1806,15 @@ configure: failed program was:
 | #define ENABLE_ARM_SHANI 1
 | /* end confdefs.h.  */
 | #include <ac_nonexistent.h>
-configure:25779: result: gcc -E
-configure:25793: gcc -E  conftest.c
-configure:25793: $? = 0
-configure:25808: gcc -E  conftest.c
+configure:25780: result: gcc -E
+configure:25794: gcc -E  conftest.c
+configure:25794: $? = 0
+configure:25809: gcc -E  conftest.c
 conftest.c:24:10: fatal error: 'ac_nonexistent.h' file not found
 #include <ac_nonexistent.h>
          ^~~~~~~~~~~~~~~~~~
 1 error generated.
-configure:25808: $? = 1
+configure:25809: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -1840,46 +1840,46 @@ configure: failed program was:
 | #define ENABLE_ARM_SHANI 1
 | /* end confdefs.h.  */
 | #include <ac_nonexistent.h>
-configure:25999: checking whether gcc is Clang
-configure:26026: result: yes
-configure:26091: checking whether pthreads work with "-pthread" and "-lpthread"
-configure:26202: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
-configure:26202: $? = 0
-configure:26212: result: yes
-configure:26261: checking whether Clang needs flag to prevent "argument unused" warning when linking with -pthread
-configure:26288: gcc -o conftest -Werror -Wunknown-warning-option  -pthread -g -O2   conftest.c  >&5
-configure:26288: $? = 0
-configure:26295: (gcc -c -Werror -Wunknown-warning-option  -pthread -g -O2  conftest.c >&5) && (echo ==== >&5) && (gcc -o conftest -Werror -Wunknown-warning-option  -pthread -g -O2   conftest.o  >&5)
+configure:26000: checking whether gcc is Clang
+configure:26027: result: yes
+configure:26092: checking whether pthreads work with "-pthread" and "-lpthread"
+configure:26203: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
+configure:26203: $? = 0
+configure:26213: result: yes
+configure:26262: checking whether Clang needs flag to prevent "argument unused" warning when linking with -pthread
+configure:26289: gcc -o conftest -Werror -Wunknown-warning-option  -pthread -g -O2   conftest.c  >&5
+configure:26289: $? = 0
+configure:26296: (gcc -c -Werror -Wunknown-warning-option  -pthread -g -O2  conftest.c >&5) && (echo ==== >&5) && (gcc -o conftest -Werror -Wunknown-warning-option  -pthread -g -O2   conftest.o  >&5)
 ====
-configure:26295: $? = 0
-configure:26315: result: no
-configure:26335: checking for joinable pthread attribute
-configure:26354: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
-configure:26354: $? = 0
-configure:26363: result: PTHREAD_CREATE_JOINABLE
-configure:26376: checking whether more special flags are required for pthreads
-configure:26390: result: no
-configure:26399: checking for PTHREAD_PRIO_INHERIT
-configure:26417: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
-configure:26417: $? = 0
-configure:26427: result: yes
-configure:26614: checking whether std::atomic can be used without link library
-configure:26641: g++ -std=c++17 -o conftest -g -O2 -pthread   conftest.cpp  >&5
-configure:26641: $? = 0
-configure:26644: result: yes
-configure:26718: checking for special C compiler options needed for large files
-configure:26766: result: no
-configure:26772: checking for _FILE_OFFSET_BITS value needed for large files
-configure:26798: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:26798: $? = 0
-configure:26832: result: no
-configure:26914: checking for g++ -std=c++17 options needed to detect all undeclared functions
-configure:26936: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:26296: $? = 0
+configure:26316: result: no
+configure:26336: checking for joinable pthread attribute
+configure:26355: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
+configure:26355: $? = 0
+configure:26364: result: PTHREAD_CREATE_JOINABLE
+configure:26377: checking whether more special flags are required for pthreads
+configure:26391: result: no
+configure:26400: checking for PTHREAD_PRIO_INHERIT
+configure:26418: gcc -o conftest -g -O2 -pthread   conftest.c -lpthread  >&5
+configure:26418: $? = 0
+configure:26428: result: yes
+configure:26615: checking whether std::atomic can be used without link library
+configure:26642: g++ -std=c++17 -o conftest -g -O2 -pthread   conftest.cpp  >&5
+configure:26642: $? = 0
+configure:26645: result: yes
+configure:26719: checking for special C compiler options needed for large files
+configure:26767: result: no
+configure:26773: checking for _FILE_OFFSET_BITS value needed for large files
+configure:26799: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:26799: $? = 0
+configure:26833: result: no
+configure:26915: checking for g++ -std=c++17 options needed to detect all undeclared functions
+configure:26937: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:30:8: error: use of undeclared identifier 'strchr'
 (void) strchr;
        ^
 1 error generated.
-configure:26936: $? = 1
+configure:26937: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -1914,15 +1914,15 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:26963: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:26963: $? = 0
-configure:26980: result: none needed
-configure:26994: checking whether strerror_r is declared
-configure:26994: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
-configure:26994: $? = 0
-configure:26994: result: yes
-configure:27013: checking whether strerror_r returns char *
-configure:27038: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:26964: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:26964: $? = 0
+configure:26981: result: none needed
+configure:26995: checking whether strerror_r is declared
+configure:26995: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:26995: $? = 0
+configure:26995: result: yes
+configure:27014: checking whether strerror_r returns char *
+configure:27039: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:34:13: error: indirection requires pointer operand ('int' invalid)
           char x = *strerror_r (0, buf, sizeof buf);
                    ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1930,7 +1930,7 @@ conftest.cpp:35:10: error: cannot initialize a variable of type 'char *' with an
           char *p = strerror_r (0, buf, sizeof buf);
                 ^   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 2 errors generated.
-configure:27038: $? = 1
+configure:27039: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -1972,19 +1972,19 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27047: result: no
-configure:27068: checking for library containing clock_gettime
-configure:27097: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:27097: $? = 0
-configure:27117: result: none required
-configure:27257: checking whether C++ compiler accepts -fPIC
-configure:27277: g++ -std=c++17 -c -g -O2  -fPIC  conftest.cpp >&5
-configure:27277: $? = 0
-configure:27286: result: yes
-configure:27297: checking whether C++ compiler accepts -fstack-reuse=none
-configure:27317: g++ -std=c++17 -c -g -O2  -fstack-reuse=none  conftest.cpp >&5
+configure:27048: result: no
+configure:27069: checking for library containing clock_gettime
+configure:27098: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:27098: $? = 0
+configure:27118: result: none required
+configure:27258: checking whether C++ compiler accepts -fPIC
+configure:27278: g++ -std=c++17 -c -g -O2  -fPIC  conftest.cpp >&5
+configure:27278: $? = 0
+configure:27287: result: yes
+configure:27298: checking whether C++ compiler accepts -fstack-reuse=none
+configure:27318: g++ -std=c++17 -c -g -O2  -fstack-reuse=none  conftest.cpp >&5
 clang: error: unknown argument: '-fstack-reuse=none'
-configure:27317: $? = 1
+configure:27318: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2021,21 +2021,21 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27326: result: no
-configure:27337: checking whether C++ compiler accepts -Wstack-protector
-configure:27357: g++ -std=c++17 -c -g -O2  -Wstack-protector  conftest.cpp >&5
-configure:27357: $? = 0
-configure:27366: result: yes
-configure:27375: checking whether C++ compiler accepts -fstack-protector-all
-configure:27395: g++ -std=c++17 -c -g -O2  -fstack-protector-all  conftest.cpp >&5
-configure:27395: $? = 0
-configure:27404: result: yes
-configure:27414: checking whether C++ compiler accepts -fcf-protection=full
-configure:27434: g++ -std=c++17 -c -g -O2  -fcf-protection=full  conftest.cpp >&5
+configure:27327: result: no
+configure:27338: checking whether C++ compiler accepts -Wstack-protector
+configure:27358: g++ -std=c++17 -c -g -O2  -Wstack-protector  conftest.cpp >&5
+configure:27358: $? = 0
+configure:27367: result: yes
+configure:27376: checking whether C++ compiler accepts -fstack-protector-all
+configure:27396: g++ -std=c++17 -c -g -O2  -fstack-protector-all  conftest.cpp >&5
+configure:27396: $? = 0
+configure:27405: result: yes
+configure:27415: checking whether C++ compiler accepts -fcf-protection=full
+configure:27435: g++ -std=c++17 -c -g -O2  -fcf-protection=full  conftest.cpp >&5
 error: option 'cf-protection=return' cannot be specified on this target
 error: option 'cf-protection=branch' cannot be specified on this target
 2 errors generated.
-configure:27434: $? = 1
+configure:27435: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2072,11 +2072,11 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27443: result: no
-configure:27458: checking whether C++ compiler accepts -fstack-clash-protection
-configure:27478: g++ -std=c++17 -c -g -O2 -Werror -fstack-clash-protection  conftest.cpp >&5
+configure:27444: result: no
+configure:27459: checking whether C++ compiler accepts -fstack-clash-protection
+configure:27479: g++ -std=c++17 -c -g -O2 -Werror -fstack-clash-protection  conftest.cpp >&5
 clang: error: argument unused during compilation: '-fstack-clash-protection' [-Werror,-Wunused-command-line-argument]
-configure:27478: $? = 1
+configure:27479: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2113,20 +2113,20 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27488: result: no
-configure:27502: checking whether C++ preprocessor accepts -D_FORTIFY_SOURCE=2
-configure:27522: g++ -std=c++17 -E   -D_FORTIFY_SOURCE=2 conftest.cpp
-configure:27522: $? = 0
-configure:27531: result: yes
-configure:27536: checking whether C++ preprocessor accepts -U_FORTIFY_SOURCE
-configure:27556: g++ -std=c++17 -E   -U_FORTIFY_SOURCE conftest.cpp
-configure:27556: $? = 0
-configure:27565: result: yes
-configure:27585: checking whether the linker accepts -Wl,--enable-reloc-section
-configure:27605: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--enable-reloc-section conftest.cpp  >&5
+configure:27489: result: no
+configure:27503: checking whether C++ preprocessor accepts -D_FORTIFY_SOURCE=2
+configure:27523: g++ -std=c++17 -E   -D_FORTIFY_SOURCE=2 conftest.cpp
+configure:27523: $? = 0
+configure:27532: result: yes
+configure:27537: checking whether C++ preprocessor accepts -U_FORTIFY_SOURCE
+configure:27557: g++ -std=c++17 -E   -U_FORTIFY_SOURCE conftest.cpp
+configure:27557: $? = 0
+configure:27566: result: yes
+configure:27586: checking whether the linker accepts -Wl,--enable-reloc-section
+configure:27606: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--enable-reloc-section conftest.cpp  >&5
 ld: unknown option: --enable-reloc-section
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27605: $? = 1
+configure:27606: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2163,12 +2163,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27616: result: no
-configure:27626: checking whether the linker accepts -Wl,--dynamicbase
-configure:27646: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--dynamicbase conftest.cpp  >&5
+configure:27617: result: no
+configure:27627: checking whether the linker accepts -Wl,--dynamicbase
+configure:27647: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--dynamicbase conftest.cpp  >&5
 ld: unknown option: --dynamicbase
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27646: $? = 1
+configure:27647: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2205,12 +2205,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27657: result: no
-configure:27667: checking whether the linker accepts -Wl,--nxcompat
-configure:27687: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--nxcompat conftest.cpp  >&5
+configure:27658: result: no
+configure:27668: checking whether the linker accepts -Wl,--nxcompat
+configure:27688: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--nxcompat conftest.cpp  >&5
 ld: unknown option: --nxcompat
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27687: $? = 1
+configure:27688: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2247,12 +2247,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27698: result: no
-configure:27708: checking whether the linker accepts -Wl,--high-entropy-va
-configure:27728: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--high-entropy-va conftest.cpp  >&5
+configure:27699: result: no
+configure:27709: checking whether the linker accepts -Wl,--high-entropy-va
+configure:27729: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,--high-entropy-va conftest.cpp  >&5
 ld: unknown option: --high-entropy-va
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27728: $? = 1
+configure:27729: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2289,12 +2289,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27739: result: no
-configure:27749: checking whether the linker accepts -Wl,-z,relro
-configure:27769: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,relro conftest.cpp  >&5
+configure:27740: result: no
+configure:27750: checking whether the linker accepts -Wl,-z,relro
+configure:27770: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,relro conftest.cpp  >&5
 ld: unknown option: -z
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27769: $? = 1
+configure:27770: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2331,12 +2331,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27780: result: no
-configure:27790: checking whether the linker accepts -Wl,-z,now
-configure:27810: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,now conftest.cpp  >&5
+configure:27781: result: no
+configure:27791: checking whether the linker accepts -Wl,-z,now
+configure:27811: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,now conftest.cpp  >&5
 ld: unknown option: -z
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27810: $? = 1
+configure:27811: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2373,12 +2373,12 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27821: result: no
-configure:27831: checking whether the linker accepts -Wl,-z,separate-code
-configure:27851: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,separate-code conftest.cpp  >&5
+configure:27822: result: no
+configure:27832: checking whether the linker accepts -Wl,-z,separate-code
+configure:27852: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-z,separate-code conftest.cpp  >&5
 ld: unknown option: -z
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:27851: $? = 1
+configure:27852: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2415,11 +2415,11 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27862: result: no
-configure:27872: checking whether the linker accepts -fPIE -pie
-configure:27892: g++ -std=c++17 -o conftest -g -O2   -Werror -fPIE -pie conftest.cpp  >&5
+configure:27863: result: no
+configure:27873: checking whether the linker accepts -fPIE -pie
+configure:27893: g++ -std=c++17 -o conftest -g -O2   -Werror -fPIE -pie conftest.cpp  >&5
 clang: error: argument unused during compilation: '-pie' [-Werror,-Wunused-command-line-argument]
-configure:27892: $? = 1
+configure:27893: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2456,26 +2456,26 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:27903: result: no
-configure:27965: checking whether the linker accepts -Wl,-dead_strip
-configure:27985: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-dead_strip conftest.cpp  >&5
-configure:27985: $? = 0
-configure:27996: result: yes
-configure:28006: checking whether the linker accepts -Wl,-dead_strip_dylibs
-configure:28026: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-dead_strip_dylibs conftest.cpp  >&5
-configure:28026: $? = 0
-configure:28037: result: yes
-configure:28047: checking whether the linker accepts -Wl,-bind_at_load
-configure:28067: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-bind_at_load conftest.cpp  >&5
-configure:28067: $? = 0
-configure:28078: result: yes
-configure:28089: checking for endian.h
-configure:28089: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:27904: result: no
+configure:27966: checking whether the linker accepts -Wl,-dead_strip
+configure:27986: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-dead_strip conftest.cpp  >&5
+configure:27986: $? = 0
+configure:27997: result: yes
+configure:28007: checking whether the linker accepts -Wl,-dead_strip_dylibs
+configure:28027: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-dead_strip_dylibs conftest.cpp  >&5
+configure:28027: $? = 0
+configure:28038: result: yes
+configure:28048: checking whether the linker accepts -Wl,-bind_at_load
+configure:28068: g++ -std=c++17 -o conftest -g -O2   -Wl,-fatal_warnings -Wl,-bind_at_load conftest.cpp  >&5
+configure:28068: $? = 0
+configure:28079: result: yes
+configure:28090: checking for endian.h
+configure:28090: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:56:10: fatal error: 'endian.h' file not found
 #include <endian.h>
          ^~~~~~~~~~
 1 error generated.
-configure:28089: $? = 1
+configure:28090: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2533,14 +2533,14 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <endian.h>
-configure:28089: result: no
-configure:28095: checking for sys/endian.h
-configure:28095: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28090: result: no
+configure:28096: checking for sys/endian.h
+configure:28096: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:56:10: fatal error: 'sys/endian.h' file not found
 #include <sys/endian.h>
          ^~~~~~~~~~~~~~
 1 error generated.
-configure:28095: $? = 1
+configure:28096: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2598,14 +2598,14 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <sys/endian.h>
-configure:28095: result: no
-configure:28101: checking for byteswap.h
-configure:28101: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28096: result: no
+configure:28102: checking for byteswap.h
+configure:28102: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:56:10: fatal error: 'byteswap.h' file not found
 #include <byteswap.h>
          ^~~~~~~~~~~~
 1 error generated.
-configure:28101: $? = 1
+configure:28102: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2663,18 +2663,18 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <byteswap.h>
-configure:28101: result: no
-configure:28107: checking for sys/select.h
-configure:28107: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28107: $? = 0
-configure:28107: result: yes
-configure:28113: checking for sys/prctl.h
-configure:28113: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28102: result: no
+configure:28108: checking for sys/select.h
+configure:28108: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28108: $? = 0
+configure:28108: result: yes
+configure:28114: checking for sys/prctl.h
+configure:28114: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:57:10: fatal error: 'sys/prctl.h' file not found
 #include <sys/prctl.h>
          ^~~~~~~~~~~~~
 1 error generated.
-configure:28113: $? = 1
+configure:28114: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2733,18 +2733,18 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <sys/prctl.h>
-configure:28113: result: no
-configure:28119: checking for sys/sysctl.h
-configure:28119: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28119: $? = 0
-configure:28119: result: yes
-configure:28125: checking for vm/vm_param.h
-configure:28125: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28114: result: no
+configure:28120: checking for sys/sysctl.h
+configure:28120: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28120: $? = 0
+configure:28120: result: yes
+configure:28126: checking for vm/vm_param.h
+configure:28126: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:58:10: fatal error: 'vm/vm_param.h' file not found
 #include <vm/vm_param.h>
          ^~~~~~~~~~~~~~~
 1 error generated.
-configure:28125: $? = 1
+configure:28126: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2804,18 +2804,18 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <vm/vm_param.h>
-configure:28125: result: no
-configure:28131: checking for sys/vmmeter.h
-configure:28131: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28131: $? = 0
-configure:28131: result: yes
-configure:28137: checking for sys/resources.h
-configure:28137: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28126: result: no
+configure:28132: checking for sys/vmmeter.h
+configure:28132: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28132: $? = 0
+configure:28132: result: yes
+configure:28138: checking for sys/resources.h
+configure:28138: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:59:10: fatal error: 'sys/resources.h' file not found
 #include <sys/resources.h>
          ^~~~~~~~~~~~~~~~~
 1 error generated.
-configure:28137: $? = 1
+configure:28138: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2876,38 +2876,38 @@ configure: failed program was:
 | # include <unistd.h>
 | #endif
 | #include <sys/resources.h>
-configure:28137: result: no
-configure:28145: checking whether getifaddrs is declared
-configure:28145: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
-configure:28145: $? = 0
-configure:28145: result: yes
-configure:28167: checking whether ifaddrs funcs can be used without link library
-configure:28183: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:28183: $? = 0
-configure:28186: result: yes
-configure:28240: checking whether freeifaddrs is declared
-configure:28240: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
-configure:28240: $? = 0
-configure:28240: result: yes
-configure:28262: checking whether ifaddrs funcs can be used without link library
-configure:28278: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:28278: $? = 0
-configure:28281: result: yes
-configure:28337: checking whether fork is declared
-configure:28337: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
-configure:28337: $? = 0
-configure:28337: result: yes
-configure:28346: checking whether setsid is declared
-configure:28346: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
-configure:28346: $? = 0
-configure:28346: result: yes
-configure:28356: checking whether pipe2 is declared
-configure:28356: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28138: result: no
+configure:28146: checking whether getifaddrs is declared
+configure:28146: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28146: $? = 0
+configure:28146: result: yes
+configure:28168: checking whether ifaddrs funcs can be used without link library
+configure:28184: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:28184: $? = 0
+configure:28187: result: yes
+configure:28241: checking whether freeifaddrs is declared
+configure:28241: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28241: $? = 0
+configure:28241: result: yes
+configure:28263: checking whether ifaddrs funcs can be used without link library
+configure:28279: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:28279: $? = 0
+configure:28282: result: yes
+configure:28338: checking whether fork is declared
+configure:28338: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28338: $? = 0
+configure:28338: result: yes
+configure:28347: checking whether setsid is declared
+configure:28347: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28347: $? = 0
+configure:28347: result: yes
+configure:28357: checking whether pipe2 is declared
+configure:28357: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:68:10: error: use of undeclared identifier 'pipe2'
   (void) pipe2;
          ^
 1 error generated.
-configure:28356: $? = 1
+configure:28357: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -2985,18 +2985,18 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28356: result: no
-configure:28366: checking for timingsafe_bcmp
-configure:28366: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:28366: $? = 0
-configure:28366: result: yes
-configure:28374: checking whether le16toh is declared
-configure:28374: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28357: result: no
+configure:28367: checking for timingsafe_bcmp
+configure:28367: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:28367: $? = 0
+configure:28367: result: yes
+configure:28375: checking whether le16toh is declared
+configure:28375: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:48:10: error: use of undeclared identifier 'le16toh'
   (void) le16toh;
          ^
 1 error generated.
-configure:28374: $? = 1
+configure:28375: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3054,14 +3054,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28374: result: no
-configure:28387: checking whether le32toh is declared
-configure:28387: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28375: result: no
+configure:28388: checking whether le32toh is declared
+configure:28388: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:49:10: error: use of undeclared identifier 'le32toh'
   (void) le32toh;
          ^
 1 error generated.
-configure:28387: $? = 1
+configure:28388: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3120,14 +3120,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28387: result: no
-configure:28400: checking whether le64toh is declared
-configure:28400: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28388: result: no
+configure:28401: checking whether le64toh is declared
+configure:28401: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:50:10: error: use of undeclared identifier 'le64toh'
   (void) le64toh;
          ^
 1 error generated.
-configure:28400: $? = 1
+configure:28401: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3187,14 +3187,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28400: result: no
-configure:28413: checking whether htole16 is declared
-configure:28413: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28401: result: no
+configure:28414: checking whether htole16 is declared
+configure:28414: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:51:10: error: use of undeclared identifier 'htole16'
   (void) htole16;
          ^
 1 error generated.
-configure:28413: $? = 1
+configure:28414: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3255,14 +3255,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28413: result: no
-configure:28426: checking whether htole32 is declared
-configure:28426: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28414: result: no
+configure:28427: checking whether htole32 is declared
+configure:28427: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:52:10: error: use of undeclared identifier 'htole32'
   (void) htole32;
          ^
 1 error generated.
-configure:28426: $? = 1
+configure:28427: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3324,14 +3324,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28426: result: no
-configure:28439: checking whether htole64 is declared
-configure:28439: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28427: result: no
+configure:28440: checking whether htole64 is declared
+configure:28440: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:53:10: error: use of undeclared identifier 'htole64'
   (void) htole64;
          ^
 1 error generated.
-configure:28439: $? = 1
+configure:28440: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3394,14 +3394,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28439: result: no
-configure:28452: checking whether be16toh is declared
-configure:28452: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28440: result: no
+configure:28453: checking whether be16toh is declared
+configure:28453: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:54:10: error: use of undeclared identifier 'be16toh'
   (void) be16toh;
          ^
 1 error generated.
-configure:28452: $? = 1
+configure:28453: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3465,14 +3465,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28452: result: no
-configure:28465: checking whether be32toh is declared
-configure:28465: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28453: result: no
+configure:28466: checking whether be32toh is declared
+configure:28466: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:55:10: error: use of undeclared identifier 'be32toh'
   (void) be32toh;
          ^
 1 error generated.
-configure:28465: $? = 1
+configure:28466: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3537,14 +3537,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28465: result: no
-configure:28478: checking whether be64toh is declared
-configure:28478: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28466: result: no
+configure:28479: checking whether be64toh is declared
+configure:28479: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:56:10: error: use of undeclared identifier 'be64toh'
   (void) be64toh;
          ^
 1 error generated.
-configure:28478: $? = 1
+configure:28479: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3610,14 +3610,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28478: result: no
-configure:28491: checking whether htobe16 is declared
-configure:28491: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28479: result: no
+configure:28492: checking whether htobe16 is declared
+configure:28492: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:57:10: error: use of undeclared identifier 'htobe16'
   (void) htobe16;
          ^
 1 error generated.
-configure:28491: $? = 1
+configure:28492: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3684,14 +3684,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28491: result: no
-configure:28504: checking whether htobe32 is declared
-configure:28504: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28492: result: no
+configure:28505: checking whether htobe32 is declared
+configure:28505: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:58:10: error: use of undeclared identifier 'htobe32'
   (void) htobe32;
          ^
 1 error generated.
-configure:28504: $? = 1
+configure:28505: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3759,14 +3759,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28504: result: no
-configure:28517: checking whether htobe64 is declared
-configure:28517: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28505: result: no
+configure:28518: checking whether htobe64 is declared
+configure:28518: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:59:10: error: use of undeclared identifier 'htobe64'
   (void) htobe64;
          ^
 1 error generated.
-configure:28517: $? = 1
+configure:28518: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3835,14 +3835,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28517: result: no
-configure:28532: checking whether bswap_16 is declared
-configure:28532: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28518: result: no
+configure:28533: checking whether bswap_16 is declared
+configure:28533: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:58:10: error: use of undeclared identifier 'bswap_16'
   (void) bswap_16;
          ^
 1 error generated.
-configure:28532: $? = 1
+configure:28533: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3910,14 +3910,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28532: result: no
-configure:28543: checking whether bswap_32 is declared
-configure:28543: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28533: result: no
+configure:28544: checking whether bswap_32 is declared
+configure:28544: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:59:10: error: use of undeclared identifier 'bswap_32'
   (void) bswap_32;
          ^
 1 error generated.
-configure:28543: $? = 1
+configure:28544: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -3986,14 +3986,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28543: result: no
-configure:28554: checking whether bswap_64 is declared
-configure:28554: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
+configure:28544: result: no
+configure:28555: checking whether bswap_64 is declared
+configure:28555: g++ -std=c++17 -c -g -O2   conftest.cpp >&5
 conftest.cpp:60:10: error: use of undeclared identifier 'bswap_64'
   (void) bswap_64;
          ^
 1 error generated.
-configure:28554: $? = 1
+configure:28555: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4063,22 +4063,22 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28554: result: no
-configure:28567: checking for __builtin_clzl
-configure:28582: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28582: $? = 0
-configure:28584: result: yes
-configure:28595: checking for __builtin_clzll
-configure:28610: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28610: $? = 0
-configure:28612: result: yes
-configure:28623: checking for getmemoryinfo
-configure:28636: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28555: result: no
+configure:28568: checking for __builtin_clzl
+configure:28583: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28583: $? = 0
+configure:28585: result: yes
+configure:28596: checking for __builtin_clzll
+configure:28611: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28611: $? = 0
+configure:28613: result: yes
+configure:28624: checking for getmemoryinfo
+configure:28637: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:54:10: fatal error: 'malloc.h' file not found
 #include <malloc.h>
          ^~~~~~~~~~
 1 error generated.
-configure:28636: $? = 1
+configure:28637: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4141,14 +4141,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28643: result: no
-configure:28649: checking for mallopt M_ARENA_MAX
-configure:28662: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28644: result: no
+configure:28650: checking for mallopt M_ARENA_MAX
+configure:28663: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:54:10: fatal error: 'malloc.h' file not found
 #include <malloc.h>
          ^~~~~~~~~~
 1 error generated.
-configure:28662: $? = 1
+configure:28663: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4211,14 +4211,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28669: result: no
-configure:28675: checking for posix_fallocate
-configure:28696: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28670: result: no
+configure:28676: checking for posix_fallocate
+configure:28697: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:66:10: error: use of undeclared identifier 'posix_fallocate'
  int f = posix_fallocate(0, 0, 0);
          ^
 1 error generated.
-configure:28696: $? = 1
+configure:28697: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4289,18 +4289,18 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28703: result: no
-configure:28709: checking for default visibility attribute
-configure:28718: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28718: $? = 0
-configure:28724: result: yes
-configure:28739: checking for dllexport attribute
-configure:28748: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28704: result: no
+configure:28710: checking for default visibility attribute
+configure:28719: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28719: $? = 0
+configure:28725: result: yes
+configure:28740: checking for dllexport attribute
+configure:28749: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:56:3: error: '__declspec' attributes are not enabled; use '-fdeclspec' or '-fms-extensions' to enable support for __declspec attributes
   __declspec(dllexport) int foo(void);
   ^
 1 error generated.
-configure:28748: $? = 1
+configure:28749: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4360,22 +4360,22 @@ configure: failed program was:
 |   __declspec(dllexport) int foo(void);
 |   int main(){}
 | 
-configure:28758: result: no
-configure:28767: checking for thread_local support
-configure:28781: g++ -std=c++17 -o conftest -g -O2   -pthread conftest.cpp  >&5
-configure:28781: $? = 0
-configure:28797: result: yes
-configure:28814: checking for gmtime_r
-configure:28827: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28827: $? = 0
-configure:28829: result: yes
-configure:28864: checking for Linux getrandom syscall
-configure:28879: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28759: result: no
+configure:28768: checking for thread_local support
+configure:28782: g++ -std=c++17 -o conftest -g -O2   -pthread conftest.cpp  >&5
+configure:28782: $? = 0
+configure:28798: result: yes
+configure:28815: checking for gmtime_r
+configure:28828: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28828: $? = 0
+configure:28830: result: yes
+configure:28865: checking for Linux getrandom syscall
+configure:28880: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:59:12: fatal error: 'linux/random.h' file not found
   #include <linux/random.h>
            ^~~~~~~~~~~~~~~~
 1 error generated.
-configure:28879: $? = 1
+configure:28880: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4443,22 +4443,22 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28886: result: no
-configure:28892: checking for getentropy via random.h
-configure:28906: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28906: $? = 0
-configure:28908: result: yes
-configure:28919: checking for sysctl
-configure:28936: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:28936: $? = 0
-configure:28938: result: yes
-configure:28949: checking for sysctl KERN_ARND
-configure:28967: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28887: result: no
+configure:28893: checking for getentropy via random.h
+configure:28907: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28907: $? = 0
+configure:28909: result: yes
+configure:28920: checking for sysctl
+configure:28937: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28937: $? = 0
+configure:28939: result: yes
+configure:28950: checking for sysctl KERN_ARND
+configure:28968: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:67:37: error: use of undeclared identifier 'KERN_ARND'
     static int name[2] = {CTL_KERN, KERN_ARND};
                                     ^
 1 error generated.
-configure:28967: $? = 1
+configure:28968: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4531,14 +4531,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:28974: result: no
-configure:28980: checking for if type char equals int8_t
-configure:28994: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:28975: result: no
+configure:28981: checking for if type char equals int8_t
+configure:28995: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:64:2: error: static_assert failed due to requirement 'std::is_same<signed char, char>::value' ""
  static_assert(std::is_same<int8_t, char>::value, "");
  ^             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 1 error generated.
-configure:28994: $? = 1
+configure:28995: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4607,14 +4607,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:29001: result: no
-configure:29007: checking for fdatasync
-configure:29020: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29002: result: no
+configure:29008: checking for fdatasync
+configure:29021: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:63:2: error: use of undeclared identifier 'fdatasync'
  fdatasync(0);
  ^
 1 error generated.
-configure:29020: $? = 1
+configure:29021: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4682,21 +4682,21 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:29025: result: no
-configure:29034: checking for F_FULLFSYNC
-configure:29047: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:29047: $? = 0
-configure:29049: result: yes
-configure:29058: checking for O_CLOEXEC
-configure:29071: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:29071: $? = 0
-configure:29073: result: yes
-configure:29085: checking for __builtin_prefetch
-configure:29102: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
-configure:29102: $? = 0
-configure:29104: result: yes
-configure:29113: checking for _mm_prefetch
-configure:29130: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29026: result: no
+configure:29035: checking for F_FULLFSYNC
+configure:29048: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29048: $? = 0
+configure:29050: result: yes
+configure:29059: checking for O_CLOEXEC
+configure:29072: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29072: $? = 0
+configure:29074: result: yes
+configure:29086: checking for __builtin_prefetch
+configure:29103: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29103: $? = 0
+configure:29105: result: yes
+configure:29114: checking for _mm_prefetch
+configure:29131: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 In file included from conftest.cpp:61:
 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/clang/14.0.3/include/xmmintrin.h:14:2: error: "This header is only meant to be used on x86 and x64 architecture"
 #error "This header is only meant to be used on x86 and x64 architecture"
@@ -4764,7 +4764,7 @@ In file included from /Applications/Xcode.app/Contents/Developer/Toolchains/Xcod
                   ^                    ~~~~~~~~~~~~
 fatal error: too many errors emitted, stopping now [-ferror-limit=]
 20 errors generated.
-configure:29130: $? = 1
+configure:29131: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4838,14 +4838,14 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:29135: result: no
-configure:29141: checking for strong getauxval support in the system headers
-configure:29158: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:29136: result: no
+configure:29142: checking for strong getauxval support in the system headers
+configure:29159: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:62:14: fatal error: 'sys/auxv.h' file not found
     #include <sys/auxv.h>
              ^~~~~~~~~~~~
 1 error generated.
-configure:29158: $? = 1
+configure:29159: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -4919,13 +4919,13 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:29165: result: no
-configure:29172: checking for std::system
-configure:29186: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:29186: $? = 0
-configure:29188: result: yes
-configure:29198: checking for ::_wsystem
-configure:29212: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:29166: result: no
+configure:29173: checking for std::system
+configure:29187: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:29187: $? = 0
+configure:29189: result: yes
+configure:29199: checking for ::_wsystem
+configure:29213: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
 conftest.cpp:65:15: error: no member named '_wsystem' in the global namespace; did you mean 'system'?
  int nErr = ::_wsystem(NULL);
             ~~^~~~~~~~
@@ -4934,7 +4934,7 @@ conftest.cpp:65:15: error: no member named '_wsystem' in the global namespace; d
 int      system(const char *) __DARWIN_ALIAS_C(system);
          ^
 1 error generated.
-configure:29212: $? = 1
+configure:29213: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5005,50 +5005,50 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:29217: result: no
-configure:29402: checking for Qt5Core >= 5.11.3
-configure:29409: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Core${qt_lib_suffix} $qt_version"
-configure:29412: $? = 0
-configure:29426: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Core${qt_lib_suffix} $qt_version"
-configure:29429: $? = 0
-configure:29489: result: yes
-configure:29505: checking for Qt5Gui >= 5.11.3
-configure:29512: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Gui${qt_lib_suffix} $qt_version"
-configure:29515: $? = 0
-configure:29529: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Gui${qt_lib_suffix} $qt_version"
-configure:29532: $? = 0
-configure:29592: result: yes
-configure:29608: checking for Qt5Widgets >= 5.11.3
-configure:29615: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Widgets${qt_lib_suffix} $qt_version"
-configure:29618: $? = 0
-configure:29632: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Widgets${qt_lib_suffix} $qt_version"
-configure:29635: $? = 0
-configure:29695: result: yes
-configure:29711: checking for Qt5Network >= 5.11.3
-configure:29718: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Network${qt_lib_suffix} $qt_version"
-configure:29721: $? = 0
-configure:29735: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Network${qt_lib_suffix} $qt_version"
-configure:29738: $? = 0
-configure:29798: result: yes
-configure:29815: checking for Qt5Test >= 5.11.3
-configure:29822: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Test${qt_lib_suffix} $qt_version"
-configure:29825: $? = 0
-configure:29839: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Test${qt_lib_suffix} $qt_version"
-configure:29842: $? = 0
-configure:29880: result: yes
-configure:29887: checking for Qt5DBus >= 5.11.3
-configure:29894: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}DBus $qt_version"
-configure:29897: $? = 0
-configure:29911: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}DBus $qt_version"
-configure:29914: $? = 0
-configure:29952: result: yes
-configure:29979: checking for static Qt
-configure:30006: g++ -std=c++17 -c -fPIC  -g -O2 -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers   -DHAVE_BUILD_INFO -DMAC_OSX -DOBJC_OLD_DISPATCH_PROTOTYPES=0  conftest.cpp >&5
+configure:29218: result: no
+configure:29403: checking for Qt5Core >= 5.11.3
+configure:29410: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Core${qt_lib_suffix} $qt_version"
+configure:29413: $? = 0
+configure:29427: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Core${qt_lib_suffix} $qt_version"
+configure:29430: $? = 0
+configure:29490: result: yes
+configure:29506: checking for Qt5Gui >= 5.11.3
+configure:29513: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Gui${qt_lib_suffix} $qt_version"
+configure:29516: $? = 0
+configure:29530: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Gui${qt_lib_suffix} $qt_version"
+configure:29533: $? = 0
+configure:29593: result: yes
+configure:29609: checking for Qt5Widgets >= 5.11.3
+configure:29616: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Widgets${qt_lib_suffix} $qt_version"
+configure:29619: $? = 0
+configure:29633: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Widgets${qt_lib_suffix} $qt_version"
+configure:29636: $? = 0
+configure:29696: result: yes
+configure:29712: checking for Qt5Network >= 5.11.3
+configure:29719: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Network${qt_lib_suffix} $qt_version"
+configure:29722: $? = 0
+configure:29736: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Network${qt_lib_suffix} $qt_version"
+configure:29739: $? = 0
+configure:29799: result: yes
+configure:29816: checking for Qt5Test >= 5.11.3
+configure:29823: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Test${qt_lib_suffix} $qt_version"
+configure:29826: $? = 0
+configure:29840: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}Test${qt_lib_suffix} $qt_version"
+configure:29843: $? = 0
+configure:29881: result: yes
+configure:29888: checking for Qt5DBus >= 5.11.3
+configure:29895: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}DBus $qt_version"
+configure:29898: $? = 0
+configure:29912: $PKG_CONFIG --exists --print-errors "${qt_lib_prefix}DBus $qt_version"
+configure:29915: $? = 0
+configure:29953: result: yes
+configure:29980: checking for static Qt
+configure:30007: g++ -std=c++17 -c -fPIC  -g -O2 -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers   -DHAVE_BUILD_INFO -DMAC_OSX -DOBJC_OLD_DISPATCH_PROTOTYPES=0  conftest.cpp >&5
 conftest.cpp:73:9: error: use of undeclared identifier 'choke'
         choke
         ^
 1 error generated.
-configure:30006: $? = 1
+configure:30007: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5128,69 +5128,69 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:30015: result: no
-configure:32081: checking whether -fPIE can be used with this Qt config
-configure:32107: g++ -std=c++17 -c   -g -O2 -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers   -DHAVE_BUILD_INFO -DMAC_OSX -DOBJC_OLD_DISPATCH_PROTOTYPES=0  conftest.cpp >&5
-configure:32107: $? = 0
-configure:32109: result: yes
-configure:32183: checking for moc-qt5
-configure:32221: result: no
-configure:32183: checking for moc5
-configure:32221: result: no
-configure:32183: checking for moc
-configure:32206: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/moc
-configure:32218: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/moc
-configure:32312: checking for uic-qt5
-configure:32350: result: no
-configure:32312: checking for uic5
-configure:32350: result: no
-configure:32312: checking for uic
-configure:32335: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/uic
-configure:32347: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/uic
-configure:32441: checking for rcc-qt5
-configure:32479: result: no
-configure:32441: checking for rcc5
-configure:32479: result: no
-configure:32441: checking for rcc
-configure:32464: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/rcc
-configure:32476: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/rcc
-configure:32570: checking for lrelease-qt5
-configure:32608: result: no
-configure:32570: checking for lrelease5
-configure:32608: result: no
-configure:32570: checking for lrelease
-configure:32593: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lrelease
-configure:32605: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lrelease
-configure:32699: checking for lupdate-qt5
-configure:32737: result: no
-configure:32699: checking for lupdate5
-configure:32737: result: no
-configure:32699: checking for lupdate
-configure:32722: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lupdate
-configure:32734: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lupdate
-configure:32828: checking for lconvert-qt5
-configure:32866: result: no
-configure:32828: checking for lconvert5
-configure:32866: result: no
-configure:32828: checking for lconvert
-configure:32851: found /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lconvert
-configure:32863: result: /opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lconvert
-configure:32958: checking whether the linker accepts -framework Foundation -framework AppKit
-configure:32978: g++ -std=c++17 -o conftest -g -O2    -framework Foundation -framework AppKit conftest.cpp  >&5
-configure:32978: $? = 0
-configure:32989: result: yes
-configure:33059: checking whether to build Bitcoin Core GUI
-configure:33094: result: yes (Qt5)
-configure:33121: checking whether main function is needed for fuzz binary
-configure:33124: checking whether the linker accepts 
-configure:33151: g++ -std=c++17 -o conftest -g -O2     conftest.cpp  >&5
+configure:30016: result: no
+configure:32082: checking whether -fPIE can be used with this Qt config
+configure:32108: g++ -std=c++17 -c   -g -O2 -DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers   -DHAVE_BUILD_INFO -DMAC_OSX -DOBJC_OLD_DISPATCH_PROTOTYPES=0  conftest.cpp >&5
+configure:32108: $? = 0
+configure:32110: result: yes
+configure:32184: checking for moc-qt5
+configure:32222: result: no
+configure:32184: checking for moc5
+configure:32222: result: no
+configure:32184: checking for moc
+configure:32207: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/moc
+configure:32219: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/moc
+configure:32313: checking for uic-qt5
+configure:32351: result: no
+configure:32313: checking for uic5
+configure:32351: result: no
+configure:32313: checking for uic
+configure:32336: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/uic
+configure:32348: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/uic
+configure:32442: checking for rcc-qt5
+configure:32480: result: no
+configure:32442: checking for rcc5
+configure:32480: result: no
+configure:32442: checking for rcc
+configure:32465: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/rcc
+configure:32477: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/rcc
+configure:32571: checking for lrelease-qt5
+configure:32609: result: no
+configure:32571: checking for lrelease5
+configure:32609: result: no
+configure:32571: checking for lrelease
+configure:32594: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lrelease
+configure:32606: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lrelease
+configure:32700: checking for lupdate-qt5
+configure:32738: result: no
+configure:32700: checking for lupdate5
+configure:32738: result: no
+configure:32700: checking for lupdate
+configure:32723: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lupdate
+configure:32735: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lupdate
+configure:32829: checking for lconvert-qt5
+configure:32867: result: no
+configure:32829: checking for lconvert5
+configure:32867: result: no
+configure:32829: checking for lconvert
+configure:32852: found /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lconvert
+configure:32864: result: /opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lconvert
+configure:32959: checking whether the linker accepts -framework Foundation -framework AppKit
+configure:32979: g++ -std=c++17 -o conftest -g -O2    -framework Foundation -framework AppKit conftest.cpp  >&5
+configure:32979: $? = 0
+configure:32990: result: yes
+configure:33060: checking whether to build Bitcoin Core GUI
+configure:33095: result: yes (Qt5)
+configure:33122: checking whether main function is needed for fuzz binary
+configure:33125: checking whether the linker accepts 
+configure:33152: g++ -std=c++17 -o conftest -g -O2     conftest.cpp  >&5
 Undefined symbols for architecture arm64:
   "_main", referenced from:
      implicit entry/start for main executable
      (maybe you meant: not_main())
 ld: symbol(s) not found for architecture arm64
 clang: error: linker command failed with exit code 1 (use -v to see invocation)
-configure:33151: $? = 1
+configure:33152: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5268,27 +5268,27 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:33162: result: no
-configure:33169: result: yes
-configure:33183: checking for __builtin_mul_overflow
-configure:33195: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
-configure:33195: $? = 0
-configure:33198: result: yes
-configure:33475: checking for sqlite3 >= 3.7.17
-configure:33482: $PKG_CONFIG --exists --print-errors "sqlite3 >= 3.7.17"
-configure:33485: $? = 0
-configure:33499: $PKG_CONFIG --exists --print-errors "sqlite3 >= 3.7.17"
-configure:33502: $? = 0
-configure:33540: result: yes
-configure:33545: checking whether to build wallet with support for sqlite
-configure:33562: result: yes
-configure:33574: checking whether Userspace, Statically Defined Tracing tracepoints are supported
-configure:33589: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
+configure:33163: result: no
+configure:33170: result: yes
+configure:33184: checking for __builtin_mul_overflow
+configure:33196: g++ -std=c++17 -o conftest -g -O2   conftest.cpp  >&5
+configure:33196: $? = 0
+configure:33199: result: yes
+configure:33476: checking for sqlite3 >= 3.7.17
+configure:33483: $PKG_CONFIG --exists --print-errors "sqlite3 >= 3.7.17"
+configure:33486: $? = 0
+configure:33500: $PKG_CONFIG --exists --print-errors "sqlite3 >= 3.7.17"
+configure:33503: $? = 0
+configure:33541: result: yes
+configure:33546: checking whether to build wallet with support for sqlite
+configure:33563: result: yes
+configure:33575: checking whether Userspace, Statically Defined Tracing tracepoints are supported
+configure:33590: g++ -std=c++17 -c -g -O2  conftest.cpp >&5
 conftest.cpp:70:1: error: use of undeclared identifier 'DTRACE_PROBE'
 DTRACE_PROBE("context", "event");
 ^
 1 error generated.
-configure:33589: $? = 1
+configure:33590: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5364,50 +5364,50 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:33596: result: no
-configure:33623: checking for miniupnpc/miniupnpc.h
-configure:33623: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
-configure:33623: $? = 0
-configure:33623: result: yes
-configure:33629: checking for upnpDiscover in -lminiupnpc
-configure:33651: g++ -std=c++17 -o conftest -g -O2  -I/opt/homebrew/opt/miniupnpc/include  conftest.cpp -lminiupnpc -L/opt/homebrew/opt/miniupnpc/lib  >&5
-configure:33651: $? = 0
-configure:33661: result: yes
-configure:33623: checking for miniupnpc/upnpcommands.h
-configure:33623: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
-configure:33623: $? = 0
-configure:33623: result: yes
-configure:33629: checking for upnpDiscover in -lminiupnpc
-configure:33661: result: yes
-configure:33623: checking for miniupnpc/upnperrors.h
-configure:33623: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
-configure:33623: $? = 0
-configure:33623: result: yes
-configure:33629: checking for upnpDiscover in -lminiupnpc
-configure:33661: result: yes
-configure:33677: checking whether miniUPnPc API version is supported
-configure:33698: g++ -std=c++17 -E  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp
-configure:33698: $? = 0
-configure:33701: result: yes
-configure:33723: checking for natpmp.h
-configure:33723: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/libnatpmp/include conftest.cpp >&5
-configure:33723: $? = 0
-configure:33723: result: yes
-configure:33727: checking for initnatpmp in -lnatpmp
-configure:33749: g++ -std=c++17 -o conftest -g -O2  -I/opt/homebrew/opt/libnatpmp/include  conftest.cpp -lnatpmp -L/opt/homebrew/opt/libnatpmp/lib  >&5
-configure:33749: $? = 0
-configure:33759: result: yes
-configure:33911: checking for Boost headers >= 1.64.0 (106400)
-configure:33939: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/include conftest.cpp >&5
-configure:33939: $? = 0
-configure:33942: result: yes
-configure:34089: checking whether C++ preprocessor accepts -DBOOST_NO_CXX98_FUNCTION_BASE
-configure:34109: g++ -std=c++17 -E  -Werror -DBOOST_NO_CXX98_FUNCTION_BASE conftest.cpp
+configure:33597: result: no
+configure:33624: checking for miniupnpc/miniupnpc.h
+configure:33624: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
+configure:33624: $? = 0
+configure:33624: result: yes
+configure:33630: checking for upnpDiscover in -lminiupnpc
+configure:33652: g++ -std=c++17 -o conftest -g -O2  -I/opt/homebrew/opt/miniupnpc/include  conftest.cpp -lminiupnpc -L/opt/homebrew/opt/miniupnpc/lib  >&5
+configure:33652: $? = 0
+configure:33662: result: yes
+configure:33624: checking for miniupnpc/upnpcommands.h
+configure:33624: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
+configure:33624: $? = 0
+configure:33624: result: yes
+configure:33630: checking for upnpDiscover in -lminiupnpc
+configure:33662: result: yes
+configure:33624: checking for miniupnpc/upnperrors.h
+configure:33624: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp >&5
+configure:33624: $? = 0
+configure:33624: result: yes
+configure:33630: checking for upnpDiscover in -lminiupnpc
+configure:33662: result: yes
+configure:33678: checking whether miniUPnPc API version is supported
+configure:33699: g++ -std=c++17 -E  -I/opt/homebrew/opt/miniupnpc/include conftest.cpp
+configure:33699: $? = 0
+configure:33702: result: yes
+configure:33724: checking for natpmp.h
+configure:33724: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/opt/libnatpmp/include conftest.cpp >&5
+configure:33724: $? = 0
+configure:33724: result: yes
+configure:33728: checking for initnatpmp in -lnatpmp
+configure:33750: g++ -std=c++17 -o conftest -g -O2  -I/opt/homebrew/opt/libnatpmp/include  conftest.cpp -lnatpmp -L/opt/homebrew/opt/libnatpmp/lib  >&5
+configure:33750: $? = 0
+configure:33760: result: yes
+configure:33912: checking for Boost headers >= 1.64.0 (106400)
+configure:33940: g++ -std=c++17 -c -g -O2  -I/opt/homebrew/include conftest.cpp >&5
+configure:33940: $? = 0
+configure:33943: result: yes
+configure:34090: checking whether C++ preprocessor accepts -DBOOST_NO_CXX98_FUNCTION_BASE
+configure:34110: g++ -std=c++17 -E  -Werror -DBOOST_NO_CXX98_FUNCTION_BASE conftest.cpp
 conftest.cpp:70:10: fatal error: 'boost/config.hpp' file not found
 #include <boost/config.hpp>
          ^~~~~~~~~~~~~~~~~~
 1 error generated.
-configure:34109: $? = 1
+configure:34110: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5486,9 +5486,9 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:34119: result: no
-configure:34147: checking whether Boost.Process can be used
-configure:34166: g++ -std=c++17 -o conftest -g -O2 -Wno-error=narrowing  -I/opt/homebrew/include -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION  -pthread conftest.cpp  >&5
+configure:34120: result: no
+configure:34148: checking whether Boost.Process can be used
+configure:34167: g++ -std=c++17 -o conftest -g -O2 -Wno-error=narrowing  -I/opt/homebrew/include -DBOOST_MULTI_INDEX_DISABLE_SERIALIZATION  -pthread conftest.cpp  >&5
 In file included from conftest.cpp:70:
 In file included from /opt/homebrew/include/boost/process.hpp:22:
 In file included from /opt/homebrew/include/boost/process/args.hpp:33:
@@ -5507,15 +5507,15 @@ class _LIBCPP_TEMPLATE_VIS _LIBCPP_DEPRECATED_IN_CXX17 codecvt_utf8
 #      define _LIBCPP_DEPRECATED __attribute__((deprecated))
                                                 ^
 1 warning generated.
-configure:34166: $? = 0
-configure:34177: result: yes
-configure:34208: checking for seccomp-bpf (Linux x86-64)
-configure:34227: g++ -std=c++17 -E  conftest.cpp
+configure:34167: $? = 0
+configure:34178: result: yes
+configure:34209: checking for seccomp-bpf (Linux x86-64)
+configure:34228: g++ -std=c++17 -E  conftest.cpp
 conftest.cpp:72:16: fatal error: 'linux/seccomp.h' file not found
       #include <linux/seccomp.h>
                ^~~~~~~~~~~~~~~~~
 1 error generated.
-configure:34227: $? = 1
+configure:34228: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5601,21 +5601,21 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:34239: result: no
-configure:34352: checking for libevent >= 2.1.8
-configure:34359: $PKG_CONFIG --exists --print-errors "libevent >= 2.1.8"
-configure:34362: $? = 0
-configure:34376: $PKG_CONFIG --exists --print-errors "libevent >= 2.1.8"
-configure:34379: $? = 0
-configure:34417: result: yes
-configure:34424: checking for libevent_pthreads >= 2.1.8
-configure:34431: $PKG_CONFIG --exists --print-errors "libevent_pthreads >= 2.1.8"
-configure:34434: $? = 0
-configure:34448: $PKG_CONFIG --exists --print-errors "libevent_pthreads >= 2.1.8"
-configure:34451: $? = 0
-configure:34489: result: yes
-configure:34503: checking if evhttp_connection_get_peer expects const char**
-configure:34525: g++ -std=c++17 -c -g -O2 -I/opt/homebrew/Cellar/libevent/2.1.12_1/include  conftest.cpp >&5
+configure:34240: result: no
+configure:34353: checking for libevent >= 2.1.8
+configure:34360: $PKG_CONFIG --exists --print-errors "libevent >= 2.1.8"
+configure:34363: $? = 0
+configure:34377: $PKG_CONFIG --exists --print-errors "libevent >= 2.1.8"
+configure:34380: $? = 0
+configure:34418: result: yes
+configure:34425: checking for libevent_pthreads >= 2.1.8
+configure:34432: $PKG_CONFIG --exists --print-errors "libevent_pthreads >= 2.1.8"
+configure:34435: $? = 0
+configure:34449: $PKG_CONFIG --exists --print-errors "libevent_pthreads >= 2.1.8"
+configure:34452: $? = 0
+configure:34490: result: yes
+configure:34504: checking if evhttp_connection_get_peer expects const char**
+configure:34526: g++ -std=c++17 -c -g -O2 -I/opt/homebrew/Cellar/libevent/2.1.12_1/include  conftest.cpp >&5
 conftest.cpp:83:7: error: no matching function for call to 'evhttp_connection_get_peer'
       evhttp_connection_get_peer(conn, &host, &port);
       ^~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -5623,7 +5623,7 @@ conftest.cpp:83:7: error: no matching function for call to 'evhttp_connection_ge
 void evhttp_connection_get_peer(struct evhttp_connection *evcon,
      ^
 1 error generated.
-configure:34525: $? = 1
+configure:34526: $? = 1
 configure: failed program was:
 | /* confdefs.h */
 | #define PACKAGE_NAME "Bitcoin Core"
@@ -5712,69 +5712,69 @@ configure: failed program was:
 |   ;
 |   return 0;
 | }
-configure:34532: result: no
-configure:34547: checking for libqrencode
-configure:34554: $PKG_CONFIG --exists --print-errors "libqrencode"
-configure:34557: $? = 0
-configure:34571: $PKG_CONFIG --exists --print-errors "libqrencode"
-configure:34574: $? = 0
-configure:34612: result: yes
-configure:34627: checking for libzmq >= 4
-configure:34634: $PKG_CONFIG --exists --print-errors "libzmq >= 4"
-configure:34637: $? = 0
-configure:34651: $PKG_CONFIG --exists --print-errors "libzmq >= 4"
-configure:34654: $? = 0
-configure:34702: result: yes
-configure:34727: checking for libmultiprocess
-configure:34734: $PKG_CONFIG --exists --print-errors "libmultiprocess"
+configure:34533: result: no
+configure:34548: checking for libqrencode
+configure:34555: $PKG_CONFIG --exists --print-errors "libqrencode"
+configure:34558: $? = 0
+configure:34572: $PKG_CONFIG --exists --print-errors "libqrencode"
+configure:34575: $? = 0
+configure:34613: result: yes
+configure:34628: checking for libzmq >= 4
+configure:34635: $PKG_CONFIG --exists --print-errors "libzmq >= 4"
+configure:34638: $? = 0
+configure:34652: $PKG_CONFIG --exists --print-errors "libzmq >= 4"
+configure:34655: $? = 0
+configure:34703: result: yes
+configure:34728: checking for libmultiprocess
+configure:34735: $PKG_CONFIG --exists --print-errors "libmultiprocess"
 Package libmultiprocess was not found in the pkg-config search path.
 Perhaps you should add the directory containing `libmultiprocess.pc'
 to the PKG_CONFIG_PATH environment variable
 No package 'libmultiprocess' found
-configure:34737: $? = 1
-configure:34751: $PKG_CONFIG --exists --print-errors "libmultiprocess"
+configure:34738: $? = 1
+configure:34752: $PKG_CONFIG --exists --print-errors "libmultiprocess"
 Package libmultiprocess was not found in the pkg-config search path.
 Perhaps you should add the directory containing `libmultiprocess.pc'
 to the PKG_CONFIG_PATH environment variable
 No package 'libmultiprocess' found
-configure:34754: $? = 1
-configure:34768: result: no
+configure:34755: $? = 1
+configure:34769: result: no
 No package 'libmultiprocess' found
-configure:34850: checking whether to build bitcoind
-configure:34860: result: yes
-configure:34863: checking whether to build bitcoin-cli
-configure:34873: result: yes
-configure:34876: checking whether to build bitcoin-tx
-configure:34886: result: yes
-configure:34889: checking whether to build bitcoin-wallet
-configure:34899: result: yes
-configure:34902: checking whether to build bitcoin-util
-configure:34912: result: yes
-configure:34915: checking whether to build experimental bitcoin-chainstate
-configure:34930: result: no
-configure:34933: checking whether to build libraries
-configure:34961: result: yes
-configure:34972: checking if ccache should be used
-configure:34985: result: no
-configure:35071: checking if wallet should be enabled
-configure:35074: result: yes
-configure:35086: checking whether to build with support for UPnP
-configure:35097: result: yes
-configure:35112: checking whether to build with support for NAT-PMP
-configure:35123: result: yes
-configure:35140: checking whether to build GUI with support for D-Bus
-configure:35147: result: yes
-configure:35150: checking whether to build GUI with support for QR codes
-configure:35165: result: yes
-configure:35173: checking whether to build test_bitcoin-qt
-configure:35176: result: yes
-configure:35194: checking whether to build test_bitcoin
-configure:35201: result: yes
-configure:35211: checking whether to reduce exports
-configure:35217: result: no
-configure:35710: checking that generated files are newer than configure
-configure:35716: result: done
-configure:35936: creating ./config.status
+configure:34851: checking whether to build bitcoind
+configure:34861: result: yes
+configure:34864: checking whether to build bitcoin-cli
+configure:34874: result: yes
+configure:34877: checking whether to build bitcoin-tx
+configure:34887: result: yes
+configure:34890: checking whether to build bitcoin-wallet
+configure:34900: result: yes
+configure:34903: checking whether to build bitcoin-util
+configure:34913: result: yes
+configure:34916: checking whether to build experimental bitcoin-chainstate
+configure:34931: result: no
+configure:34934: checking whether to build libraries
+configure:34962: result: yes
+configure:34973: checking if ccache should be used
+configure:34986: result: no
+configure:35072: checking if wallet should be enabled
+configure:35075: result: yes
+configure:35087: checking whether to build with support for UPnP
+configure:35098: result: yes
+configure:35113: checking whether to build with support for NAT-PMP
+configure:35124: result: yes
+configure:35141: checking whether to build GUI with support for D-Bus
+configure:35148: result: yes
+configure:35151: checking whether to build GUI with support for QR codes
+configure:35166: result: yes
+configure:35174: checking whether to build test_bitcoin-qt
+configure:35177: result: yes
+configure:35195: checking whether to build test_bitcoin
+configure:35202: result: yes
+configure:35212: checking whether to reduce exports
+configure:35218: result: no
+configure:35711: checking that generated files are newer than configure
+configure:35717: result: done
+configure:35937: creating ./config.status
 
 ## ---------------------- ##
 ## Running config.status. ##
@@ -5806,8 +5806,8 @@ config.status:1864: cd src       && sed -e '/# am--include-marker/d' Makefile   
 make: Nothing to be done for `am--depfiles'.
 config.status:1869: $? = 0
 config.status:1787: executing libtool commands
-configure:38480: === configuring in src/secp256k1 (/Users/jk/MIKE/federation/sidechain/src/secp256k1)
-configure:38541: running /bin/sh ./configure --disable-option-checking '--prefix=/usr/local'  '--disable-shared' '--with-pic' '--enable-benchmark=no' '--enable-module-recovery' '--disable-module-ecdh' --cache-file=/dev/null --srcdir=.
+configure:38481: === configuring in src/secp256k1 (/Users/jk/MIKE/federation/mara-sidechain-node/src/secp256k1)
+configure:38542: running /bin/sh ./configure --disable-option-checking '--prefix=/usr/local'  '--disable-shared' '--with-pic' '--enable-benchmark=no' '--with-bignum=no' '--enable-module-recovery' '--enable-module-schnorrsig' '--enable-experimental' '--enable-module-whitelist' '--enable-module-rangeproof' '--enable-module-generator' '--enable-module-surjectionproof' '--enable-module-ecdh' '--enable-module-musig' --cache-file=/dev/null --srcdir=.
 
 ## ---------------- ##
 ## Cache variables. ##
@@ -6028,14 +6028,14 @@ ac_cv_path_FGREP='/usr/bin/grep -F'
 ac_cv_path_GIT=/usr/bin/git
 ac_cv_path_GREP=/usr/bin/grep
 ac_cv_path_HEXDUMP=/usr/bin/hexdump
-ac_cv_path_LCONVERT=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lconvert
-ac_cv_path_LRELEASE=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lrelease
-ac_cv_path_LUPDATE=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lupdate
-ac_cv_path_MOC=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/moc
+ac_cv_path_LCONVERT=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lconvert
+ac_cv_path_LRELEASE=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lrelease
+ac_cv_path_LUPDATE=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lupdate
+ac_cv_path_MOC=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/moc
 ac_cv_path_PYTHON=/opt/homebrew/bin/python3.9
-ac_cv_path_RCC=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/rcc
+ac_cv_path_RCC=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/rcc
 ac_cv_path_SED=/opt/homebrew/bin/gsed
-ac_cv_path_UIC=/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/uic
+ac_cv_path_UIC=/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/uic
 ac_cv_path_XGETTEXT=/opt/homebrew/bin/xgettext
 ac_cv_path_ac_pt_AR=/usr/bin/ar
 ac_cv_path_ac_pt_GCOV=/usr/bin/gcov
@@ -6176,18 +6176,18 @@ pkg_cv_EVENT_PTHREADS_CFLAGS='-D_THREAD_SAFE -I/opt/homebrew/Cellar/libevent/2.1
 pkg_cv_EVENT_PTHREADS_LIBS='-L/opt/homebrew/Cellar/libevent/2.1.12_1/lib -levent_pthreads -levent'
 pkg_cv_QR_CFLAGS=-I/opt/homebrew/Cellar/qrencode/4.1.1/include
 pkg_cv_QR_LIBS='-L/opt/homebrew/Cellar/qrencode/4.1.1/lib -lqrencode'
-pkg_cv_QT_CORE_CFLAGS='-DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_CORE_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-pkg_cv_QT_DBUS_CFLAGS='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_DBUS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-pkg_cv_QT_GUI_CFLAGS='-DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_GUI_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-pkg_cv_QT_NETWORK_CFLAGS='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_NETWORK_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-pkg_cv_QT_TEST_CFLAGS='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_TEST_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-pkg_cv_QT_WIDGETS_CFLAGS='-DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-pkg_cv_QT_WIDGETS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
+pkg_cv_QT_CORE_CFLAGS='-DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_CORE_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+pkg_cv_QT_DBUS_CFLAGS='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_DBUS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+pkg_cv_QT_GUI_CFLAGS='-DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_GUI_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+pkg_cv_QT_NETWORK_CFLAGS='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_NETWORK_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+pkg_cv_QT_TEST_CFLAGS='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_TEST_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+pkg_cv_QT_WIDGETS_CFLAGS='-DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+pkg_cv_QT_WIDGETS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
 pkg_cv_SQLITE_CFLAGS=
 pkg_cv_SQLITE_LIBS=-lsqlite3
 pkg_cv_ZMQ_CFLAGS='-I/opt/homebrew/Cellar/zeromq/4.3.4/include -I/opt/homebrew/Cellar/libsodium/1.0.18_1/include'
@@ -6197,7 +6197,7 @@ pkg_cv_ZMQ_LIBS='-L/opt/homebrew/Cellar/zeromq/4.3.4/lib -lzmq'
 ## Output variables. ##
 ## ----------------- ##
 
-ACLOCAL='${SHELL} '\''/Users/jk/MIKE/federation/sidechain/build-aux/missing'\'' aclocal-1.16'
+ACLOCAL='${SHELL} '\''/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing'\'' aclocal-1.16'
 AMDEPBACKSLASH='\'
 AMDEP_FALSE='#'
 AMDEP_TRUE=''
@@ -6212,9 +6212,9 @@ ARFLAGS='cr'
 ARM_CRC_CXXFLAGS='-march=armv8-a+crc'
 ARM_SHANI_CXXFLAGS='-march=armv8-a+crypto'
 AS='as'
-AUTOCONF='${SHELL} '\''/Users/jk/MIKE/federation/sidechain/build-aux/missing'\'' autoconf'
-AUTOHEADER='${SHELL} '\''/Users/jk/MIKE/federation/sidechain/build-aux/missing'\'' autoheader'
-AUTOMAKE='${SHELL} '\''/Users/jk/MIKE/federation/sidechain/build-aux/missing'\'' automake-1.16'
+AUTOCONF='${SHELL} '\''/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing'\'' autoconf'
+AUTOHEADER='${SHELL} '\''/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing'\'' autoheader'
+AUTOMAKE='${SHELL} '\''/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing'\'' automake-1.16'
 AVX2_CXXFLAGS=''
 AWK='awk'
 BDB_CFLAGS='-I/opt/homebrew/opt/berkeley-db@4/include'
@@ -6375,7 +6375,7 @@ INSTALL_NAME_TOOL=''
 INSTALL_PROGRAM='${INSTALL}'
 INSTALL_SCRIPT='${INSTALL}'
 INSTALL_STRIP_PROGRAM='$(install_sh) -c -s'
-LCONVERT='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lconvert'
+LCONVERT='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lconvert'
 LCOV=''
 LCOV_OPTS=''
 LD='/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld'
@@ -6389,22 +6389,22 @@ LIBTOOL_APP_LDFLAGS=''
 LIPO='lipo'
 LLVM_COV=''
 LN_S='ln -s'
-LRELEASE='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lrelease'
+LRELEASE='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lrelease'
 LTLIBOBJS=''
 LTO_CXXFLAGS=''
 LTO_LDFLAGS=''
 LT_SYS_LIBRARY_PATH=''
-LUPDATE='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/lupdate'
+LUPDATE='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/lupdate'
 MAINT=''
 MAINTAINER_MODE_FALSE='#'
 MAINTAINER_MODE_TRUE=''
-MAKEINFO='${SHELL} '\''/Users/jk/MIKE/federation/sidechain/build-aux/missing'\'' makeinfo'
+MAKEINFO='${SHELL} '\''/Users/jk/MIKE/federation/mara-sidechain-node/build-aux/missing'\'' makeinfo'
 MAKENSIS=''
 MANIFEST_TOOL=':'
 MINIUPNPC_CPPFLAGS='-I/opt/homebrew/opt/miniupnpc/include'
 MINIUPNPC_LIBS='-L/opt/homebrew/opt/miniupnpc/lib -lminiupnpc -lminiupnpc -lminiupnpc'
 MKDIR_P='./build-aux/install-sh -c -d'
-MOC='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/moc'
+MOC='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/moc'
 MOC_DEFS='-DHAVE_CONFIG_H -I$(srcdir) -DQ_OS_MAC'
 MPGEN_PREFIX=''
 NATPMP_CPPFLAGS='-I/opt/homebrew/opt/libnatpmp/include'
@@ -6445,11 +6445,11 @@ QT_ACCESSIBILITY_CFLAGS=''
 QT_ACCESSIBILITY_LIBS=''
 QT_CLIPBOARD_CFLAGS=''
 QT_CLIPBOARD_LIBS=''
-QT_CORE_CFLAGS='-DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_CORE_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-QT_DBUS_CFLAGS='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_DBUS_INCLUDES='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_DBUS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
+QT_CORE_CFLAGS='-DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_CORE_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+QT_DBUS_CFLAGS='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_DBUS_INCLUDES='-DQT_DBUS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtDBus.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_DBUS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtDBus -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
 QT_DEVICEDISCOVERY_CFLAGS=''
 QT_DEVICEDISCOVERY_LIBS=''
 QT_EDID_CFLAGS=''
@@ -6464,27 +6464,27 @@ QT_FONTDATABASE_CFLAGS=''
 QT_FONTDATABASE_LIBS=''
 QT_GRAPHICS_CFLAGS=''
 QT_GRAPHICS_LIBS=''
-QT_GUI_CFLAGS='-DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_GUI_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
-QT_INCLUDES='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers '
+QT_GUI_CFLAGS='-DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_GUI_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
+QT_INCLUDES='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers '
 QT_INPUT_CFLAGS=''
 QT_INPUT_LIBS=''
 QT_LDFLAGS=''
-QT_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore  -framework Foundation -framework AppKit'
-QT_NETWORK_CFLAGS='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_NETWORK_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
+QT_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore  -framework Foundation -framework AppKit'
+QT_NETWORK_CFLAGS='-DQT_NETWORK_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtNetwork.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_NETWORK_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtNetwork -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
 QT_PIE_FLAGS=''
 QT_SELECT='qt5'
 QT_SERVICE_CFLAGS=''
 QT_SERVICE_LIBS=''
-QT_TEST_CFLAGS='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_TEST_INCLUDES='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_TEST_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
+QT_TEST_CFLAGS='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_TEST_INCLUDES='-DQT_TESTLIB_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtTest.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_TEST_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtTest -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
 QT_THEME_CFLAGS=''
 QT_THEME_LIBS=''
 QT_TRANSLATION_DIR=''
-QT_WIDGETS_CFLAGS='-DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.8_1/lib/QtCore.framework/Headers'
-QT_WIDGETS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.8_1/lib -framework QtCore'
+QT_WIDGETS_CFLAGS='-DQT_WIDGETS_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_GUI_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -DQT_CORE_LIB -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtWidgets.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtGui.framework/Headers -I/opt/homebrew/Cellar/qt@5/5.15.10_1/lib/QtCore.framework/Headers'
+QT_WIDGETS_LIBS='-F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtWidgets -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtGui -F/opt/homebrew/Cellar/qt@5/5.15.10_1/lib -framework QtCore'
 QT_WINDOWSUIAUTOMATION_CFLAGS=''
 QT_WINDOWSUIAUTOMATION_LIBS=''
 QT_XCBQPA_CFLAGS=''
@@ -6492,7 +6492,7 @@ QT_XCBQPA_LIBS=''
 QT_XKBCOMMON_CFLAGS=''
 QT_XKBCOMMON_LIBS=''
 RANLIB='ranlib'
-RCC='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/rcc'
+RCC='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/rcc'
 RELDFLAGS=''
 RUNTIME_LDFLAGS=''
 SANITIZER_CXXFLAGS=''
@@ -6512,7 +6512,7 @@ TARGET_LINUX_TRUE='#'
 TARGET_WINDOWS_FALSE=''
 TARGET_WINDOWS_TRUE='#'
 TESTDEFS=''
-UIC='/opt/homebrew/Cellar/qt@5/5.15.8_1/bin/uic'
+UIC='/opt/homebrew/Cellar/qt@5/5.15.10_1/bin/uic'
 USE_ASM_FALSE='#'
 USE_ASM_TRUE=''
 USE_BDB=''
@@ -6583,7 +6583,7 @@ host_vendor='apple'
 htmldir='${docdir}'
 includedir='${prefix}/include'
 infodir='${datarootdir}/info'
-install_sh='${SHELL} /Users/jk/MIKE/federation/sidechain/build-aux/install-sh'
+install_sh='${SHELL} /Users/jk/MIKE/federation/mara-sidechain-node/build-aux/install-sh'
 libdir='${exec_prefix}/lib'
 libexecdir='${exec_prefix}/libexec'
 localedir='${datarootdir}/locale'

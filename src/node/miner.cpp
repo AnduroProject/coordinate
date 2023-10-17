@@ -187,7 +187,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
 
 
-    LogPrintf("address ******************** %s \n",getCurrentAddress(m_chainstate.m_chainman));
+    LogPrintf("address ******************** %s \n",getCurrentKeys(m_chainstate.m_chainman));
     std::string pegExpected = "";
     if (pending_deposits[0].pegInfo.compare(pegExpected) != 0) {
         if(isPegInfoValid(pending_deposits[0].pegInfo,pending_deposits[0].pegWitness,m_chainstate.m_chainman, nHeight-1)) {
@@ -199,12 +199,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
         pblock->pegTime = pending_deposits[0].pegTime;
-        pblock->currentAddress = getCurrentAddress(m_chainstate.m_chainman);
+        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
         pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
     } else {
         FederationTxOut& tx_out = pending_deposits[0];
         pblock->pegTime = tx_out.pegTime;
-        pblock->currentAddress = tx_out.currentAddress;
+        pblock->currentKeys = tx_out.currentKeys;
         pblock->nextIndex = tx_out.nextIndex;
     }
 

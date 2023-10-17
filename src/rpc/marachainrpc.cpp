@@ -7,6 +7,7 @@
 #include <rpc/auxpow_miner.h>
 #include <core_io.h>
 #include <federation_deposit.h>
+#include <federation_validator.h>
 
 static RPCHelpMan createAuxBlock()
 {
@@ -72,35 +73,6 @@ static RPCHelpMan submitAuxBlock()
 
 }
 
-static RPCHelpMan hasPegOut()
-{
-    return RPCHelpMan{
-        "haspegout",
-        "check peg out already done",
-        {},
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
-                {RPCResult::Type::BOOL, "result", /*optional=*/true, "Only returns true if submit completed successfully"},
-            },
-        },
-        RPCExamples{
-            HelpExampleCli("haspegout", "")
-        },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            std::vector<FederationTxOut> txList = listPendingDepositTransaction(-1);
-            bool hasPegout = false;
-            for (const FederationTxOut& eout : txList) {
-                if(eout.pegInfo.compare("") != 0) {
-                   hasPegout = true;
-                }
-            }
-            return hasPegout;
-        }
-    };
-
-}
 
 
 static RPCHelpMan federationDepositAddress()
@@ -216,7 +188,6 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &createAuxBlock},
         {"marachain", &submitAuxBlock},
         {"marachain", &getPendingDeposit},
-        {"marachain", &hasPegOut},
         {"marachain", &federationDepositAddress},
         {"marachain", &federationWithdrawAddress},
     };
@@ -224,3 +195,5 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         t.appendCommand(c.name, &c);
     }
 }
+
+

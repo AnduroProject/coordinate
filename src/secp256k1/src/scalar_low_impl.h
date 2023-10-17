@@ -7,7 +7,9 @@
 #ifndef SECP256K1_SCALAR_REPR_IMPL_H
 #define SECP256K1_SCALAR_REPR_IMPL_H
 
+#include "checkmem.h"
 #include "scalar.h"
+#include "util.h"
 
 #include <string.h>
 
@@ -17,6 +19,7 @@ SECP256K1_INLINE static int secp256k1_scalar_is_even(const secp256k1_scalar *a) 
 
 SECP256K1_INLINE static void secp256k1_scalar_clear(secp256k1_scalar *r) { *r = 0; }
 SECP256K1_INLINE static void secp256k1_scalar_set_int(secp256k1_scalar *r, unsigned int v) { *r = v; }
+SECP256K1_INLINE static void secp256k1_scalar_set_u64(secp256k1_scalar *r, uint64_t v) { *r = v % EXHAUSTIVE_TEST_ORDER; }
 
 SECP256K1_INLINE static unsigned int secp256k1_scalar_get_bits(const secp256k1_scalar *a, unsigned int offset, unsigned int count) {
     if (offset < 32)
@@ -104,6 +107,10 @@ static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n) {
     return ret;
 }
 
+static void secp256k1_scalar_sqr(secp256k1_scalar *r, const secp256k1_scalar *a) {
+    *r = (*a * *a) % EXHAUSTIVE_TEST_ORDER;
+}
+
 static void secp256k1_scalar_split_128(secp256k1_scalar *r1, secp256k1_scalar *r2, const secp256k1_scalar *a) {
     *r1 = *a;
     *r2 = 0;
@@ -115,8 +122,9 @@ SECP256K1_INLINE static int secp256k1_scalar_eq(const secp256k1_scalar *a, const
 
 static SECP256K1_INLINE void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag) {
     uint32_t mask0, mask1;
-    VG_CHECK_VERIFY(r, sizeof(*r));
-    mask0 = flag + ~((uint32_t)0);
+    volatile int vflag = flag;
+    SECP256K1_CHECKMEM_CHECK_VERIFY(r, sizeof(*r));
+    mask0 = vflag + ~((uint32_t)0);
     mask1 = ~mask0;
     *r = (*r & mask0) | (*a & mask1);
 }

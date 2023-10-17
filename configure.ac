@@ -706,6 +706,7 @@ case $host in
        AC_MSG_ERROR([windres not found])
      fi
 
+     CPPFLAGS="$CPPFLAGS -DSECP256K1_STATIC"
      CORE_CPPFLAGS="$CORE_CPPFLAGS -D_MT -DWIN32 -D_WINDOWS -D_WIN32_WINNT=0x0601 -D_WIN32_IE=0x0501 -DWIN32_LEAN_AND_MEAN"
      dnl Prevent the definition of min/max macros.
      dnl We always want to use the standard library.
@@ -1980,7 +1981,7 @@ CPPFLAGS_TEMP="$CPPFLAGS"
 unset CPPFLAGS
 CPPFLAGS="$CPPFLAGS_TEMP"
 
-ac_configure_args="${ac_configure_args} --disable-shared --with-pic --enable-benchmark=no --enable-module-recovery --disable-module-ecdh"
+ac_configure_args="${ac_configure_args} --disable-shared --with-pic --enable-benchmark=no --with-bignum=no --enable-module-recovery --enable-module-schnorrsig --enable-experimental --enable-module-whitelist --enable-module-rangeproof --enable-module-generator --enable-module-surjectionproof --enable-module-ecdh --enable-module-musig"
 AC_CONFIG_SUBDIRS([src/secp256k1])
 
 AC_OUTPUT

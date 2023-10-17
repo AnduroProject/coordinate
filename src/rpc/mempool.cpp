@@ -62,7 +62,7 @@ static RPCHelpMan sendrawtransaction()
                         },
                     },
                     {"peginfo", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "last pegout receipts details for building cache across federation"},
-                    {"currentaddress", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current address to sign the pegin and pegout receipts"},
+                    {"currentkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
                     {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The time which federation used to sign the presigned block"},
                     {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from federation"},
                     {"pegwitness", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Pegin witness which hold leaf and signature for particular pegout"},
@@ -105,7 +105,7 @@ static RPCHelpMan sendrawtransaction()
                     {
                         {"inputs", UniValueType(UniValue::VARR)},
                         {"nextindex", UniValueType(UniValue::VNUM)},
-                        {"currentaddress", UniValueType(UniValue::VSTR)},
+                        {"currentkeys", UniValueType(UniValue::VSTR)},
                         {"peginfo", UniValueType(UniValue::VSTR)},
                         {"pegwitness", UniValueType(UniValue::VSTR)},
                         {"pegtime", UniValueType(UniValue::VNUM)},
@@ -126,7 +126,7 @@ static RPCHelpMan sendrawtransaction()
                         });
                         const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
                         const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "currentaddress").get_str(),find_value(fedParams, "peginfo").get_str(),find_value(fedParams, "pegwitness").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
+                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(fedParams, "peginfo").get_str(),find_value(fedParams, "pegwitness").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
 
                         tOuts.push_back(out);
                     }
