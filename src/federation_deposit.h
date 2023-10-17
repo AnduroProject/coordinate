@@ -19,68 +19,6 @@
 #include <logging.h>
 #include <util/message.h>
 
-class FederationWitness {
-    public:
-     std::vector<std::string> allkeys;
-     std::vector<std::string> redeemkeys;
-     std::string signature;
-
-     FederationWitness() {
-        SetNull();
-     }
-
-     FederationWitness(std::vector<std::string> allkeysIn, std::vector<std::string> redeemkeysIn, std::string signatureIn) {
-        allkeys = allkeysIn;
-        redeemkeys = redeemkeysIn;
-        signature = signatureIn;
-     }
-
-     SERIALIZE_METHODS(FederationWitness, obj) { 
-        READWRITE(obj.allkeys, obj.signature, obj.redeemkeys); 
-     }
-
-     void SetNull()
-     {
-        allkeys.clear();
-        redeemkeys.clear();
-        signature = "";
-     }
-
-};
-
-class FederationHeader {
-   public:
-    std::string pegInfo;
-    std::string pegWitness;
-    int32_t pegTime;
-    std::string currentAddress;
-    int32_t nextIndex;
-
-    FederationHeader() {
-        SetNull();
-    }
-
-    FederationHeader(std::string pegInfoIn, std::string pegWitnessIn, int32_t pegTimeIn, std::string currentAddressIn, int32_t nextIndexIn) {
-        pegInfo = pegInfoIn;
-        pegWitness = pegWitnessIn;
-        pegTime = pegTimeIn;
-        currentAddress = currentAddressIn;
-        nextIndex = nextIndexIn;
-     }
-
-    SERIALIZE_METHODS(FederationHeader, obj) { 
-        READWRITE(obj.pegInfo, obj.pegWitness, obj.pegTime, obj.currentAddress, obj.nextIndex); 
-    }
-
-    void SetNull() {
-        pegInfo = "";
-        pegWitness = "";
-        pegTime = 0;
-        currentAddress = "";
-        nextIndex = 0;
-    }
-};
-
 class FederationTxOut
 {
 public:
@@ -91,7 +29,7 @@ public:
     std::string pegInfo;
     std::string pegWitness;
     int32_t block_height;
-    std::string currentAddress;
+    std::string currentKeys;
     int32_t pegTime;
     int32_t nextIndex;
     std::string depositAddress;
@@ -102,7 +40,7 @@ public:
         SetNull();
     }
 
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string currentAddressIn, std::string pegInfoIn, std::string pegWitnessIn, std::string depositAddressIn, std::string burnAddressIn) {
+    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string currentKeysIn, std::string pegInfoIn, std::string pegWitnessIn, std::string depositAddressIn, std::string burnAddressIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
@@ -110,7 +48,7 @@ public:
         block_height = block_heightIn;
         pegTime = pegTimeIn;
         nextIndex = nextIndexIn;
-        currentAddress = currentAddressIn;
+        currentKeys = currentKeysIn;
         pegInfo = pegInfoIn;
         pegWitness = pegWitnessIn;
         depositAddress = depositAddressIn;
@@ -118,7 +56,7 @@ public:
     }
 
     SERIALIZE_METHODS(FederationTxOut, obj) { 
-        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.currentAddress, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness, obj.depositAddress, obj.burnAddress); 
+        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.currentKeys, obj.pegTime, obj.nextIndex, obj.pegInfo, obj.pegWitness, obj.depositAddress, obj.burnAddress); 
     }
 
     void SetNull()
@@ -130,7 +68,7 @@ public:
         pegWitness = "";
         witness = "";
         block_height = 0;
-        currentAddress = "";
+        currentKeys = "";
         pegTime = 0;
         nextIndex = 0;
         depositAddress = "";
@@ -156,7 +94,7 @@ CAmount listPendingDepositTotal(int32_t block_height);
 bool isSignatureAlreadyExist(FederationTxOut txOut);
 void resetDeposit(int32_t block_height);
 void addFederationPegout(std::string pegInfoIn, std::string pegWitnessIn, int32_t block_height);
-std::string getCurrentAddress(ChainstateManager& chainman);
+std::string getCurrentKeys(ChainstateManager& chainman);
 int32_t getNextIndex(ChainstateManager& chainman);
 
 

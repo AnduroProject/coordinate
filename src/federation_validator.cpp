@@ -6,292 +6,57 @@
 #include <outputtype.h>
 #include <rpc/util.h>
 
+bool validateFederationSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
+   std::vector<unsigned char> sData(ParseHex(signatureHex));
+   const std::string signatureHexStr(sData.begin(), sData.end());
+   UniValue val(UniValue::VOBJ);
+   if (!val.read(signatureHexStr)) {
+      LogPrintf("invalid signature params \n");
+      return false;
+   }
 
-float thresold = 60.0;
+   std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
+   const std::string prevWitnessHexStr(wData.begin(), wData.end());
+   UniValue witnessVal(UniValue::VOBJ);
+   if (!witnessVal.read(prevWitnessHexStr)) {
+      LogPrintf("invalid witness params \n");
+      return false;
+   }
 
+   std::vector<std::string> allKeysArray;
+   const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "allkeys").get_array();
+   for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
+        allKeysArray.push_back(allKeysArrayRequest[i].get_str());
+   }
+   
+   std::string redeemPath =  find_value(val.get_obj(), "redeemkeys").get_str();
+   std::string signature =  find_value(val.get_obj(), "signature").get_str();
 
-bool getRedeemPathHasEnoughThresold(std::vector<std::string> fullQuorum, std::vector<std::string> signaturePath)
-{
-    float matches = 0.0;
-    int32_t totalQuorum = (float)fullQuorum.size();
-    for (size_t i = 0; i < signaturePath.size(); i++) {
-         for (size_t j = 0; i < fullQuorum.size(); j++) {
-            if(fullQuorum[j].compare(signaturePath[i]) == 0) {
-              matches = matches + 1.0;
-              break;
-            }
-         }
-    }
-    float currentQuoram = (matches / totalQuorum) * 100.0;
-    if(currentQuoram >= thresold) {
-      return true;
-    }
-    return false;
-}
+   uint256 message = prepareMessageHash(messageIn);
 
-std::string getCombinePubkeyForDerivationIndex(std::vector<std::string> xPubKeys, unsigned int derivationIndex) {
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-    std::vector<CPubKey> trPubkeys;
-    for (size_t i = 0; i < xPubKeys.size(); i++) {
-        CPubKey keyItem = getPubKeyAtDerviationIndex(xPubKeys[i],derivationIndex);
-        trPubkeys.push_back(keyItem);
-    }
-    return combinePublicKey(ctx, trPubkeys);
-}
-
-std::string getSchnorrNonce(std::string sessionIdIn, std::string messageIn, std::string xPrivKey, unsigned int derivationIndex) {
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-
-    struct signerNonce signerNonceItem = generateSignerNonce(ctx,sessionIdIn,messageIn,xPrivKey,derivationIndex);
-    unsigned char result[66];
-    secp256k1_musig_pubnonce_serialize(ctx,result,&signerNonceItem.pubnonce);
-
-    std::string resultStr =  HexStr(result);
-
-    // auto newData = ParseHex(resultStr);
-      
-
-    // unsigned char* test = reinterpret_cast<unsigned char*>(newData->data());
-
-    // secp256k1_musig_pubnonce pubnonce;
-    // if(!secp256k1_musig_pubnonce_parse(ctx, &pubnonce, test)) {
-    //      LogPrintf("log characters1 cast failed \n");
-    // }
-
-    // LogPrintf("log characters1 %c \n",result);
-
-    // LogPrintf("log characters1 cast %c \n",test);
-
-    // LogPrintf("log characters1 %s \n",resultStr);
-
-    // unsigned char result1[66];
-    // if(!secp256k1_musig_pubnonce_serialize(ctx,result1,&pubnonce)) {
-    //       LogPrintf("log characters2 failed \n");
-    // };
-
-    // std::string resultStr1 =  HexStr(result1);
-
-    // LogPrintf("log characters2 %c \n",result1);
-
-    // LogPrintf("log characters2 %s \n",resultStr1);
-
-    return resultStr;
-}
-
-std::string getSchnorrNonceCombined(std::vector<std::string> nonces) {
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-    const secp256k1_musig_pubnonce *pubnonces[nonces.size()];
-    for (size_t i = 0; i < nonces.size(); i++) {
-      auto pubNonceItem = ParseHex(nonces[i]);
-      unsigned char *pubNonceStr = reinterpret_cast<unsigned char*>(pubNonceItem.data());
-
-      secp256k1_musig_pubnonce pubnonce;
-      secp256k1_musig_pubnonce_parse(ctx, &pubnonce, pubNonceStr);
-      pubnonces[i] = &pubnonce;
-    }
-
-    secp256k1_musig_aggnonce agg_pubnonce;
-    secp256k1_musig_nonce_agg(ctx, &agg_pubnonce, pubnonces, nonces.size());
-
-    unsigned char result[66];
-    secp256k1_musig_aggnonce_serialize(ctx,result,&agg_pubnonce);
-    
-    return HexStr(result);
-}
-
-std::string getSchnorrPartialSign(std::string aggNoncesIn, std::string sessionIdIn, std::string messageIn, std::string xPrivKey, unsigned int derivationIndex) {
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-
-    secp256k1_musig_keyagg_cache* cache;
-    secp256k1_musig_session session;
-    secp256k1_musig_partial_sig partial_sig;
-
-    secp256k1_musig_aggnonce agg_pubnonce;
-
-    auto aggNoncesStrHex = ParseHex(aggNoncesIn);
-    unsigned char *aggNoncesStr = reinterpret_cast<unsigned char*>(aggNoncesStrHex.data());
-    LogPrintf("message %c \n",aggNoncesStr);
-
-    if(!secp256k1_musig_aggnonce_parse(ctx, &agg_pubnonce, aggNoncesStr)) {
-        LogPrintf("error on agg nonce parse \n");
-    }
-
-    secp256k1_keypair keypair = generateKeypair(ctx,xPrivKey,derivationIndex);
-    
-    struct signerNonce signerNonceItem = generateSignerNonce(ctx,sessionIdIn,messageIn,xPrivKey,derivationIndex);
-
-    unsigned char* msg = reinterpret_cast<unsigned char*>(messageIn.data());
-    LogPrintf("message %c \n",msg);
-
-    if(!secp256k1_musig_nonce_process(ctx, &session, &agg_pubnonce, msg, cache, NULL)) {
-        LogPrintf("error on secp256k1_musig_nonce_process \n");
-    }
-
-    LogPrintf("message1 %c \n",msg);
-    
-    secp256k1_musig_partial_sign(ctx, &partial_sig, &signerNonceItem.secnonce, &keypair, cache, &session);
-
-    LogPrintf("message2 %c \n",msg);
-
-    unsigned char result[32];
-    secp256k1_musig_partial_sig_serialize(ctx,result,&partial_sig);
-
-    LogPrintf("message3 %c \n",msg);
-    
-    return HexStr(result);
-}
-
-std::string getSchnorrSignatureCombined(std::vector<std::string> signaturesIn, std::string aggNoncesIn, std::string messageIn) {
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-
-    secp256k1_musig_session session;
-    secp256k1_musig_keyagg_cache* cache;
-    secp256k1_musig_aggnonce agg_pubnonce;
-
-    unsigned char *msg;
-    std::copy(messageIn.begin(),messageIn.end(),msg);
-
-    unsigned char *aggNoncesStr;
-    std::copy(aggNoncesIn.begin(), aggNoncesIn.end(), aggNoncesStr);
-    secp256k1_musig_aggnonce_parse(ctx, &agg_pubnonce, aggNoncesStr);
-
-    secp256k1_musig_nonce_process(ctx, &session, &agg_pubnonce, msg, cache, NULL);
-
-    const secp256k1_musig_partial_sig *signatures[signaturesIn.size()];
-    for (size_t i = 0; i < signaturesIn.size(); i++) {
-      unsigned char *signatureStr;
-      std::copy( signaturesIn[i].begin(), signaturesIn[i].end(), signatureStr );
-      secp256k1_musig_partial_sig signature;
-      secp256k1_musig_partial_sig_parse(ctx, &signature, signatureStr);
-      signatures[i] = &signature;
-    }
-
-    unsigned char *sig64;
-
-    secp256k1_musig_partial_sig_agg(ctx, sig64, &session, signatures, signaturesIn.size());
-
-    std::string fullSignature((char*) sig64);
-
-    return fullSignature;
-}
-
-bool verifyFederationSchnorrSignature(std::vector<std::string> fullQuorum, std::vector<std::string> signaturePath, std::string aggPubIn, std::string signatureIn, std::string messageIn) {
-    if(!getRedeemPathHasEnoughThresold(fullQuorum, signaturePath)) {
+    if(!XOnlyPubKey(ParseHex(redeemPath)).VerifySchnorr(message,ParseHex(signature))) {
        return false;
-    }
-
-    secp256k1_context* ctx;
-    ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
-
-    std::vector<CPubKey> trPubkeys;
-
-    for (size_t i = 0; i < signaturePath.size(); i++) {
-        CPubKey pubObj(HexToPubKey(signaturePath[i]));
-        trPubkeys.push_back(pubObj);
-    }
-    std::string currentRedeemKey = combinePublicKey(ctx, trPubkeys);
-    if(currentRedeemKey.compare(aggPubIn) != 0) {
-        return false;
-    }
-
-    unsigned char *msg;
-    std::copy(messageIn.begin(),messageIn.end(),msg);
-
-    unsigned char *sig;
-    std::copy(signatureIn.begin(),signatureIn.end(),sig);
-
-    unsigned char *aggPubStr;
-    std::copy(aggPubIn.begin(),aggPubIn.end(),aggPubStr);
-
-    secp256k1_xonly_pubkey aggpk;
-    secp256k1_xonly_pubkey_parse(ctx,&aggpk,aggPubStr);
-    
-    
-    if (!secp256k1_schnorrsig_verify(ctx, sig, msg, sizeof(msg), &aggpk)) {
-        return false;
-    }
+    } 
     return true;
+
 }
 
-CPubKey getPubKeyAtDerviationIndex(std::string xPubKey, unsigned int derivationIndex) {
-    CExtPubKey pubkey = DecodeExtPubKey(xPubKey);
-    CExtPubKey pubkey1;
-    pubkey.Derive(pubkey1,0);
-
-    CExtPubKey pubkey2;
-    pubkey1.Derive(pubkey2,derivationIndex);
-
-    return pubkey2.pubkey;
+uint256 prepareMessageHash(std::string message) {
+    uint256 messageBuffer;
+    CSHA256().Write((unsigned char*)message.data(), message.size()).Finalize(messageBuffer.begin());
+    return messageBuffer;
 }
 
-CKey getKeyAtDerviationIndex(std::string xPrivKey, unsigned int derivationIndex) {
-    CExtKey key = DecodeExtKey(xPrivKey);
-    CExtPubKey pubkey;
-    pubkey = key.Neuter();
-
-    CExtKey key1;
-    key.Derive(key1, 0);
-
-    CExtKey key2;
-    key1.Derive(key2, derivationIndex);
-
-    return key2.key;
-}
-
-secp256k1_keypair generateKeypair(const secp256k1_context* ctx, std::string xPrivKey, unsigned int derivationIndex) {
-    CKey key = getKeyAtDerviationIndex(xPrivKey,derivationIndex);
-    secp256k1_keypair keypair;
-    secp256k1_keypair_create(ctx, &keypair, key.begin());
-    return keypair;
-}
-
-signerNonce generateSignerNonce(const secp256k1_context* ctx, std::string sessionIdIn, std::string messageIn, std::string xPrivKey, unsigned int derivationIndex) {
-
-    struct signerNonce signerNonceItem;
-
-    unsigned char* session_id = reinterpret_cast<unsigned char*>(sessionIdIn.data());
-    unsigned char* msg = reinterpret_cast<unsigned char*>(messageIn.data());
-
-    CKey key = getKeyAtDerviationIndex(xPrivKey,derivationIndex);
-
-    secp256k1_keypair keypair = generateKeypair(ctx,xPrivKey,derivationIndex);
-
-    secp256k1_pubkey pubkey;
-    secp256k1_keypair_pub(ctx, &pubkey, &keypair);
 
 
-    secp256k1_musig_secnonce secnonce;
-    secp256k1_musig_pubnonce pubnonce;
-
-    secp256k1_musig_nonce_gen(ctx, &signerNonceItem.secnonce, &signerNonceItem.pubnonce, session_id, key.begin(), &pubkey, msg, NULL, NULL);
-
-    return signerNonceItem;
-}
-
-std::string combinePublicKey(const secp256k1_context* ctx, std::vector<CPubKey> pubKeys) {
-    const secp256k1_pubkey *pubkeys_ptr[pubKeys.size()];
-    secp256k1_xonly_pubkey agg_pk;
-    secp256k1_musig_keyagg_cache cache;
-
-    for (size_t i = 0; i < pubKeys.size(); i++)
-    {
-       secp256k1_pubkey pk;
-       if (secp256k1_ec_pubkey_parse(ctx, &pk, pubKeys[i].data(),pubKeys[i].size())) {
-           pubkeys_ptr[i] = &pk;
-       }
+bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string signaturePath) {
+    bool isSignaturePathExist = false;
+    for (size_t i = 0; i < fullQuorum.size(); i++) {
+        if(fullQuorum[i].compare(signaturePath) == 0) {
+            isSignaturePathExist = true;
+            break;
+        }
     }
-
-    if (!secp256k1_musig_pubkey_agg(ctx, NULL, &agg_pk, &cache, pubkeys_ptr, pubKeys.size())) {
-        return "";
-    }
-    
-    unsigned char tweak[32];
-    secp256k1_xonly_pubkey_serialize(ctx, tweak, &agg_pk);
-
-    return HexStr(XOnlyPubKey(tweak));
+    return isSignaturePathExist;
 }
+   
