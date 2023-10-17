@@ -317,6 +317,7 @@ void Shutdown(NodeContext& node)
             if (chainstate->CanFlushToDisk()) {
                 chainstate->ForceFlushStateToDisk();
                 chainstate->ResetCoinsViews();
+                chainstate->ResetAssetCache();
             }
         }
     }

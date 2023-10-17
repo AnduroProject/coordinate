@@ -88,8 +88,9 @@ int main(int argc, char* argv[])
 
     node::CacheSizes cache_sizes;
     cache_sizes.block_tree_db = 2 << 20;
+    cache_sizes.asset_db = 1 << 21;
     cache_sizes.coins_db = 2 << 22;
-    cache_sizes.coins = (450 << 20) - (2 << 20) - (2 << 22);
+    cache_sizes.coins = (450 << 20) - (2 << 20) - (1 << 21) - (2 << 22);
     node::ChainstateLoadOptions options;
     options.check_interrupt = [] { return false; };
     auto [status, error] = node::LoadChainstate(chainman, cache_sizes, options);
@@ -257,6 +258,7 @@ epilogue:
             if (chainstate->CanFlushToDisk()) {
                 chainstate->ForceFlushStateToDisk();
                 chainstate->ResetCoinsViews();
+                chainstate->ResetAssetCache();
             }
         }
     }

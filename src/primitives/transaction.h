@@ -31,6 +31,7 @@
  * or with `ADDRV2_FORMAT`.
  */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
+static const int TRANSACTION_BITASSET_CREATE_VERSION = 10;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -254,6 +255,12 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         /* Unknown flag in the serialization */
         throw std::ios_base::failure("Unknown transaction optional data");
     }
+    
+    if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
+        s >> tx.ticker;
+        s >> tx.headline;
+        s >> tx.payload;
+    }
     s >> tx.nLockTime;
 }
 
@@ -283,6 +290,12 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
+    if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
+        s << tx.ticker;
+        s << tx.headline;
+        s << tx.payload;
+    }
+
     s << tx.nLockTime;
 }
 
@@ -311,6 +324,11 @@ public:
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
     const uint32_t nLockTime;
+
+    const std::string ticker;
+    const std::string headline;
+    const uint256 payload;
+
 private:
     /** Memory only. */
     const uint256 hash;
@@ -387,6 +405,10 @@ struct CMutableTransaction
     std::vector<CTxOut> vout;
     int32_t nVersion;
     uint32_t nLockTime;
+
+    std::string ticker;
+    std::string headline;
+    uint256 payload;
 
     explicit CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);

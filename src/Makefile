@@ -380,25 +380,26 @@ libbitcoin_cli_a_OBJECTS = $(am_libbitcoin_cli_a_OBJECTS)
 libbitcoin_common_a_AR = $(AR) $(ARFLAGS)
 libbitcoin_common_a_LIBADD =
 am__libbitcoin_common_a_SOURCES_DIST = auxpow.cpp \
-	federation_deposit.cpp federation_validator.cpp base58.cpp \
-	bech32.cpp chainparams.cpp coins.cpp common/bloom.cpp \
-	common/interfaces.cpp common/run_command.cpp compressor.cpp \
-	core_read.cpp core_write.cpp deploymentinfo.cpp \
-	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
-	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
-	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
-	policy/policy.cpp protocol.cpp psbt.cpp \
-	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
-	rpc/request.cpp rpc/util.cpp scheduler.cpp \
-	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
-	script/signingprovider.cpp script/standard.cpp warnings.cpp \
-	addrdb.h addrman.h addrman_impl.h attributes.h auxpow.h \
-	federation_deposit.h federation_validator.h banman.h base58.h \
-	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
-	chainparamsbase.h chainparamsseeds.h checkqueue.h \
-	clientversion.h coins.h common/bloom.h common/run_command.h \
-	common/url.h compat/assumptions.h compat/byteswap.h \
-	compat/compat.h compat/cpuid.h compat/endian.h compressor.h \
+	federation_deposit.cpp chroma/chroma_assets.cpp \
+	federation_validator.cpp base58.cpp bech32.cpp chainparams.cpp \
+	coins.cpp common/bloom.cpp common/interfaces.cpp \
+	common/run_command.cpp compressor.cpp core_read.cpp \
+	core_write.cpp deploymentinfo.cpp external_signer.cpp \
+	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
+	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
+	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
+	protocol.cpp psbt.cpp rpc/external_signer.cpp \
+	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
+	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
+	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
+	warnings.cpp addrdb.h addrman.h addrman_impl.h attributes.h \
+	auxpow.h federation_deposit.h federation_validator.h \
+	chroma_assets.h banman.h base58.h bech32.h blockencodings.h \
+	blockfilter.h chain.h chainparams.h chainparamsbase.h \
+	chainparamsseeds.h checkqueue.h clientversion.h coins.h \
+	common/bloom.h common/run_command.h common/url.h \
+	compat/assumptions.h compat/byteswap.h compat/compat.h \
+	compat/cpuid.h compat/endian.h compressor.h \
 	consensus/consensus.h consensus/tx_check.h \
 	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
 	dbwrapper.h deploymentinfo.h deploymentstatus.h \
@@ -465,6 +466,7 @@ am__objects_2 =  \
 	common/libbitcoin_common_a-url.$(OBJEXT)
 am_libbitcoin_common_a_OBJECTS = libbitcoin_common_a-auxpow.$(OBJEXT) \
 	libbitcoin_common_a-federation_deposit.$(OBJEXT) \
+	chroma/libbitcoin_common_a-chroma_assets.$(OBJEXT) \
 	libbitcoin_common_a-federation_validator.$(OBJEXT) \
 	libbitcoin_common_a-base58.$(OBJEXT) \
 	libbitcoin_common_a-bech32.$(OBJEXT) \
@@ -582,8 +584,8 @@ am__libbitcoin_node_a_SOURCES_DIST = addrdb.cpp addrman.cpp banman.cpp \
 	txmempool.cpp txorphanage.cpp txrequest.cpp validation.cpp \
 	validationinterface.cpp versionbits.cpp addrdb.h addrman.h \
 	addrman_impl.h attributes.h auxpow.h federation_deposit.h \
-	federation_validator.h banman.h base58.h bech32.h \
-	blockencodings.h blockfilter.h chain.h chainparams.h \
+	federation_validator.h chroma_assets.h banman.h base58.h \
+	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -795,8 +797,8 @@ am__libbitcoin_wallet_a_SOURCES_DIST = wallet/coincontrol.cpp \
 	wallet/walletdb.cpp wallet/walletutil.cpp \
 	wallet/coinselection.cpp addrdb.h addrman.h addrman_impl.h \
 	attributes.h auxpow.h federation_deposit.h \
-	federation_validator.h banman.h base58.h bech32.h \
-	blockencodings.h blockfilter.h chain.h chainparams.h \
+	federation_validator.h chroma_assets.h banman.h base58.h \
+	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
 	chainparamsbase.h chainparamsseeds.h checkqueue.h \
 	clientversion.h coins.h common/bloom.h common/run_command.h \
 	common/url.h compat/assumptions.h compat/byteswap.h \
@@ -1553,15 +1555,15 @@ am_libbitcoinconsensus_la_rpath = -rpath \
 #	$(LIBMEMENV) $(LIBSECP256K1)
 am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
 	arith_uint256.cpp auxpow.cpp federation_deposit.cpp \
-	federation_validator.cpp chain.cpp chainparamsbase.cpp \
-	chainparams.cpp clientversion.cpp coins.cpp compressor.cpp \
-	consensus/merkle.cpp consensus/tx_check.cpp \
-	consensus/tx_verify.cpp core_read.cpp dbwrapper.cpp \
-	deploymentinfo.cpp deploymentstatus.cpp flatfile.cpp fs.cpp \
-	hash.cpp kernel/chain.cpp kernel/checks.cpp \
-	kernel/coinstats.cpp kernel/context.cpp kernel/cs_main.cpp \
-	kernel/mempool_persist.cpp key.cpp logging.cpp \
-	node/blockstorage.cpp node/chainstate.cpp \
+	chroma/chroma_assets.cpp federation_validator.cpp chain.cpp \
+	chainparamsbase.cpp chainparams.cpp clientversion.cpp \
+	coins.cpp compressor.cpp consensus/merkle.cpp \
+	consensus/tx_check.cpp consensus/tx_verify.cpp core_read.cpp \
+	dbwrapper.cpp deploymentinfo.cpp deploymentstatus.cpp \
+	flatfile.cpp fs.cpp hash.cpp kernel/chain.cpp \
+	kernel/checks.cpp kernel/coinstats.cpp kernel/context.cpp \
+	kernel/cs_main.cpp kernel/mempool_persist.cpp key.cpp \
+	logging.cpp node/blockstorage.cpp node/chainstate.cpp \
 	node/interface_ui.cpp node/utxo_snapshot.cpp \
 	policy/feerate.cpp policy/fees.cpp policy/packages.cpp \
 	policy/policy.cpp policy/rbf.cpp policy/settings.cpp pow.cpp \
@@ -1583,6 +1585,7 @@ am__libbitcoinkernel_la_SOURCES_DIST = kernel/bitcoinkernel.cpp \
 #	libbitcoinkernel_la-arith_uint256.lo \
 #	libbitcoinkernel_la-auxpow.lo \
 #	libbitcoinkernel_la-federation_deposit.lo \
+#	chroma/libbitcoinkernel_la-chroma_assets.lo \
 #	libbitcoinkernel_la-federation_validator.lo \
 #	libbitcoinkernel_la-chain.lo \
 #	libbitcoinkernel_la-chainparamsbase.lo \
@@ -2555,6 +2558,8 @@ am__depfiles_remade =  \
 	bench/$(DEPDIR)/bench_bitcoin-wallet_balance.Po \
 	bench/$(DEPDIR)/bench_bitcoin-wallet_create_tx.Po \
 	bench/$(DEPDIR)/bench_bitcoin-wallet_loading.Po \
+	chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po \
+	chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Plo \
 	common/$(DEPDIR)/libbitcoin_common_a-bloom.Po \
 	common/$(DEPDIR)/libbitcoin_common_a-interfaces.Po \
 	common/$(DEPDIR)/libbitcoin_common_a-run_command.Po \
@@ -3992,6 +3997,7 @@ BITCOIN_CORE_H = \
   auxpow.h \
   federation_deposit.h \
   federation_validator.h \
+  chroma_assets.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -4399,18 +4405,19 @@ libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) \
 	$(BOOST_CPPFLAGS) $(am__append_18)
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = auxpow.cpp federation_deposit.cpp \
-	federation_validator.cpp base58.cpp bech32.cpp chainparams.cpp \
-	coins.cpp common/bloom.cpp common/interfaces.cpp \
-	common/run_command.cpp compressor.cpp core_read.cpp \
-	core_write.cpp deploymentinfo.cpp external_signer.cpp \
-	init/common.cpp key.cpp key_io.cpp merkleblock.cpp \
-	net_types.cpp netaddress.cpp netbase.cpp net_permissions.cpp \
-	outputtype.cpp policy/feerate.cpp policy/policy.cpp \
-	protocol.cpp psbt.cpp rpc/external_signer.cpp \
-	rpc/rawtransaction_util.cpp rpc/request.cpp rpc/util.cpp \
-	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
-	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
-	warnings.cpp $(BITCOIN_CORE_H) $(am__append_19)
+	chroma/chroma_assets.cpp federation_validator.cpp base58.cpp \
+	bech32.cpp chainparams.cpp coins.cpp common/bloom.cpp \
+	common/interfaces.cpp common/run_command.cpp compressor.cpp \
+	core_read.cpp core_write.cpp deploymentinfo.cpp \
+	external_signer.cpp init/common.cpp key.cpp key_io.cpp \
+	merkleblock.cpp net_types.cpp netaddress.cpp netbase.cpp \
+	net_permissions.cpp outputtype.cpp policy/feerate.cpp \
+	policy/policy.cpp protocol.cpp psbt.cpp \
+	rpc/external_signer.cpp rpc/rawtransaction_util.cpp \
+	rpc/request.cpp rpc/util.cpp scheduler.cpp \
+	script/descriptor.cpp script/miniscript.cpp script/sign.cpp \
+	script/signingprovider.cpp script/standard.cpp warnings.cpp \
+	$(BITCOIN_CORE_H) $(am__append_19)
 #
 
 # util #
@@ -4586,6 +4593,7 @@ bitcoin_chainstate_LDADD = $(LIBBITCOINKERNEL)
 #  arith_uint256.cpp \
 #  auxpow.cpp \
 #  federation_deposit.cpp \
+#  chroma/chroma_assets.cpp \
 #  federation_validator.cpp \
 #  chain.cpp \
 #  chainparamsbase.cpp \
@@ -5848,6 +5856,14 @@ libbitcoin_cli.a: $(libbitcoin_cli_a_OBJECTS) $(libbitcoin_cli_a_DEPENDENCIES) $
 	$(AM_V_at)-rm -f libbitcoin_cli.a
 	$(AM_V_AR)$(libbitcoin_cli_a_AR) libbitcoin_cli.a $(libbitcoin_cli_a_OBJECTS) $(libbitcoin_cli_a_LIBADD)
 	$(AM_V_at)$(RANLIB) libbitcoin_cli.a
+chroma/$(am__dirstamp):
+	@$(MKDIR_P) chroma
+	@: > chroma/$(am__dirstamp)
+chroma/$(DEPDIR)/$(am__dirstamp):
+	@$(MKDIR_P) chroma/$(DEPDIR)
+	@: > chroma/$(DEPDIR)/$(am__dirstamp)
+chroma/libbitcoin_common_a-chroma_assets.$(OBJEXT):  \
+	chroma/$(am__dirstamp) chroma/$(DEPDIR)/$(am__dirstamp)
 common/$(am__dirstamp):
 	@$(MKDIR_P) common
 	@: > common/$(am__dirstamp)
@@ -6955,6 +6971,8 @@ libbitcoinconsensus.la: $(libbitcoinconsensus_la_OBJECTS) $(libbitcoinconsensus_
 	$(AM_V_CXXLD)$(libbitcoinconsensus_la_LINK) $(am_libbitcoinconsensus_la_rpath) $(libbitcoinconsensus_la_OBJECTS) $(libbitcoinconsensus_la_LIBADD) $(LIBS)
 kernel/libbitcoinkernel_la-bitcoinkernel.lo: kernel/$(am__dirstamp) \
 	kernel/$(DEPDIR)/$(am__dirstamp)
+chroma/libbitcoinkernel_la-chroma_assets.lo: chroma/$(am__dirstamp) \
+	chroma/$(DEPDIR)/$(am__dirstamp)
 consensus/libbitcoinkernel_la-merkle.lo: consensus/$(am__dirstamp) \
 	consensus/$(DEPDIR)/$(am__dirstamp)
 consensus/libbitcoinkernel_la-tx_check.lo: consensus/$(am__dirstamp) \
@@ -7779,6 +7797,8 @@ univalue/test/unitester$(EXEEXT): $(univalue_test_unitester_OBJECTS) $(univalue_
 mostlyclean-compile:
 	-rm -f *.$(OBJEXT)
 	-rm -f bench/*.$(OBJEXT)
+	-rm -f chroma/*.$(OBJEXT)
+	-rm -f chroma/*.lo
 	-rm -f common/*.$(OBJEXT)
 	-rm -f compat/*.$(OBJEXT)
 	-rm -f consensus/*.$(OBJEXT)
@@ -7986,6 +8006,8 @@ include bench/$(DEPDIR)/bench_bitcoin-verify_script.Po # am--include-marker
 include bench/$(DEPDIR)/bench_bitcoin-wallet_balance.Po # am--include-marker
 include bench/$(DEPDIR)/bench_bitcoin-wallet_create_tx.Po # am--include-marker
 include bench/$(DEPDIR)/bench_bitcoin-wallet_loading.Po # am--include-marker
+include chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po # am--include-marker
+include chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Plo # am--include-marker
 include common/$(DEPDIR)/libbitcoin_common_a-bloom.Po # am--include-marker
 include common/$(DEPDIR)/libbitcoin_common_a-interfaces.Po # am--include-marker
 include common/$(DEPDIR)/libbitcoin_common_a-run_command.Po # am--include-marker
@@ -8765,6 +8787,20 @@ libbitcoin_common_a-federation_deposit.obj: federation_deposit.cpp
 #	$(AM_V_CXX)source='federation_deposit.cpp' object='libbitcoin_common_a-federation_deposit.obj' libtool=no \
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoin_common_a-federation_deposit.obj `if test -f 'federation_deposit.cpp'; then $(CYGPATH_W) 'federation_deposit.cpp'; else $(CYGPATH_W) '$(srcdir)/federation_deposit.cpp'; fi`
+
+chroma/libbitcoin_common_a-chroma_assets.o: chroma/chroma_assets.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT chroma/libbitcoin_common_a-chroma_assets.o -MD -MP -MF chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Tpo -c -o chroma/libbitcoin_common_a-chroma_assets.o `test -f 'chroma/chroma_assets.cpp' || echo '$(srcdir)/'`chroma/chroma_assets.cpp
+	$(AM_V_at)$(am__mv) chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Tpo chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po
+#	$(AM_V_CXX)source='chroma/chroma_assets.cpp' object='chroma/libbitcoin_common_a-chroma_assets.o' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o chroma/libbitcoin_common_a-chroma_assets.o `test -f 'chroma/chroma_assets.cpp' || echo '$(srcdir)/'`chroma/chroma_assets.cpp
+
+chroma/libbitcoin_common_a-chroma_assets.obj: chroma/chroma_assets.cpp
+	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT chroma/libbitcoin_common_a-chroma_assets.obj -MD -MP -MF chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Tpo -c -o chroma/libbitcoin_common_a-chroma_assets.obj `if test -f 'chroma/chroma_assets.cpp'; then $(CYGPATH_W) 'chroma/chroma_assets.cpp'; else $(CYGPATH_W) '$(srcdir)/chroma/chroma_assets.cpp'; fi`
+	$(AM_V_at)$(am__mv) chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Tpo chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po
+#	$(AM_V_CXX)source='chroma/chroma_assets.cpp' object='chroma/libbitcoin_common_a-chroma_assets.obj' libtool=no \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -c -o chroma/libbitcoin_common_a-chroma_assets.obj `if test -f 'chroma/chroma_assets.cpp'; then $(CYGPATH_W) 'chroma/chroma_assets.cpp'; else $(CYGPATH_W) '$(srcdir)/chroma/chroma_assets.cpp'; fi`
 
 libbitcoin_common_a-federation_validator.o: federation_validator.cpp
 	$(AM_V_CXX)$(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoin_common_a_CPPFLAGS) $(CPPFLAGS) $(libbitcoin_common_a_CXXFLAGS) $(CXXFLAGS) -MT libbitcoin_common_a-federation_validator.o -MD -MP -MF $(DEPDIR)/libbitcoin_common_a-federation_validator.Tpo -c -o libbitcoin_common_a-federation_validator.o `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
@@ -14513,6 +14549,13 @@ libbitcoinkernel_la-federation_deposit.lo: federation_deposit.cpp
 #	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
 #	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o libbitcoinkernel_la-federation_deposit.lo `test -f 'federation_deposit.cpp' || echo '$(srcdir)/'`federation_deposit.cpp
 
+chroma/libbitcoinkernel_la-chroma_assets.lo: chroma/chroma_assets.cpp
+	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT chroma/libbitcoinkernel_la-chroma_assets.lo -MD -MP -MF chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Tpo -c -o chroma/libbitcoinkernel_la-chroma_assets.lo `test -f 'chroma/chroma_assets.cpp' || echo '$(srcdir)/'`chroma/chroma_assets.cpp
+	$(AM_V_at)$(am__mv) chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Tpo chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Plo
+#	$(AM_V_CXX)source='chroma/chroma_assets.cpp' object='chroma/libbitcoinkernel_la-chroma_assets.lo' libtool=yes \
+#	DEPDIR=$(DEPDIR) $(CXXDEPMODE) $(depcomp) \
+#	$(AM_V_CXX_no)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -c -o chroma/libbitcoinkernel_la-chroma_assets.lo `test -f 'chroma/chroma_assets.cpp' || echo '$(srcdir)/'`chroma/chroma_assets.cpp
+
 libbitcoinkernel_la-federation_validator.lo: federation_validator.cpp
 	$(AM_V_CXX)$(LIBTOOL) $(AM_V_lt) --tag=CXX $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libbitcoinkernel_la_CPPFLAGS) $(CPPFLAGS) $(libbitcoinkernel_la_CXXFLAGS) $(CXXFLAGS) -MT libbitcoinkernel_la-federation_validator.lo -MD -MP -MF $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo -c -o libbitcoinkernel_la-federation_validator.lo `test -f 'federation_validator.cpp' || echo '$(srcdir)/'`federation_validator.cpp
 	$(AM_V_at)$(am__mv) $(DEPDIR)/libbitcoinkernel_la-federation_validator.Tpo $(DEPDIR)/libbitcoinkernel_la-federation_validator.Plo
@@ -19365,6 +19408,7 @@ mostlyclean-libtool:
 clean-libtool:
 	-rm -rf .libs _libs
 	-rm -rf bench/.libs bench/_libs
+	-rm -rf chroma/.libs chroma/_libs
 	-rm -rf consensus/.libs consensus/_libs
 	-rm -rf crc32c/.libs crc32c/_libs
 	-rm -rf crc32c/src/.libs crc32c/src/_libs
@@ -19796,6 +19840,8 @@ distclean-generic:
 	-test . = "$(srcdir)" || test -z "$(CONFIG_CLEAN_VPATH_FILES)" || rm -f $(CONFIG_CLEAN_VPATH_FILES)
 	-rm -f bench/$(DEPDIR)/$(am__dirstamp)
 	-rm -f bench/$(am__dirstamp)
+	-rm -f chroma/$(DEPDIR)/$(am__dirstamp)
+	-rm -f chroma/$(am__dirstamp)
 	-rm -f common/$(DEPDIR)/$(am__dirstamp)
 	-rm -f common/$(am__dirstamp)
 	-rm -f compat/$(DEPDIR)/$(am__dirstamp)
@@ -20035,6 +20081,8 @@ distclean: distclean-recursive
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_balance.Po
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_create_tx.Po
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_loading.Po
+	-rm -f chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po
+	-rm -f chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Plo
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-bloom.Po
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-interfaces.Po
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-run_command.Po
@@ -20924,6 +20972,8 @@ maintainer-clean: maintainer-clean-recursive
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_balance.Po
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_create_tx.Po
 	-rm -f bench/$(DEPDIR)/bench_bitcoin-wallet_loading.Po
+	-rm -f chroma/$(DEPDIR)/libbitcoin_common_a-chroma_assets.Po
+	-rm -f chroma/$(DEPDIR)/libbitcoinkernel_la-chroma_assets.Plo
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-bloom.Po
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-interfaces.Po
 	-rm -f common/$(DEPDIR)/libbitcoin_common_a-run_command.Po
