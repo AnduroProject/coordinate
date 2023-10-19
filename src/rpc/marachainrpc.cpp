@@ -8,6 +8,7 @@
 #include <core_io.h>
 #include <federation_deposit.h>
 #include <federation_validator.h>
+#include <federation_history.h>
 
 static RPCHelpMan createAuxBlock()
 {

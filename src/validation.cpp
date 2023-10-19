@@ -1636,6 +1636,21 @@ void Chainstate::InitAssetCache(bool fReset)
     passettree.reset(new ChromaAssetDB(1 << 21, false, fReset));
 }
 
+void Chainstate::InitFederationHistoryCache(bool fReset)
+{
+    AssertLockHeld(::cs_main);
+    federation_history_tree.reset(new FederationPegOutHistoryDB(1 << 21, false, fReset));
+    if(!federation_history_tree.hasPegOutHistory(0)) {
+        FederationPegOutHistory historyObj;
+        historyObj.pegoutData = "";
+        historyObj.pegoutWitness = "";
+        historyObj.blockHeight = 0;
+        federation_history_tree.WritePegoutHistory(historyObj);
+        federation_history_tree.WriteLastPegOutHistory(0);
+    }
+
+}
+
 // Note that though this is marked const, we may end up modifying `m_cached_finished_ibd`, which
 // is a performance-related implementation detail. This function must be marked
 // `const` so that `CValidationInterface` clients (which are given a `const Chainstate*`)
@@ -2509,7 +2524,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     // Write asset objects to db
     if (vAsset.size()) {
-        if (!passettree->WriteBitAssets(vAsset))
+        if (!passettree->WriteChromaAssets(vAsset))
             return state.Error("Failed to write BitAsset index!");
     }
 

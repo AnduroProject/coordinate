@@ -4676,11 +4676,28 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
+    if (msg_type == NetMsgType::PEGOUTHISTORYREQUEST) {
+        uint32_t currentHeight = 0;
+        vRecv >> currentHeight;
+        FederationPegOutHistory historyObj
+        if(m_chainman.ActiveChainstate().federation_history_tree.GetPegOutHistory(currentHeight, historyObj)) {
+            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PEGOUTHISTORYRESPONSE, historyObj));
+        }
+    }
+
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
         if(isSpecialTxoutValid(vData,m_chainman)) {
            addDeposit(vData);
+        }
+    }
+
+    if (msg_type == NetMsgType::PEGOUTHISTORYRESPONSE) {
+        FederationPegOutHistory historyObj;
+        vRecv >> historyObj;
+        if(isPegInfoValid(historyObj.pegoutData,historyObj.pegoutData,m_chainman,historyObj.blockHeight-1)) {
+           m_chainman.ActiveChainstate().federation_history_tree.WritePegoutHistory(historyObj)
         }
     }
    
@@ -5180,6 +5197,14 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
         }
+
+        int nextBlockHistoryHeight;
+        if(m_chainman.ActiveChainstate().federation_history_tree.GetLastPegOutHistory(m_chainman.ActiveChain().Height(nextBlockHistoryHeight))) {
+            if(m_chainman.ActiveChain().Height()!=nextBlockHistoryHeight) {
+                const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
+                m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PEGOUTHISTORYREQUEST, nextBlockHistoryHeight+1));
+            }
+        } 
     }
 }
 

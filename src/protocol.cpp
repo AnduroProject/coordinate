@@ -27,6 +27,8 @@ const char *GETADDR="getaddr";
 const char *MEMPOOL="mempool";
 const char *PREBLOCKSIGNREQUEST="presignreq";
 const char *PREBLOCKSIGNREPONSE="presignres";
+const char *PEGOUTHISTORYREQUEST="peghisreq";
+const char *PEGOUTHISTORYRESPONSE="peghisres";
 const char *PING="ping";
 const char *PONG="pong";
 const char *NOTFOUND="notfound";
@@ -70,6 +72,8 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::MEMPOOL,
     NetMsgType::PREBLOCKSIGNREQUEST,
     NetMsgType::PREBLOCKSIGNREPONSE,
+    NetMsgType::PEGOUTHISTORYREQUEST,
+    NetMsgType::PEGOUTHISTORYRESPONSE,
     NetMsgType::PING,
     NetMsgType::PONG,
     NetMsgType::NOTFOUND,

@@ -24,8 +24,6 @@ class CBlockHeader : public CPureBlockHeader
 {
 public:
     std::shared_ptr<CAuxPow> auxpow;
-    std::string pegInfo;
-    std::string pegWitness;
     int32_t pegTime;
     std::string currentKeys;
     int32_t nextIndex;

@@ -87,6 +87,7 @@ std::string hex_to_str(const std::string& in);
 void addDeposit(std::vector<FederationTxOut> txOuts);
 bool isFederationValidationActive();
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block);
+bool validatePegoutWitness(int blockHeight, ChainstateManager& chainman) 
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman);
 bool isPegInfoValid(std::string pegInfoIn, std::string pegWitness, ChainstateManager& chainman, int32_t block_height);
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height);

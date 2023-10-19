@@ -186,15 +186,22 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
 
 
-
-    LogPrintf("address ******************** %s \n",getCurrentKeys(m_chainstate.m_chainman));
-    std::string pegExpected = "";
-    if (pending_deposits[0].pegInfo.compare(pegExpected) != 0) {
-        if(isPegInfoValid(pending_deposits[0].pegInfo,pending_deposits[0].pegWitness,m_chainstate.m_chainman, nHeight-1)) {
-            pblock->pegInfo = pending_deposits[0].pegInfo;
-            pblock->pegWitness = pending_deposits[0].pegWitness;
+    if(!m_chainstate.federation_history_tree.hasPegOutHistory(nHeight)) {
+        LogPrintf("address ******************** %s \n",getCurrentKeys(m_chainstate.m_chainman));
+        std::string pegExpected = "";
+        FederationPegOutHistory historyObj;
+        historyObj.pegoutData = "";
+        historyObj.pegoutWitness = "";
+        historyObj.blockHeight = nHeight;
+        if (pending_deposits[0].pegInfo.compare(pegExpected) != 0) {
+            if(isPegInfoValid(pending_deposits[0].pegInfo,pending_deposits[0].pegWitness,m_chainstate.m_chainman, nHeight-1)) {
+                historyObj.pegoutData = pending_deposits[0].pegInfo;
+                historyObj.pegoutWitness = pending_deposits[0].pegWitness;
+            } 
         } 
-    } 
+        m_chainstate.federation_history_tree.WritePegoutHistory(historyObj);
+    }
+
 
 
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {

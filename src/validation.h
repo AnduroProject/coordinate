@@ -481,7 +481,11 @@ protected:
     //! Manages the UTXO set, which is a reflection of the contents of `m_chain`.
     std::unique_ptr<CoinsViews> m_coins_views;
 
+    std::unique_ptr<ChromaAssetDB> federation_history_tree;
+
     std::unique_ptr<ChromaAssetDB> passettree;
+
+
 
 public:
     //! Reference to a BlockManager instance which itself is shared across all
@@ -514,6 +518,10 @@ public:
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).
     void InitCoinsCache(size_t cache_size_bytes) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+    //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
+    //! is verified).
+    void InitFederationHistoryCache(bool fReset) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).
@@ -583,6 +591,8 @@ public:
     void ResetCoinsViews() { m_coins_views.reset(); }
 
     void ResetAssetCache() { passettree.reset(); }
+
+    void ResetFederationHistoryCache() { federation_history_tree.reset(); }
 
     //! The cache size of the on-disk coins view.
     size_t m_coinsdb_cache_size_bytes{0};

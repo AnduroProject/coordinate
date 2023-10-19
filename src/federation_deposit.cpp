@@ -229,12 +229,8 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       return false;
    }
 
-   std::string pegExpected = "";
-   if (block.pegInfo.compare(pegExpected) != 0) {
-      if(!isPegInfoValid(block.pegInfo,block.pegWitness,chainman,active_chain.Height())) {
-            LogPrintf("invalid pegout history");
-            return false;
-      } 
+   if(!validatePegoutWitness(active_chain.Height(),chainman)) {
+      return false;
    }
 
    std::vector<FederationTxOut> tOuts;
@@ -268,6 +264,23 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       
    if(!isSpecialTxoutValid(tOuts,chainman)) {
       return false;
+   }
+
+   return true;
+}
+
+bool validatePegoutWitness(int blockHeight, ChainstateManager& chainman) {  
+   CChain& active_chain = chainman.ActiveChain();
+   FederationPegOutHistory historyObj
+   if(chainman.ActiveChainstate().federation_history_tree.GetPegOutHistory(active_chain.Height(), historyObj)) {
+      std::string pegExpected = "";
+      if (historyObj.pegoutData.compare(pegExpected) != 0) {
+         if(!isPegInfoValid(historyObj.pegoutData,historyObj.pegoutData,chainman,historyObj.blockHeight-1)) {
+               LogPrintf("invalid pegout history");
+               return false;
+         } 
+      }     
+      chainman.ActiveChainstate().federation_history_tree.WriteLastPegOutHistory(active_chain.Height());
    }
 
    return true;
