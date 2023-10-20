@@ -60,14 +60,20 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue messages(UniValue::VARR);
    int tIndex = 1;
    for (const FederationTxOut& txOut : txOuts) {
-      CTxDestination address;
-      ExtractDestination(txOut.scriptPubKey, address);
+      std::string addressStr = "";
+      if(txOut.scriptPubKey.empty()) {
+         CTxDestination address;
+         ExtractDestination(txOut.scriptPubKey, address);
+         UniValue message(UniValue::VOBJ);
+         addressStr = EncodeDestination(address);
+      }
+
       UniValue message(UniValue::VOBJ);
       message.pushKV("pegtime", txOut.pegTime);
       message.pushKV("height", txOut.block_height);
       message.pushKV("amount", txOut.nValue);
       message.pushKV("index", tIndex);
-      message.pushKV("address", EncodeDestination(address));
+      message.pushKV("address", addressStr);
       tIndex = tIndex + 1;
       messages.push_back(message);
    }
@@ -77,43 +83,6 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    if (isValid) {
       return true;
    }
-   return false;
-}
-
-std::string getNetworkText(ChainstateManager& chainman) {
-   std::string networkIDString = chainman.GetParams().NetworkIDString();
-   std::string networkText = "testnet";
-   if (networkIDString.compare("regtest") == 0) {
-      networkText = "regtest";
-   } else if(networkIDString.compare("main") == 0) {
-      networkText = "mainnet";
-   }
-   return networkText;
-}
-
-bool isPegInfoValid(std::string pegInfoIn, std::string pegWitnessIn, ChainstateManager& chainman, int32_t block_height) {
-   LOCK(cs_main);
-   CChain& active_chain = chainman.ActiveChain();
-
-   CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
-   }
-
-   UniValue messages(UniValue::VARR);
-   UniValue message(UniValue::VOBJ);
-   message.pushKV("pegtime", 0);
-   message.pushKV("height", 0);
-   message.pushKV("amount", 0);
-   message.pushKV("index", 0);
-   message.pushKV("address", pegInfoIn);
-   messages.push_back(message);
-
-   bool isValid = validateFederationSignature(pegWitnessIn,messages.write(),block.currentKeys);
-
-   if (isValid == 0) {
-      return true;
-   }
-
    return false;
 }
 
@@ -229,15 +198,10 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       return false;
    }
 
-   if(!validatePegoutWitness(active_chain.Height(),chainman)) {
-      return false;
-   }
-
    std::vector<FederationTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
-      const CTxDestination coinbaseScript = DecodeDestination(prevblock.currentKeys);
-      const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-      FederationTxOut out(AmountFromValue(0), scriptPubKey, find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, block.pegInfo, block.pegWitness, "", "");
+      
+      FederationTxOut out(AmountFromValue(0), CScript(), find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, "", "");
       tOuts.push_back(out);
    } else {
       int witness_num = block.vtx[0]->vout.size()-2;
@@ -257,7 +221,7 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
             break;
          }
 
-         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, block.pegInfo, block.pegWitness, "", "");
+         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, "", "");
          tOuts.push_back(out);
       }
    } 
@@ -269,71 +233,10 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    return true;
 }
 
-bool validatePegoutWitness(int blockHeight, ChainstateManager& chainman) {  
-   CChain& active_chain = chainman.ActiveChain();
-   FederationPegOutHistory historyObj
-   if(chainman.ActiveChainstate().federation_history_tree.GetPegOutHistory(active_chain.Height(), historyObj)) {
-      std::string pegExpected = "";
-      if (historyObj.pegoutData.compare(pegExpected) != 0) {
-         if(!isPegInfoValid(historyObj.pegoutData,historyObj.pegoutData,chainman,historyObj.blockHeight-1)) {
-               LogPrintf("invalid pegout history");
-               return false;
-         } 
-      }     
-      chainman.ActiveChainstate().federation_history_tree.WriteLastPegOutHistory(active_chain.Height());
-   }
-
-   return true;
-}
-
 std::string getDepositAddress() {
    return depositAddress;
 }
 
 std::string getBurnAddress() {
    return burnAddress;
-}
-
-std::string string_to_hex(const std::string& in) {
-    std::stringstream ss;
-
-    ss << std::hex << std::setfill('0');
-    for (size_t i = 0; in.length() > i; ++i) {
-        ss << std::setw(2) << static_cast<unsigned int>(static_cast<unsigned char>(in[i]));
-    }
-
-    return ss.str(); 
-}
-
-std::string hex_to_str(const std::string& in) {
-   std::string s {in};
-   return s;
-}
-
-std::string exec(const char* cmd)
-{
-    std::array<char, 128> buffer;
-    std::string result;
-    auto pipe = popen(cmd, "r");
-    
-    if (!pipe) throw std::runtime_error("popen() failed!");
-    
-    while (!feof(pipe))
-    {
-        if (fgets(buffer.data(), 128, pipe) != nullptr)
-            result += buffer.data();
-    }
-    
-    auto rc = pclose(pipe);
-    
-    if (rc == EXIT_SUCCESS)
-    {
-        std::cout << "SUCCESS\n";
-    }
-    else
-    {
-        std::cout << "FAILED\n";
-    }
-    
-    return result;
 }

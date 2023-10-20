@@ -393,23 +393,23 @@ am__libbitcoin_common_a_SOURCES_DIST = auxpow.cpp \
 	scheduler.cpp script/descriptor.cpp script/miniscript.cpp \
 	script/sign.cpp script/signingprovider.cpp script/standard.cpp \
 	warnings.cpp addrdb.h addrman.h addrman_impl.h attributes.h \
-	auxpow.h federation_deposit.h federation_validator.h \
-	chroma_assets.h banman.h base58.h bech32.h blockencodings.h \
-	blockfilter.h chain.h chainparams.h chainparamsbase.h \
-	chainparamsseeds.h checkqueue.h clientversion.h coins.h \
-	common/bloom.h common/run_command.h common/url.h \
-	compat/assumptions.h compat/byteswap.h compat/compat.h \
-	compat/cpuid.h compat/endian.h compressor.h \
-	consensus/consensus.h consensus/tx_check.h \
-	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
-	dbwrapper.h deploymentinfo.h deploymentstatus.h \
-	external_signer.h flatfile.h fs.h headerssync.h httprpc.h \
-	httpserver.h i2p.h index/base.h index/blockfilterindex.h \
-	index/coinstatsindex.h index/disktxpos.h index/txindex.h \
-	indirectmap.h init.h init/common.h interfaces/chain.h \
-	interfaces/echo.h interfaces/handler.h interfaces/init.h \
-	interfaces/ipc.h interfaces/node.h interfaces/wallet.h \
-	kernel/chain.h kernel/chainstatemanager_opts.h kernel/checks.h \
+	auxpow.h federation_deposit.h chroma_assets.h banman.h \
+	base58.h bech32.h blockencodings.h blockfilter.h chain.h \
+	chainparams.h chainparamsbase.h chainparamsseeds.h \
+	checkqueue.h clientversion.h coins.h common/bloom.h \
+	common/run_command.h common/url.h compat/assumptions.h \
+	compat/byteswap.h compat/compat.h compat/cpuid.h \
+	compat/endian.h compressor.h consensus/consensus.h \
+	consensus/tx_check.h consensus/tx_verify.h core_io.h \
+	core_memusage.h cuckoocache.h dbwrapper.h deploymentinfo.h \
+	deploymentstatus.h external_signer.h flatfile.h fs.h \
+	headerssync.h httprpc.h httpserver.h i2p.h index/base.h \
+	index/blockfilterindex.h index/coinstatsindex.h \
+	index/disktxpos.h index/txindex.h indirectmap.h init.h \
+	init/common.h interfaces/chain.h interfaces/echo.h \
+	interfaces/handler.h interfaces/init.h interfaces/ipc.h \
+	interfaces/node.h interfaces/wallet.h kernel/chain.h \
+	kernel/chainstatemanager_opts.h kernel/checks.h \
 	kernel/coinstats.h kernel/context.h kernel/cs_main.h \
 	kernel/mempool_entry.h kernel/mempool_limits.h \
 	kernel/mempool_options.h kernel/mempool_persist.h \
@@ -584,12 +584,12 @@ am__libbitcoin_node_a_SOURCES_DIST = addrdb.cpp addrman.cpp banman.cpp \
 	txmempool.cpp txorphanage.cpp txrequest.cpp validation.cpp \
 	validationinterface.cpp versionbits.cpp addrdb.h addrman.h \
 	addrman_impl.h attributes.h auxpow.h federation_deposit.h \
-	federation_validator.h chroma_assets.h banman.h base58.h \
-	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
-	chainparamsbase.h chainparamsseeds.h checkqueue.h \
-	clientversion.h coins.h common/bloom.h common/run_command.h \
-	common/url.h compat/assumptions.h compat/byteswap.h \
-	compat/compat.h compat/cpuid.h compat/endian.h compressor.h \
+	chroma_assets.h banman.h base58.h bech32.h blockencodings.h \
+	blockfilter.h chain.h chainparams.h chainparamsbase.h \
+	chainparamsseeds.h checkqueue.h clientversion.h coins.h \
+	common/bloom.h common/run_command.h common/url.h \
+	compat/assumptions.h compat/byteswap.h compat/compat.h \
+	compat/cpuid.h compat/endian.h compressor.h \
 	consensus/consensus.h consensus/tx_check.h \
 	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
 	dbwrapper.h deploymentinfo.h deploymentstatus.h \
@@ -796,23 +796,23 @@ am__libbitcoin_wallet_a_SOURCES_DIST = wallet/coincontrol.cpp \
 	wallet/spend.cpp wallet/transaction.cpp wallet/wallet.cpp \
 	wallet/walletdb.cpp wallet/walletutil.cpp \
 	wallet/coinselection.cpp addrdb.h addrman.h addrman_impl.h \
-	attributes.h auxpow.h federation_deposit.h \
-	federation_validator.h chroma_assets.h banman.h base58.h \
-	bech32.h blockencodings.h blockfilter.h chain.h chainparams.h \
-	chainparamsbase.h chainparamsseeds.h checkqueue.h \
-	clientversion.h coins.h common/bloom.h common/run_command.h \
-	common/url.h compat/assumptions.h compat/byteswap.h \
-	compat/compat.h compat/cpuid.h compat/endian.h compressor.h \
-	consensus/consensus.h consensus/tx_check.h \
-	consensus/tx_verify.h core_io.h core_memusage.h cuckoocache.h \
-	dbwrapper.h deploymentinfo.h deploymentstatus.h \
-	external_signer.h flatfile.h fs.h headerssync.h httprpc.h \
-	httpserver.h i2p.h index/base.h index/blockfilterindex.h \
-	index/coinstatsindex.h index/disktxpos.h index/txindex.h \
-	indirectmap.h init.h init/common.h interfaces/chain.h \
-	interfaces/echo.h interfaces/handler.h interfaces/init.h \
-	interfaces/ipc.h interfaces/node.h interfaces/wallet.h \
-	kernel/chain.h kernel/chainstatemanager_opts.h kernel/checks.h \
+	attributes.h auxpow.h federation_deposit.h chroma_assets.h \
+	banman.h base58.h bech32.h blockencodings.h blockfilter.h \
+	chain.h chainparams.h chainparamsbase.h chainparamsseeds.h \
+	checkqueue.h clientversion.h coins.h common/bloom.h \
+	common/run_command.h common/url.h compat/assumptions.h \
+	compat/byteswap.h compat/compat.h compat/cpuid.h \
+	compat/endian.h compressor.h consensus/consensus.h \
+	consensus/tx_check.h consensus/tx_verify.h core_io.h \
+	core_memusage.h cuckoocache.h dbwrapper.h deploymentinfo.h \
+	deploymentstatus.h external_signer.h flatfile.h fs.h \
+	headerssync.h httprpc.h httpserver.h i2p.h index/base.h \
+	index/blockfilterindex.h index/coinstatsindex.h \
+	index/disktxpos.h index/txindex.h indirectmap.h init.h \
+	init/common.h interfaces/chain.h interfaces/echo.h \
+	interfaces/handler.h interfaces/init.h interfaces/ipc.h \
+	interfaces/node.h interfaces/wallet.h kernel/chain.h \
+	kernel/chainstatemanager_opts.h kernel/checks.h \
 	kernel/coinstats.h kernel/context.h kernel/cs_main.h \
 	kernel/mempool_entry.h kernel/mempool_limits.h \
 	kernel/mempool_options.h kernel/mempool_persist.h \
@@ -3996,7 +3996,6 @@ BITCOIN_CORE_H = \
   attributes.h \
   auxpow.h \
   federation_deposit.h \
-  federation_validator.h \
   chroma_assets.h \
   banman.h \
   base58.h \

@@ -45,8 +45,6 @@ public:
         {
             SER_READ(obj, obj.auxpow.reset());
         }
-        READWRITE(obj.pegInfo);
-        READWRITE(obj.pegWitness);
         READWRITE(obj.pegTime);
         READWRITE(obj.currentKeys);
         READWRITE(obj.nextIndex);
@@ -55,8 +53,6 @@ public:
     void SetNull()
     {
         CPureBlockHeader::SetNull();
-        pegInfo = "";
-        pegWitness = "";
         pegTime = 0;
         currentKeys = "";
         nextIndex = 0;

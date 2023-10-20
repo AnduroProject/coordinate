@@ -32,8 +32,6 @@ static constexpr uint8_t DB_COINS{'c'};
 static constexpr uint8_t DB_TXINDEX_BLOCK{'T'};
 //               uint8_t DB_TXINDEX{'t'}
 
-static constexpr uint8_t DB_FEDERATION_HISTORY{'D'};
-static constexpr uint8_t DB_FEDERATION_HISTORY_LAST_ID{'E'};
 static constexpr uint8_t DB_ASSET{'A'};
 static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 
@@ -343,7 +341,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
 
 ChromaAssetDB::ChromaAssetDB(size_t nCacheSize, bool fMemory, bool fWipe)
-    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "pegouthistory", nCacheSize, fMemory, fWipe) { }
+    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "assets", nCacheSize, fMemory, fWipe) { }
 
 bool ChromaAssetDB::WriteChromaAssets(const std::vector<ChromaAsset>& vAsset)
 {
@@ -402,38 +400,3 @@ bool ChromaAssetDB::GetAsset(const uint32_t nID, ChromaAsset& asset)
 
 
 
-FederationPegOutHistoryDB::FederationPegOutHistoryDB(size_t nCacheSize, bool fMemory, bool fWipe)
-    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "pegouthistory", nCacheSize, fMemory, fWipe) { }
-
-bool FederationPegOutHistoryDB::WritePegoutHistory(FederationPegOutHistory& vPegOutHistory) {
-    CDBBatch batch(*this);
-    std::pair<uint8_t, uint32_t> key = std::make_pair(DB_FEDERATION_HISTORY, vPegOutHistory.blockHeight);
-    batch.Write(key, vPegOutHistory);
-    return WriteBatch(batch, true);
-}
-
-bool FederationPegOutHistoryDB::hasPegOutHistory(uint32_t& blockHeight) {
-    if (!Read(DB_FEDERATION_HISTORY, blockHeight))
-        return false;
-
-    return true;
-}
-
-bool FederationPegOutHistoryDB::GetPegOutHistory(const uint32_t blockHeight, FederationPegOutHistory& vPegOutHistory)
-{
-    return Read(std::make_pair(DB_FEDERATION_HISTORY, blockHeight), vPegOutHistory);
-}
-
-bool FederationPegOutHistoryDB::GetLastPegOutHistory(uint32_t& blockHeight)
-{
-    // Look up the last history block height synced (in chronological order)
-    if (!Read(DB_FEDERATION_HISTORY_LAST_ID, blockHeight))
-        return false;
-
-    return true;
-}
-
-bool FederationPegOutHistoryDB::WriteLastPegOutHistory(const uint32_t blockHeight)
-{
-    return Write(DB_FEDERATION_HISTORY_LAST_ID, blockHeight);
-}

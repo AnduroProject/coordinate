@@ -1636,21 +1636,6 @@ void Chainstate::InitAssetCache(bool fReset)
     passettree.reset(new ChromaAssetDB(1 << 21, false, fReset));
 }
 
-void Chainstate::InitFederationHistoryCache(bool fReset)
-{
-    AssertLockHeld(::cs_main);
-    federation_history_tree.reset(new FederationPegOutHistoryDB(1 << 21, false, fReset));
-    if(!federation_history_tree.hasPegOutHistory(0)) {
-        FederationPegOutHistory historyObj;
-        historyObj.pegoutData = "";
-        historyObj.pegoutWitness = "";
-        historyObj.blockHeight = 0;
-        federation_history_tree.WritePegoutHistory(historyObj);
-        federation_history_tree.WriteLastPegOutHistory(0);
-    }
-
-}
-
 // Note that though this is marked const, we may end up modifying `m_cached_finished_ibd`, which
 // is a performance-related implementation detail. This function must be marked
 // `const` so that `CValidationInterface` clients (which are given a `const Chainstate*`)
@@ -1983,17 +1968,17 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
         bool is_coinbase = tx.IsCoinBase();
         bool is_bip30_exception = (is_coinbase && !fEnforceBIP30);
 
-        // Undo BitAssetDB updates
-        if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
-            // Undo BitAsset creation & revert asset ID #
+        // Undo ChromaAssetDB updates
+        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+            // Undo ChromaAsset creation & revert asset ID #
             uint32_t nIDLast = 0;
             passettree->GetLastAssetID(nIDLast);
             if (!passettree->WriteLastAssetID(nIDLast - 1)) {
-                error("DisconnectBlock(): Failed to undo BitAssetDB asset ID #!");
+                error("DisconnectBlock(): Failed to undo ChromaAssetDB asset ID #!");
                 return DISCONNECT_FAILED;
             }
             if (!passettree->RemoveAsset(nIDLast)) {
-                error("DisconnectBlock(): Failed to remove BitAssetDB asset!");
+                error("DisconnectBlock(): Failed to remove ChromaAssetDB asset!");
                 return DISCONNECT_FAILED;
             }
         }
@@ -2336,7 +2321,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
-    std::vector<BitAsset> vAsset;
+    std::vector<ChromaAsset> vAsset;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2398,12 +2383,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             control.Add(vChecks);
         }
 
-        // New asset created - set asset ID # and update BitAssetDB
+        // New asset created - set asset ID # and update ChromaAssetDB
         uint32_t nNewAssetID = 0;
-        if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
+        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
             if (tx.vout.size() < 2) {
-                return state.DoS(100, error("ConnectBlock(): Invalid BitAsset creation - vout too small"),
-                                 REJECT_INVALID, "bad-asset-vout-small");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
             }
 
             uint32_t nIDLast = 0;
@@ -2426,22 +2410,20 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 asset.strController = "OP_RETURN";
             }
             else {
-                return state.DoS(100, error("ConnectBlock(): Invalid BitAsset creation - controller destination invalid"),
-                                 REJECT_INVALID, "bad-asset-controller-dest");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
             }
 
             CTxDestination ownerDest;
             if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
-                    return state.DoS(100, error("ConnectBlock(): Invalid BitAsset creation - owner destination invalid"),
-                                     REJECT_INVALID, "bad-asset-owner-dest");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
             }
             asset.strOwner = EncodeDestination(ownerDest);
 
             vAsset.push_back(asset);
 
-            // Update latest BitAsset ID #
+            // Update latest ChromaAsset ID #
             if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID))
-                return error("%s: Failed to update last BitAsset ID #!\n", __func__);
+                return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
 
             // Copy new asset ID, we will pass it to CoinDB when we UpdateCoins
             nNewAssetID = asset.nID;
@@ -2525,7 +2507,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // Write asset objects to db
     if (vAsset.size()) {
         if (!passettree->WriteChromaAssets(vAsset))
-            return state.Error("Failed to write BitAsset index!");
+            return state.Error("Failed to write ChromaAsset index!");
     }
 
     resetDeposit(pindex->nHeight);

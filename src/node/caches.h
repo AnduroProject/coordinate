@@ -15,7 +15,6 @@ struct CacheSizes {
     int64_t block_tree_db;
     int64_t coins_db;
     int64_t asset_db;
-    int64_t federation_history_db;
     int64_t coins;
     int64_t tx_index;
     int64_t filter_index;

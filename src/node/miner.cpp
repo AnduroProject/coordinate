@@ -186,24 +186,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
 
 
-    if(!m_chainstate.federation_history_tree.hasPegOutHistory(nHeight)) {
-        LogPrintf("address ******************** %s \n",getCurrentKeys(m_chainstate.m_chainman));
-        std::string pegExpected = "";
-        FederationPegOutHistory historyObj;
-        historyObj.pegoutData = "";
-        historyObj.pegoutWitness = "";
-        historyObj.blockHeight = nHeight;
-        if (pending_deposits[0].pegInfo.compare(pegExpected) != 0) {
-            if(isPegInfoValid(pending_deposits[0].pegInfo,pending_deposits[0].pegWitness,m_chainstate.m_chainman, nHeight-1)) {
-                historyObj.pegoutData = pending_deposits[0].pegInfo;
-                historyObj.pegoutWitness = pending_deposits[0].pegWitness;
-            } 
-        } 
-        m_chainstate.federation_history_tree.WritePegoutHistory(historyObj);
-    }
-
-
-
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
         pblock->pegTime = pending_deposits[0].pegTime;
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
@@ -239,8 +221,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             UniValue tx_out_addtional(UniValue::VOBJ);
             tx_out_addtional.pushKV("index", oIncr);
             tx_out_addtional.pushKV("peg_hash", tx_out.peg_hash);
-            std::string finalHex = string_to_hex(tx_out_addtional.write());
-            std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+            std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
             CTxOut out(0, CScript() << OP_RETURN << data);
             oIncr = oIncr + 1;
             coinbaseTx.vout[oIncr] = out;
@@ -251,8 +232,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
    
     UniValue tx_out_addtional(UniValue::VOBJ);
     tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
-    std::string finalHex = string_to_hex(tx_out_addtional.write());
-    std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+    std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
     CTxOut out(0, CScript() << OP_RETURN << data);
     coinbaseTx.vout[oIncr] = out;
     

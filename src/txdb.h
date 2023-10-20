@@ -17,7 +17,6 @@
 #include <string>
 #include <utility>
 #include <vector>
-#include <federation_history.h>
 #include <chroma/chroma_assets.h>
 
 
@@ -97,19 +96,6 @@ public:
 };
 
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
-
-/** Access to the pegout history database (blocks/pegouthistory/) */
-class FederationPegOutHistoryDB : public CDBWrapper
-{
-public:
-    FederationPegOutHistorytDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
-    bool WritePegoutHistory(FederationPegOutHistory& vPegOutHistory);
-    bool GetPegOutHistory(const uint32_t blockHeight,FederationPegOutHistory& vPegOutHistory);
-    bool hasPegOutHistory(const uint32_t blockHeight);
-    bool GetLastPegOutHistory(uint32_t& blockHeight);
-    bool WriteLastPegOutHistory(const uint32_t blockHeight);
-};
-
 
 /** Access to the ChromaAsset database (blocks/ChromaAssets/) */
 class ChromaAssetDB : public CDBWrapper

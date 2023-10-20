@@ -142,9 +142,6 @@ extern const char* PREBLOCKSIGNREQUEST;
 
 extern const char* PREBLOCKSIGNREPONSE;
 
-extern const char* PEGOUTHISTORYREQUEST;
-
-extern const char* PEGOUTHISTORYRESPONSE;
 
 /**
  * The ping message is sent periodically to help confirm that the receiving

@@ -183,8 +183,6 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
     LogPrintf("full block ******************** %s \n",block.ToString());
     result.pushKV("currentkeys", block.currentKeys.empty() ? "" : block.currentKeys);
     result.pushKV("nextindex", block.nextIndex);
-    result.pushKV("peginfo", block.pegInfo);
-    result.pushKV("pegwitness", block.pegWitness);
     result.pushKV("pegtime", block.pegTime);
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
     result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));

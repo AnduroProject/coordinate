@@ -31,7 +31,7 @@
  * or with `ADDRV2_FORMAT`.
  */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
-static const int TRANSACTION_BITASSET_CREATE_VERSION = 10;
+static const int TRANSACTION_CHROMAASSET_CREATE_VERSION = 10;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -256,7 +256,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     
-    if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
         s >> tx.ticker;
         s >> tx.headline;
         s >> tx.payload;
@@ -290,7 +290,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
-    if (tx.nVersion == TRANSACTION_BITASSET_CREATE_VERSION) {
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
         s << tx.ticker;
         s << tx.headline;
         s << tx.payload;
