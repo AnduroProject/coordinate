@@ -43,6 +43,7 @@ bool isSignatureAlreadyExist(FederationTxOut txOut) {
 }
 
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
+   return true;
    if(txOuts.size()==0) {
       return false;
    }

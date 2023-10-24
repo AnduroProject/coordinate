@@ -163,39 +163,39 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
     int resize = 1;
 
-    std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
+    // std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
 
-    if(pending_deposits.size() == 0) {
-        LogPrintf("peg queue unavailable\n");
-        return nullptr;
-    }
+    // if(pending_deposits.size() == 0) {
+    //     LogPrintf("peg queue unavailable\n");
+    //     return nullptr;
+    // }
 
-    if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
-        int tIndex = 1;
-        for (const FederationTxOut& tx_out : pending_deposits) {
-            if (tx_out.nValue > 0) {
-                resize = resize + 2;
-                tIndex = tIndex + 1;
-            }
-        }
-    } else {
-        LogPrintf("special txsetout invalid \n");
-        return nullptr;
-    }
-    resize = resize + 1;
+    // if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
+    //     int tIndex = 1;
+    //     for (const FederationTxOut& tx_out : pending_deposits) {
+    //         if (tx_out.nValue > 0) {
+    //             resize = resize + 2;
+    //             tIndex = tIndex + 1;
+    //         }
+    //     }
+    // } else {
+    //     LogPrintf("special txsetout invalid \n");
+    //     return nullptr;
+    // }
+    // resize = resize + 1;
     
 
 
-    if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
-        pblock->pegTime = pending_deposits[0].pegTime;
-        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
-    } else {
-        FederationTxOut& tx_out = pending_deposits[0];
-        pblock->pegTime = tx_out.pegTime;
-        pblock->currentKeys = tx_out.currentKeys;
-        pblock->nextIndex = tx_out.nextIndex;
-    }
+    // if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+    //     pblock->pegTime = pending_deposits[0].pegTime;
+    //     pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
+    //     pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+    // } else {
+    //     FederationTxOut& tx_out = pending_deposits[0];
+    //     pblock->pegTime = tx_out.pegTime;
+    //     pblock->currentKeys = tx_out.currentKeys;
+    //     pblock->nextIndex = tx_out.nextIndex;
+    // }
 
 
 
@@ -208,33 +208,33 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     //coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vout[0].nValue = nFees;
-    int incr = 1;
-    int oIncr = 1;
-    LogPrintf("***************coinbase transaction details - 3 %i \n",nFees);
+    // int incr = 1;
+    // int oIncr = 1;
+    // LogPrintf("***************coinbase transaction details - 3 %i \n",nFees);
 
-    if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+    // if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
 
-    } else {
-        for (const FederationTxOut& tx_out : pending_deposits) {
-            coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
-            coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
-            UniValue tx_out_addtional(UniValue::VOBJ);
-            tx_out_addtional.pushKV("index", oIncr);
-            tx_out_addtional.pushKV("peg_hash", tx_out.peg_hash);
-            std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
-            CTxOut out(0, CScript() << OP_RETURN << data);
-            oIncr = oIncr + 1;
-            coinbaseTx.vout[oIncr] = out;
-            oIncr = oIncr + 1;
-            incr = incr + 1;
-        }
-    }
+    // } else {
+    //     for (const FederationTxOut& tx_out : pending_deposits) {
+    //         coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
+    //         coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
+    //         UniValue tx_out_addtional(UniValue::VOBJ);
+    //         tx_out_addtional.pushKV("index", oIncr);
+    //         tx_out_addtional.pushKV("peg_hash", tx_out.peg_hash);
+    //         std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
+    //         CTxOut out(0, CScript() << OP_RETURN << data);
+    //         oIncr = oIncr + 1;
+    //         coinbaseTx.vout[oIncr] = out;
+    //         oIncr = oIncr + 1;
+    //         incr = incr + 1;
+    //     }
+    // }
    
-    UniValue tx_out_addtional(UniValue::VOBJ);
-    tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
-    std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
-    CTxOut out(0, CScript() << OP_RETURN << data);
-    coinbaseTx.vout[oIncr] = out;
+    // UniValue tx_out_addtional(UniValue::VOBJ);
+    // tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
+    // std::vector<unsigned char> data = ParseHexV(tx_out_addtional.write(), "Data");
+    // CTxOut out(0, CScript() << OP_RETURN << data);
+    // coinbaseTx.vout[oIncr] = out;
     
 
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;

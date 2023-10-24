@@ -539,6 +539,9 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction)
         Coin coin;
         coin.nHeight = 1;
         coin.fCoinBase = false;
+        coin.fBitAsset = false;
+        coin.fBitAssetControl = false;
+        coin.nAssetID = 0;
         coin.out.nValue = 1000;
         coin.out.scriptPubKey = scriptPubKey;
         coins.emplace_back(std::move(coin));

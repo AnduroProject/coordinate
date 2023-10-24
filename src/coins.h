@@ -39,18 +39,43 @@ public:
     //! at which height this containing transaction was included in the active block chain
     uint32_t nHeight : 31;
 
+    // TODO instead of tracking this, we could just check if the asset ID
+    // is > 0 (the default bitcoin asset reserves the first ID)
+    //! Is this a BitAsset?
+    bool fBitAsset;
+
+    //! Is this a BitAsset controller?
+    bool fBitAssetControl;
+
+    uint32_t nAssetID;
+
     //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn) {}
+    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, uint32_t nAssetIDIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), nAssetID(nAssetIDIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, uint32_t nAssetIDIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), nAssetID(nAssetIDIn) {}
 
     void Clear() {
         out.SetNull();
         fCoinBase = false;
         nHeight = 0;
+        fBitAsset = false;
+        fBitAssetControl = false;
+        nAssetID = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0) { }
+    Coin() : fCoinBase(false), nHeight(0), fBitAsset(false), fBitAssetControl(false), nAssetID(0) { }
+
+    bool IsBitAsset() const {
+        return fBitAsset;
+    }
+
+    bool IsBitAssetController() const {
+        return fBitAssetControl;
+    }
+
+    uint32_t GetAssetID() const {
+        return nAssetID;
+    }
 
     bool IsCoinBase() const {
         return fCoinBase;
@@ -62,6 +87,9 @@ public:
         uint32_t code = nHeight * uint32_t{2} + fCoinBase;
         ::Serialize(s, VARINT(code));
         ::Serialize(s, Using<TxOutCompression>(out));
+        ::Serialize(s, fBitAsset);
+        ::Serialize(s, fBitAssetControl);
+        ::Serialize(s, nAssetID);
     }
 
     template<typename Stream>
@@ -71,6 +99,9 @@ public:
         nHeight = code >> 1;
         fCoinBase = code & 1;
         ::Unserialize(s, Using<TxOutCompression>(out));
+        ::Unserialize(s, fBitAsset);
+        ::Unserialize(s, fBitAssetControl);
+        ::Unserialize(s, nAssetID);
     }
 
     /** Either this coin never existed (see e.g. coinEmpty in coins.cpp), or it
@@ -279,7 +310,7 @@ public:
      * If no unspent output exists for the passed outpoint, this call
      * has no effect.
      */
-    bool SpendCoin(const COutPoint &outpoint, Coin* moveto = nullptr);
+    bool SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveto = nullptr);
 
     /**
      * Push the modifications applied to this cache to its base and wipe local state.
@@ -334,7 +365,7 @@ private:
 //! an overwrite.
 // TODO: pass in a boolean to limit these possible overwrites to known
 // (pre-BIP34) cases.
-void AddCoins(CCoinsViewCache& cache, const CTransaction& tx, int nHeight, bool check = false);
+void AddCoins(CCoinsViewCache& cache, const CTransaction& tx, int nHeight, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN = -1, uint32_t nNewAssetID = 0, bool check = false);
 
 //! Utility function to find any unspent output with a given txid.
 //! This function can be quite expensive because in the event of a transaction

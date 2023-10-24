@@ -65,6 +65,7 @@
 #include <utility>
 #include <federation_deposit.h>
 
+
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 using kernel::ComputeUTXOStats;
@@ -1742,20 +1743,38 @@ void Chainstate::InvalidBlockFound(CBlockIndex* pindex, const BlockValidationSta
     }
 }
 
-void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
+void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight, CAmount& amountAssetInOut, int& nControlNOut, uint32_t& nAssetIDOut, uint32_t nNewAssetIDIn)
 {
+    amountAssetInOut = CAmount(0); // Track asset inputs
+    nControlNOut = -1; // Track asset controller outputs
+    nAssetIDOut = 0; // Track asset ID
     // mark inputs spent
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
-        for (const CTxIn &txin : tx.vin) {
+        for (size_t x = 0; x < tx.vin.size(); x++) {
+            const CTxIn &txin = tx.vin[x];
             txundo.vprevout.emplace_back();
-            bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
+            bool fBitAsset = false;
+            bool fBitAssetControl = false;
+            uint32_t nAssetID = 0;
+            bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
+
+            // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
+            if (nAssetID)
+                nAssetIDOut = nAssetID;
+
             assert(is_spent);
+
+            if (fBitAsset)
+                amountAssetInOut += txundo.vprevout.back().out.nValue;
+
+            if (fBitAssetControl)
+                nControlNOut = x;
         }
     }
     
     // add outputs
-    AddCoins(inputs, tx, nHeight);
+    AddCoins(inputs, tx, nHeight, nAssetIDOut, amountAssetInOut, nControlNOut, nNewAssetIDIn);
 }
 
 bool CScriptCheck::operator()() {
@@ -1989,7 +2008,10 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
             if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
                 COutPoint out(hash, o);
                 Coin coin;
-                bool is_spent = view.SpendCoin(out, &coin);
+                bool fBitAsset = false;
+                bool fBitAssetControl = false;
+                uint32_t nAssetID = 0;
+                bool is_spent = view.SpendCoin(out, fBitAsset, fBitAssetControl, nAssetID, &coin);
                 if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                     if (!is_bip30_exception) {
                         fClean = false; // transaction output mismatch
@@ -2433,7 +2455,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
         }
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+
+        CAmount amountAssetIn = CAmount(0);
+        int nControlN = -1;
+        uint32_t nAssetID = 0;
+
+        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID);
     }
     const auto time_3{SteadyClock::now()};
     time_connect += time_3 - time_2;
@@ -4355,15 +4382,28 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
     if (!ReadBlockFromDisk(block, pindex, m_chainman.GetConsensus())) {
         return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
     }
+    CAmount amountAssetIn = CAmount(0);
+    int nControlN = -1;
 
-    for (const CTransactionRef& tx : block.vtx) {
+    for (size_t x = 0; x < block.vtx.size(); x++) {
+            const CTransactionRef &tx = block.vtx[x];
         if (!tx->IsCoinBase()) {
             for (const CTxIn &txin : tx->vin) {
-                inputs.SpendCoin(txin.prevout);
+                bool fBitAsset = false;
+                bool fBitAssetControl = false;
+                uint32_t nAssetID = 0;
+                Coin coin;
+                inputs.SpendCoin(txin.prevout,fBitAsset, fBitAssetControl, nAssetID,  &coin);
+
+                if (fBitAsset)
+                    amountAssetIn += coin.out.nValue;
+                if (fBitAssetControl)
+                    nControlN = x;
+
             }
         }
         // Pass check = true as every addition may be an overwrite.
-        AddCoins(inputs, *tx, pindex->nHeight, true);
+        AddCoins(inputs, *tx, pindex->nHeight, amountAssetIn, nControlN, true);
     }
     return true;
 }

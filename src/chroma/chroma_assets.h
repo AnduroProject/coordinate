@@ -39,8 +39,6 @@ public:
     std::string strController;
     std::string strOwner;
 
-    explicit ChromaAsset();
-
     template <typename Stream>
     inline void Serialize(Stream& s) const {
         SerializeAsset(*this, s);
@@ -55,6 +53,22 @@ public:
     template <typename Stream>
     ChromaAsset(deserialize_type, Stream& s) {
         Unserialize(s);
+    }
+
+    ChromaAsset() {
+        SetNull();
+    }
+
+    void SetNull()
+    {
+        nID = -1;
+        strTicker="";
+        strHeadline="";
+        payload.SetNull();
+        txid.SetNull();
+        nSupply=-1;
+        strController="";
+        strOwner="";
     }
 
 };
