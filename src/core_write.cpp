@@ -180,6 +180,12 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
     entry.pushKV("vsize", (GetTransactionWeight(tx) + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR);
     entry.pushKV("weight", GetTransactionWeight(tx));
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
+    if(tx.nLockTime == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        entry.pushKV("ticker",tx.ticker);
+        entry.pushKV("headline",tx.headline);
+        entry.pushKV("payload",tx.payload.ToString());
+    }
+
 
     UniValue vin{UniValue::VARR};
 
