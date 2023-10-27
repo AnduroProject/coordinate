@@ -163,6 +163,7 @@ static std::vector<RPCArg> CreateTxDoc()
                 },
             },
          RPCArgOptions{.skip_type_check = true}},
+        {"version", RPCArg::Type::NUM, RPCArg::Default{2}, "Transaction version"},
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
         {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Marks this transaction as BIP125-replaceable.\n"
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
@@ -360,7 +361,7 @@ static RPCHelpMan createrawtransaction()
         rbf = request.params[3].get_bool();
     }
     CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
-
+    rawTx.nVersion = request.params[3];
     return EncodeHexTx(CTransaction(rawTx));
 },
     };
