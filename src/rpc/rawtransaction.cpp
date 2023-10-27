@@ -163,13 +163,17 @@ static std::vector<RPCArg> CreateTxDoc()
                 },
             },
          RPCArgOptions{.skip_type_check = true}},
+        {"asset", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+            {
+                {"version", RPCArg::Type::NUM, RPCArg::Default{2}, "Transaction version"},
+                {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Headline"},
+                {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Ticker"},
+                {"payload", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Payload"},
+            },
+        },
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
         {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Marks this transaction as BIP125-replaceable.\n"
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
-        {"version", RPCArg::Type::NUM, RPCArg::Default{2}, "Transaction version"},
-        {"headline", RPCArg::Type::STR, "", "Asset Headline"},
-        {"ticker", RPCArg::Type::STR, "", "Asset Ticker"},
-        {"payload", RPCArg::Type::STR, "", "Asset Payload"},
     };
 }
 
@@ -360,15 +364,26 @@ static RPCHelpMan createrawtransaction()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     std::optional<bool> rbf;
-    if (!request.params[3].isNull()) {
-        rbf = request.params[3].get_bool();
-    }
-    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
     if (!request.params[4].isNull()) {
-        rawTx.nVersion = request.params[4].getInt<int>();
-        rawTx.headline = request.params[5].get_str();
-        rawTx.ticker = request.params[6].get_str();
-        rawTx.payload = uint256S(request.params[7].get_str());
+        rbf = request.params[4].get_bool();
+    }
+    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[4], rbf);
+    if (!request.params[2].isNull()) {
+        const UniValue& assetParams = request.params[2].get_obj();
+        RPCTypeCheckObj(assetParams,
+        {
+            {"version", UniValueType(UniValue::VNUM)},
+            {"headline", UniValueType(UniValue::VSTR)},
+            {"ticker", UniValueType(UniValue::VSTR)},
+            {"payload", UniValueType(UniValue::VSTR)},
+        });
+        rawTx.nVersion = find_value(assetParams,"version").getInt<int>();
+        // rawTx.headline = "headine";
+        // // rawTx.ticker = "headine";
+        // // rawTx.payload = uint256S("headine");
+        rawTx.headline = find_value(assetParams,"headline").get_str();
+        rawTx.ticker = find_value(assetParams,"ticker").get_str();
+        rawTx.payload = uint256S(find_value(assetParams,"payload").get_str());
     }
 
     return EncodeHexTx(CTransaction(rawTx));

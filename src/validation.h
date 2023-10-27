@@ -481,11 +481,10 @@ protected:
     //! Manages the UTXO set, which is a reflection of the contents of `m_chain`.
     std::unique_ptr<CoinsViews> m_coins_views;
 
-    std::unique_ptr<ChromaAssetDB> passettree;
-
-
 
 public:
+
+    std::unique_ptr<ChromaAssetDB> passettree;
     //! Reference to a BlockManager instance which itself is shared across all
     //! Chainstate instances.
     node::BlockManager& m_blockman;

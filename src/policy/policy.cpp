@@ -93,11 +93,13 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
 
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason)
 {
-
-    if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
-        reason = "version";
-        return false;
+    if (tx.nVersion != TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
+            reason = "version";
+            return false;
+        }
     }
+
     
 
 
