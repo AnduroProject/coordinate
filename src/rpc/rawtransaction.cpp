@@ -361,7 +361,7 @@ static RPCHelpMan createrawtransaction()
         rbf = request.params[3].get_bool();
     }
     CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
-    rawTx.nVersion = request.params[3];
+    rawTx.nVersion = request.params[3].getInt<int>();
     return EncodeHexTx(CTransaction(rawTx));
 },
     };
