@@ -206,8 +206,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(resize);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    //coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    coinbaseTx.vout[0].nValue = nFees;
+    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    // coinbaseTx.vout[0].nValue = nFees;
     // int incr = 1;
     // int oIncr = 1;
     // LogPrintf("***************coinbase transaction details - 3 %i \n",nFees);

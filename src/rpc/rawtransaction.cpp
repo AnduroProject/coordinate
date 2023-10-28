@@ -166,6 +166,7 @@ static std::vector<RPCArg> CreateTxDoc()
         {"asset", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
             {
                 {"version", RPCArg::Type::NUM, RPCArg::Default{2}, "Transaction version"},
+                {"assettype", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Type"},
                 {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Headline"},
                 {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Ticker"},
                 {"payload", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Payload"},
@@ -373,17 +374,16 @@ static RPCHelpMan createrawtransaction()
         RPCTypeCheckObj(assetParams,
         {
             {"version", UniValueType(UniValue::VNUM)},
+            {"assettype", UniValueType(UniValue::VNUM)},
             {"headline", UniValueType(UniValue::VSTR)},
             {"ticker", UniValueType(UniValue::VSTR)},
             {"payload", UniValueType(UniValue::VSTR)},
         });
         rawTx.nVersion = find_value(assetParams,"version").getInt<int>();
-        // rawTx.headline = "headine";
-        // // rawTx.ticker = "headine";
-        // // rawTx.payload = uint256S("headine");
+        rawTx.assetType = find_value(assetParams,"assettype").getInt<int>();
         rawTx.headline = find_value(assetParams,"headline").get_str();
         rawTx.ticker = find_value(assetParams,"ticker").get_str();
-        rawTx.payload = uint256S(find_value(assetParams,"payload").get_str());
+        rawTx.payload = find_value(assetParams,"payload").get_str();
     }
 
     return EncodeHexTx(CTransaction(rawTx));

@@ -257,6 +257,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     }
     
     if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s >> tx.assetType;
         s >> tx.ticker;
         s >> tx.headline;
         s >> tx.payload;
@@ -291,6 +292,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         }
     }
     if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s << tx.assetType;
         s << tx.ticker;
         s << tx.headline;
         s << tx.payload;
@@ -323,11 +325,16 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
+    // asset Type
+    // 0 - Fungible
+    // 1 - Non-Fungible
+    // 2 - Non-Fungible collection
+    const int32_t assetType;
     const uint32_t nLockTime;
 
     const std::string ticker;
     const std::string headline;
-    const uint256 payload;
+    const std::string payload;
 
 private:
     /** Memory only. */
@@ -404,11 +411,12 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
+    int32_t assetType;
     uint32_t nLockTime;
 
     std::string ticker;
     std::string headline;
-    uint256 payload;
+    std::string payload;
 
     explicit CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);

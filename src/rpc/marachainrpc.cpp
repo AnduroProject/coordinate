@@ -182,6 +182,7 @@ static RPCHelpMan listAllAssets() {
                      {RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::NUM, "id", "AssetID"},
+                            {RPCResult::Type::NUM, "assettype", "Asset Type"},
                             {RPCResult::Type::STR, "ticker", "Asset Ticker"},
                             {RPCResult::Type::NUM, "supply", "Asset supply"},
                             {RPCResult::Type::NUM, "headline", "Asset title"},
@@ -210,10 +211,11 @@ static RPCHelpMan listAllAssets() {
                 for (const ChromaAsset& asset_item : assetList) {
                     UniValue obj(UniValue::VOBJ);
                     obj.pushKV("id", (uint64_t)asset_item.nID);
+                    obj.pushKV("assettype", asset_item.assetType);
                     obj.pushKV("ticker", asset_item.strTicker);
                     obj.pushKV("supply", asset_item.nSupply);
                     obj.pushKV("headline", asset_item.strHeadline);
-                    obj.pushKV("payload", asset_item.payload.ToString());
+                    obj.pushKV("payload", asset_item.payload);
                     obj.pushKV("txid", asset_item.txid.ToString());
                     obj.pushKV("controller", asset_item.strController);
                     obj.pushKV("owner", asset_item.strOwner);

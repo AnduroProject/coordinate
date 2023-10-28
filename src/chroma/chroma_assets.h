@@ -6,6 +6,7 @@
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
     s >> assetData.nID;
+    s >> assetData.assetType;
     s >> assetData.strTicker;
     s >> assetData.strHeadline;
     s >> assetData.payload;
@@ -18,6 +19,7 @@ inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
 template<typename Stream, typename ChromaType>
 inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
     s << assetData.nID;
+    s << assetData.assetType;
     s << assetData.strTicker;
     s << assetData.strHeadline;
     s << assetData.payload;
@@ -31,9 +33,10 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
 struct ChromaAsset {
 public:
     uint32_t nID;
+    uint32_t assetType;
     std::string strTicker;
     std::string strHeadline;
-    uint256 payload;
+    std::string payload;
     uint256 txid;
     int64_t nSupply;
     std::string strController;
@@ -62,9 +65,10 @@ public:
     void SetNull()
     {
         nID = -1;
+        assetType = -1;
         strTicker="";
         strHeadline="";
-        payload.SetNull();
+        payload="";
         txid.SetNull();
         nSupply=-1;
         strController="";

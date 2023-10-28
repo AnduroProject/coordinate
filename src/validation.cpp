@@ -2418,6 +2418,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
             ChromaAsset asset;
             asset.nID = nIDLast + 1;
+            asset.assetType = tx.assetType;
             asset.strTicker = tx.ticker;
             asset.strHeadline = tx.headline;
             asset.payload = tx.payload;
