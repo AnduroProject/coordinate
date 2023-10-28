@@ -224,6 +224,12 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s >> tx.assetType;
+        s >> tx.ticker;
+        s >> tx.headline;
+        s >> tx.payload;
+    }
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -256,12 +262,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         throw std::ios_base::failure("Unknown transaction optional data");
     }
     
-    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        s >> tx.assetType;
-        s >> tx.ticker;
-        s >> tx.headline;
-        s >> tx.payload;
-    }
+
     s >> tx.nLockTime;
 }
 
@@ -270,6 +271,12 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s << tx.assetType;
+        s << tx.ticker;
+        s << tx.headline;
+        s << tx.payload;
+    }
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness) {
@@ -291,12 +298,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
-    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        s << tx.assetType;
-        s << tx.ticker;
-        s << tx.headline;
-        s << tx.payload;
-    }
+
 
     s << tx.nLockTime;
 }
@@ -330,11 +332,12 @@ public:
     // 1 - Non-Fungible
     // 2 - Non-Fungible collection
     const int32_t assetType;
-    const uint32_t nLockTime;
-
     const std::string ticker;
     const std::string headline;
     const std::string payload;
+    const uint32_t nLockTime;
+
+
 
 private:
     /** Memory only. */
@@ -412,11 +415,11 @@ struct CMutableTransaction
     std::vector<CTxOut> vout;
     int32_t nVersion;
     int32_t assetType;
-    uint32_t nLockTime;
-
     std::string ticker;
     std::string headline;
     std::string payload;
+    uint32_t nLockTime;
+
 
     explicit CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);
