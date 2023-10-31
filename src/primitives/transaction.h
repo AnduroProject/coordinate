@@ -417,7 +417,7 @@ struct CMutableTransaction
     int32_t assetType;
     std::string ticker;
     std::string headline;
-    uni256 payload;
+    uint256 payload;
     uint32_t nLockTime;
 
 
