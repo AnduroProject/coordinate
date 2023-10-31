@@ -185,11 +185,11 @@ static RPCHelpMan listAllAssets() {
                             {RPCResult::Type::NUM, "assettype", "Asset Type"},
                             {RPCResult::Type::STR, "ticker", "Asset Ticker"},
                             {RPCResult::Type::NUM, "supply", "Asset supply"},
-                            {RPCResult::Type::NUM, "headline", "Asset title"},
-                            {RPCResult::Type::NUM, "payload", "Asset payload"},
-                            {RPCResult::Type::NUM, "txid", "Asset genesis"},
-                            {RPCResult::Type::NUM, "controller", "Asset controller"},
-                            {RPCResult::Type::NUM, "owner", "Asset owner"},
+                            {RPCResult::Type::STR, "headline", "Asset title"},
+                            {RPCResult::Type::STR, "payload", "Asset payload"},
+                            {RPCResult::Type::STR, "txid", "Asset genesis"},
+                            {RPCResult::Type::STR, "controller", "Asset controller"},
+                            {RPCResult::Type::STR, "owner", "Asset owner"},
                         }
                      }
                 }},
@@ -215,7 +215,7 @@ static RPCHelpMan listAllAssets() {
                     obj.pushKV("ticker", asset_item.strTicker);
                     obj.pushKV("supply", asset_item.nSupply);
                     obj.pushKV("headline", asset_item.strHeadline);
-                    obj.pushKV("payload", asset_item.payload);
+                    obj.pushKV("payload", asset_item.payload.ToString());
                     obj.pushKV("txid", asset_item.txid.ToString());
                     obj.pushKV("controller", asset_item.strController);
                     obj.pushKV("owner", asset_item.strOwner);

@@ -383,7 +383,7 @@ static RPCHelpMan createrawtransaction()
         rawTx.assetType = find_value(assetParams,"assettype").getInt<int>();
         rawTx.headline = find_value(assetParams,"headline").get_str();
         rawTx.ticker = find_value(assetParams,"ticker").get_str();
-        rawTx.payload = find_value(assetParams,"payload").get_str();
+        rawTx.payload = uint256S(find_value(assetParams,"payload").get_str());
     }
 
     return EncodeHexTx(CTransaction(rawTx));

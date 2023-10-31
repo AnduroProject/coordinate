@@ -36,7 +36,7 @@ public:
     uint32_t assetType;
     std::string strTicker;
     std::string strHeadline;
-    std::string payload;
+    uint256 payload;
     uint256 txid;
     int64_t nSupply;
     std::string strController;
@@ -68,7 +68,7 @@ public:
         assetType = -1;
         strTicker="";
         strHeadline="";
-        payload="";
+        payload.SetNull();
         txid.SetNull();
         nSupply=-1;
         strController="";

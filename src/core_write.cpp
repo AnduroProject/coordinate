@@ -184,7 +184,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         entry.pushKV("assettype",tx.assetType);
         entry.pushKV("ticker",tx.ticker);
         entry.pushKV("headline",tx.headline);
-        entry.pushKV("payload",tx.payload);
+        entry.pushKV("payload",tx.payload.ToString());
     }
 
 
