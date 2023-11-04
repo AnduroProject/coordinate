@@ -1575,6 +1575,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
+    return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)

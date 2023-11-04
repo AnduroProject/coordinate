@@ -24,7 +24,6 @@ class CBlockHeader : public CPureBlockHeader
 {
 public:
     std::shared_ptr<CAuxPow> auxpow;
-    int32_t pegTime;
     std::string currentKeys;
     int32_t nextIndex;
 
@@ -45,7 +44,6 @@ public:
         {
             SER_READ(obj, obj.auxpow.reset());
         }
-        READWRITE(obj.pegTime);
         READWRITE(obj.currentKeys);
         READWRITE(obj.nextIndex);
     }
@@ -53,7 +51,6 @@ public:
     void SetNull()
     {
         CPureBlockHeader::SetNull();
-        pegTime = 0;
         currentKeys = "";
         nextIndex = 0;
         auxpow.reset();

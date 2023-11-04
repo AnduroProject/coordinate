@@ -24,11 +24,9 @@ class FederationTxOut
 public:
     CAmount nValue;
     CScript scriptPubKey;
-    std::string peg_hash;
     std::string witness;
     int32_t block_height;
     std::string currentKeys;
-    int32_t pegTime;
     int32_t nextIndex;
     std::string depositAddress;
     std::string burnAddress;
@@ -38,13 +36,11 @@ public:
         SetNull();
     }
 
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, std::string peg_hashIn, int32_t block_heightIn, int32_t nextIndexIn, int32_t pegTimeIn, std::string currentKeysIn, std::string depositAddressIn, std::string burnAddressIn) {
+    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, int32_t block_heightIn, int32_t nextIndexIn, std::string currentKeysIn, std::string depositAddressIn, std::string burnAddressIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
-        peg_hash = peg_hashIn;
         block_height = block_heightIn;
-        pegTime = pegTimeIn;
         nextIndex = nextIndexIn;
         currentKeys = currentKeysIn;
         depositAddress = depositAddressIn;
@@ -52,18 +48,16 @@ public:
     }
 
     SERIALIZE_METHODS(FederationTxOut, obj) { 
-        READWRITE(obj.nValue, obj.scriptPubKey, obj.peg_hash, obj.witness, obj.block_height, obj.currentKeys, obj.pegTime, obj.nextIndex, obj.depositAddress, obj.burnAddress); 
+        READWRITE(obj.nValue, obj.scriptPubKey, obj.witness, obj.block_height, obj.currentKeys, obj.nextIndex, obj.depositAddress, obj.burnAddress); 
     }
 
     void SetNull()
     {
         nValue = -1;
         scriptPubKey.clear();
-        peg_hash = "";
         witness = "";
         block_height = 0;
         currentKeys = "";
-        pegTime = 0;
         nextIndex = 0;
         depositAddress = "";
         burnAddress = "";

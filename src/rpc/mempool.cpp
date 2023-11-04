@@ -53,7 +53,6 @@ static RPCHelpMan sendrawtransaction()
                                     {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address which will get deposit as pegin"},
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
                                     {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Pegin witness which hold leaf and signature for particular pegin"},
-                                    {"peg_hash", RPCArg::Type::STR, RPCArg::Optional::NO, "Bitcoin transaction hash which used to initiate pegin"},
                                     {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
                                     {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation deposit address"},
                                     {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation burn address"},
@@ -62,7 +61,6 @@ static RPCHelpMan sendrawtransaction()
                         },
                     },
                     {"currentkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
-                    {"pegtime", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "The time which federation used to sign the presigned block"},
                     {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from federation"},
                     }
                 }
@@ -104,7 +102,6 @@ static RPCHelpMan sendrawtransaction()
                         {"inputs", UniValueType(UniValue::VARR)},
                         {"nextindex", UniValueType(UniValue::VNUM)},
                         {"currentkeys", UniValueType(UniValue::VSTR)},
-                        {"pegtime", UniValueType(UniValue::VNUM)},
                     });
                     const UniValue output_params = find_value(fedParams, "inputs").get_array();
     
@@ -115,14 +112,13 @@ static RPCHelpMan sendrawtransaction()
                             {"address", UniValueType(UniValue::VSTR)},
                             {"amount", UniValueType(UniValue::VNUM)},
                             {"witness", UniValueType(UniValue::VSTR)},
-                            {"peg_hash", UniValueType(UniValue::VSTR)},
                             {"block_height", UniValueType(UniValue::VNUM)},
                             {"deposit_address", UniValueType(UniValue::VSTR)},
                             {"burn_address", UniValueType(UniValue::VSTR)},
                         });
                         const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
                         const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "peg_hash").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "pegtime").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
+                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
 
                         tOuts.push_back(out);
                     }
@@ -148,7 +144,7 @@ static RPCHelpMan sendrawtransaction()
                                                         DEFAULT_MAX_RAW_TX_FEE_RATE :
                                                         CFeeRate(AmountFromValue(request.params[6]));
 
-                    LogPrintf("check2 \n");
+                LogPrintf("check2 \n");
                 int64_t virtual_size = GetVirtualTransactionSize(*tx);
                 CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
                 LogPrintf("check3 \n");
@@ -163,8 +159,6 @@ static RPCHelpMan sendrawtransaction()
                 }
                 return tx->GetHash().GetHex();
             }
-
-  
         },
     };
 }

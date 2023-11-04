@@ -254,7 +254,13 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         vout.push_back(out);
 
         if (have_undo) {
-            amt_total_out += txout.nValue;
+            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+                if(i > 1) {
+                    amt_total_out += txout.nValue;
+                }
+            } else {
+                amt_total_out += txout.nValue;
+            }
         }
     }
     entry.pushKV("vout", vout);

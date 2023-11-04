@@ -43,7 +43,7 @@ bool isSignatureAlreadyExist(FederationTxOut txOut) {
 }
 
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
-   return true;
+ 
    if(txOuts.size()==0) {
       return false;
    }
@@ -61,29 +61,30 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue messages(UniValue::VARR);
    int tIndex = 1;
    for (const FederationTxOut& txOut : txOuts) {
-      std::string addressStr = "";
-      if(txOut.scriptPubKey.empty()) {
-         CTxDestination address;
-         ExtractDestination(txOut.scriptPubKey, address);
-         UniValue message(UniValue::VOBJ);
-         addressStr = EncodeDestination(address);
-      }
+
+      CTxDestination address;
+      ExtractDestination(txOut.scriptPubKey, address);
+      std::string addressStr = EncodeDestination(address);
 
       UniValue message(UniValue::VOBJ);
-      message.pushKV("pegtime", txOut.pegTime);
-      message.pushKV("height", txOut.block_height);
-      message.pushKV("amount", txOut.nValue);
-      message.pushKV("index", tIndex);
       message.pushKV("address", addressStr);
+      message.pushKV("amount", txOut.nValue);
+      message.pushKV("height", txOut.block_height);
+      message.pushKV("index", tIndex);
+
       tIndex = tIndex + 1;
       messages.push_back(message);
    }
 
+   LogPrintf("============== message is 1 %s \n",messages.write());
+
    bool isValid = validateFederationSignature(txOuts[0].witness,messages.write(),block.currentKeys);
 
    if (isValid) {
+      LogPrintf("message is 2 \n");
       return true;
    }
+   LogPrintf("message is 3 \n");
    return false;
 }
 
@@ -165,6 +166,7 @@ bool isFederationValidationActive() {
 }
 
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
+
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    
@@ -190,39 +192,31 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    LogPrintf("previous address %s \n",prevblock.currentKeys);
    LogPrintf("current address %s \n",block.currentKeys);
 
-   CTxOut witnessOut = block.vtx[0]->vout[block.vtx[0]->vout.size()-2];
-   std::vector<unsigned char> txData(ParseHex(ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"")));
-   const std::string witnessStr(txData.begin(), txData.end());
-   UniValue val(UniValue::VOBJ);
-   if (!val.read(witnessStr)) {
-      LogPrintf("invalid witness");
+   std::vector<unsigned char> wData(ParseHex(prevblock.currentKeys));
+   const std::string prevWitnessHexStr(wData.begin(), wData.end());
+   UniValue witnessVal(UniValue::VOBJ);
+   if (!witnessVal.read(prevWitnessHexStr)) {
+      LogPrintf("invalid witness params \n");
       return false;
    }
 
+   CTxOut witnessOut = block.vtx[0]->vout[block.vtx[0]->vout.size()-2];
+
+   const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
+   LogPrintf("testing federation validation 5 %s\n",witnessStr);
+
    std::vector<FederationTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
-      
-      FederationTxOut out(AmountFromValue(0), CScript(), find_value(val.get_obj(), "witness").get_str(), "0000000000000000000000000000000000000000000000000000000000000000", active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, "", "");
+      LogPrintf("testing federation validation 6 \n");
+      const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
+      const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+      FederationTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
+      LogPrintf("testing federation validation 7 \n");
    } else {
-      int witness_num = block.vtx[0]->vout.size()-2;
-      LogPrintf("witness number %i \n", witness_num);
-      for (size_t i = 1; i < block.vtx[0]->vout.size(); i=i+2) {  
-         if(witness_num < i) {
-            break;
-         }
+      for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {  
          CTxOut pegTx = block.vtx[0]->vout[i];
-
-         CTxOut pegHashes = block.vtx[0]->vout[i+1];
-         std::vector<unsigned char> pegHashData(ParseHex(ScriptToAsmStr(pegHashes.scriptPubKey).replace(0,10,"")));
-         const std::string pegHashStr(pegHashData.begin(), pegHashData.end());
-         UniValue pegHashVal(UniValue::VOBJ);
-         if (!pegHashVal.read(pegHashStr)) {
-            LogPrintf("invalid peg hashes");
-            break;
-         }
-
-         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, find_value(val.get_obj(), "witness").get_str(), find_value(pegHashVal.get_obj(),"peg_hash").get_str(), active_chain.Height() + 1,block.nextIndex,block.pegTime,block.currentKeys, "", "");
+         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);
       }
    } 
