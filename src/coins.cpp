@@ -174,6 +174,20 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool
     return true;
 }
 
+bool CCoinsViewCache::getAssetCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveout) {
+    CCoinsMap::iterator it = FetchCoin(outpoint);
+    if (it == cacheCoins.end()) return false;
+    fBitAsset = it->second.coin.fBitAsset;
+    fBitAssetControl = it->second.coin.fBitAssetControl;
+    nAssetID = it->second.coin.nAssetID;
+    if (moveout) {
+        *moveout = it->second.coin;
+    }
+    return true;
+}
+
+
+
 static const Coin coinEmpty;
 
 const Coin& CCoinsViewCache::AccessCoin(const COutPoint &outpoint) const {

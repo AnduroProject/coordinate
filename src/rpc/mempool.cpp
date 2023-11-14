@@ -137,17 +137,13 @@ static RPCHelpMan sendrawtransaction()
                 if (!DecodeHexTx(mtx, request.params[0].get_str())) {
                     throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
                 }
-                LogPrintf("check1 \n");
                 CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-                LogPrintf("check2 \n");
                 const CFeeRate max_raw_tx_fee_rate = request.params[7].isNull() ?
                                                         DEFAULT_MAX_RAW_TX_FEE_RATE :
                                                         CFeeRate(AmountFromValue(request.params[6]));
 
-                LogPrintf("check2 \n");
                 int64_t virtual_size = GetVirtualTransactionSize(*tx);
                 CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
-                LogPrintf("check3 \n");
                 std::string err_string;
                 AssertLockNotHeld(cs_main);
                 NodeContext& node = EnsureAnyNodeContext(request.context);

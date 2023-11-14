@@ -794,6 +794,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
+    if(!AreChromaTransactionStandard(tx, m_view)) {
+       LogPrintf("Invalid transaction standard \n");
+       return false; // state filled in by CheckTxInputs
+    }
+
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
@@ -1575,7 +1580,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    return 0;
+    // return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -1761,11 +1766,11 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
 
+            assert(is_spent);
+            
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
             if (nAssetID)
                 nAssetIDOut = nAssetID;
-
-            assert(is_spent);
 
             if (fBitAsset)
                 amountAssetInOut += txundo.vprevout.back().out.nValue;
@@ -2351,6 +2356,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
+
+        if (!tx.IsCoinBase()) {
+            if (!AreChromaTransactionStandard(tx,view)) {
+                LogPrintf("Invalid transaction standard \n");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
+            }
+        }
 
         if (!tx.IsCoinBase())
         {
