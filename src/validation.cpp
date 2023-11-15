@@ -1540,7 +1540,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     /* If there is no auxpow, just check the block hash.  */
     if (!block.auxpow)
     {
-        if(block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0) {
+        if(block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0) {
             return true;
         } else {
             return error("%s : block hash no auxpow on block with auxpow version",
@@ -1580,7 +1580,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // return 0;
+    return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)

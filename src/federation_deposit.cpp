@@ -166,7 +166,6 @@ bool isFederationValidationActive() {
 }
 
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
-   return true;
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    

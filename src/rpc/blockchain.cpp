@@ -957,7 +957,7 @@ static RPCHelpMan gettxoutsetinfo()
                         {RPCResult::Type::NUM, "transactions", /*optional=*/true, "The number of transactions with unspent outputs (not available when coinstatsindex is used)"},
                         {RPCResult::Type::NUM, "disk_size", /*optional=*/true, "The estimated size of the chainstate on disk (not available when coinstatsindex is used)"},
                         {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of coins in the UTXO set"},
-                        {RPCResult::Type::NUM, "overall_supply", "The total amount of assets in the UTXO set"},
+                        {RPCResult::Type::NUM, "overall_asset_supply", "The total amount of assets in the UTXO set"},
                         {RPCResult::Type::NUM, "total_assets", "The total amount of assets"},
                         {RPCResult::Type::STR_AMOUNT, "total_unspendable_amount", /*optional=*/true, "The total amount of coins permanently excluded from the UTXO set (only available if coinstatsindex is used)"},
                         {RPCResult::Type::OBJ, "block_info", /*optional=*/true, "Info on amounts in the block at this block height (only available if coinstatsindex is used)",
@@ -1054,7 +1054,7 @@ static RPCHelpMan gettxoutsetinfo()
 
         CHECK_NONFATAL(stats.total_amount.has_value());
         ret.pushKV("total_amount", ValueFromAmount(stats.total_amount.value()));
-        ret.pushKV("overall_supply", stats.total_assets.value());
+        ret.pushKV("overall_asset_supply", stats.total_assets.value());
         ret.pushKV("total_assets", nIDLast);
         if (!stats.index_used) {
             ret.pushKV("transactions", static_cast<int64_t>(stats.nTransactions));
