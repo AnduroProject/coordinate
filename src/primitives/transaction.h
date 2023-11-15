@@ -31,6 +31,8 @@
  * or with `ADDRV2_FORMAT`.
  */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
+static const int TRANSACTION_CHROMAASSET_CREATE_VERSION = 10;
+static const int TRANSACTION_CHROMAASSET_TRANSFER_VERSION = 11;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -223,6 +225,12 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s >> tx.assetType;
+        s >> tx.ticker;
+        s >> tx.headline;
+        s >> tx.payload;
+    }
     unsigned char flags = 0;
     tx.vin.clear();
     tx.vout.clear();
@@ -254,6 +262,8 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         /* Unknown flag in the serialization */
         throw std::ios_base::failure("Unknown transaction optional data");
     }
+    
+
     s >> tx.nLockTime;
 }
 
@@ -262,6 +272,12 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
+    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        s << tx.assetType;
+        s << tx.ticker;
+        s << tx.headline;
+        s << tx.payload;
+    }
     unsigned char flags = 0;
     // Consistency check
     if (fAllowWitness) {
@@ -283,6 +299,8 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
             s << tx.vin[i].scriptWitness.stack;
         }
     }
+
+
     s << tx.nLockTime;
 }
 
@@ -310,7 +328,18 @@ public:
     const std::vector<CTxIn> vin;
     const std::vector<CTxOut> vout;
     const int32_t nVersion;
+    // asset Type
+    // 0 - Fungible
+    // 1 - Non-Fungible
+    // 2 - Non-Fungible collection
+    const int32_t assetType;
+    const std::string ticker;
+    const std::string headline;
+    const uint256 payload;
     const uint32_t nLockTime;
+
+
+
 private:
     /** Memory only. */
     const uint256 hash;
@@ -386,7 +415,12 @@ struct CMutableTransaction
     std::vector<CTxIn> vin;
     std::vector<CTxOut> vout;
     int32_t nVersion;
+    int32_t assetType;
+    std::string ticker;
+    std::string headline;
+    uint256 payload;
     uint32_t nLockTime;
+
 
     explicit CMutableTransaction();
     explicit CMutableTransaction(const CTransaction& tx);

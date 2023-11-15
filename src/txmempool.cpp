@@ -725,8 +725,20 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         CAmount txfee = 0;
         assert(!tx.IsCoinBase());
         assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfee));
-        for (const auto& input: tx.vin) mempoolDuplicate.SpendCoin(input.prevout);
-        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max());
+        CAmount amountAssetIn = CAmount(0);
+        int nControlN = -1;
+        for (size_t x = 0; x < tx.vin.size(); x++) {
+            bool fBitAsset = false;
+            bool fBitAssetControl = false;
+            uint32_t nAssetID = 0;
+            Coin coin;
+            mempoolDuplicate.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, nAssetID, &coin);
+            if (fBitAsset)
+                amountAssetIn += coin.out.nValue;
+            if (fBitAssetControl)
+                nControlN = x;
+        } 
+        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), amountAssetIn, nControlN, true);
     }
     for (auto it = mapNextTx.cbegin(); it != mapNextTx.cend(); it++) {
         uint256 hash = it->second->GetHash();
@@ -925,7 +937,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
     CTransactionRef ptx = mempool.get(outpoint.hash);
     if (ptx) {
         if (outpoint.n < ptx->vout.size()) {
-            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false);
+            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false, false, false, 0);
             return true;
         } else {
             return false;
@@ -937,7 +949,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
 void CCoinsViewMemPool::PackageAddTransaction(const CTransactionRef& tx)
 {
     for (unsigned int n = 0; n < tx->vout.size(); ++n) {
-        m_temp_added.emplace(COutPoint(tx->GetHash(), n), Coin(tx->vout[n], MEMPOOL_HEIGHT, false));
+        m_temp_added.emplace(COutPoint(tx->GetHash(), n), Coin(tx->vout[n], MEMPOOL_HEIGHT, false, false, false, 0));
     }
 }
 

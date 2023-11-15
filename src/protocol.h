@@ -141,6 +141,8 @@ extern const char* MEMPOOL;
 extern const char* PREBLOCKSIGNREQUEST;
 
 extern const char* PREBLOCKSIGNREPONSE;
+
+
 /**
  * The ping message is sent periodically to help confirm that the receiving
  * peer is still connected.

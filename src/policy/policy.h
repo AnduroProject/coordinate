@@ -25,6 +25,8 @@ static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{MAX_BLOCK_WEIGHT - 4000};
 static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{1000};
 /** The maximum weight for transactions we're willing to relay/mine */
 static constexpr unsigned int MAX_STANDARD_TX_WEIGHT{400000};
+/** The maximum weight for transactions we're willing to relay/mine */
+static constexpr unsigned int MAX_STANDARD_TX_WEIGHT_ASSET{4000000};
 /** The minimum non-witness size for transactions we're willing to relay/mine: one larger than 64  */
 static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
 /** Maximum number of signature check operations in an IsStandard() P2SH script */
@@ -124,6 +126,13 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 * @return True if all inputs (scriptSigs) use only standard transaction forms
 */
 bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs);
+
+/**
+* Check for chroma transaction types
+* @param[in] mapInputs       Map of previous transactions that have outputs we're spending
+* @return True if all inputs (scriptSigs) use only standard transaction forms
+*/
+bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs);
 /**
 * Check if the transaction is over standard P2WSH resources limit:
 * 3600bytes witnessScript size, 80bytes per witness stack element, 100 witness stack elements

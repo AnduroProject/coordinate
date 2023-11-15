@@ -7,6 +7,7 @@
 #include <rpc/util.h>
 
 bool validateFederationSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
+   LogPrintf("message is 11 %s\n",signatureHex);
    std::vector<unsigned char> sData(ParseHex(signatureHex));
    const std::string signatureHexStr(sData.begin(), sData.end());
    UniValue val(UniValue::VOBJ);
@@ -14,7 +15,7 @@ bool validateFederationSignature(std::string signatureHex, std::string messageIn
       LogPrintf("invalid signature params \n");
       return false;
    }
-
+   LogPrintf("message is 12 %s\n",prevWitnessHex);
    std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
    const std::string prevWitnessHexStr(wData.begin(), wData.end());
    UniValue witnessVal(UniValue::VOBJ);
@@ -22,17 +23,29 @@ bool validateFederationSignature(std::string signatureHex, std::string messageIn
       LogPrintf("invalid witness params \n");
       return false;
    }
-
+   LogPrintf("message is 13 \n");
    std::vector<std::string> allKeysArray;
-   const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "allkeys").get_array();
+   const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "paths").get_array();
    for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
         allKeysArray.push_back(allKeysArrayRequest[i].get_str());
    }
+
+   std::string redeemPath =  find_value(val.get_obj(), "redeempath").get_str();
+
+    LogPrintf("message is 14 %s \n", redeemPath);
    
-   std::string redeemPath =  find_value(val.get_obj(), "redeemkeys").get_str();
+   if(!getRedeemPathAvailable(allKeysArray,redeemPath)) {
+        return false;
+   }
    std::string signature =  find_value(val.get_obj(), "signature").get_str();
 
+   LogPrintf("message is 15 %s \n", signature);
+
    uint256 message = prepareMessageHash(messageIn);
+
+   LogPrintf("message is 16 %s \n", messageIn);
+
+   LogPrintf("message is 17 %s \n", HexStr(message));
 
     if(!XOnlyPubKey(ParseHex(redeemPath)).VerifySchnorr(message,ParseHex(signature))) {
        return false;

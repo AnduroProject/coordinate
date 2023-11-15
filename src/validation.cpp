@@ -65,6 +65,7 @@
 #include <utility>
 #include <federation_deposit.h>
 
+
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
 using kernel::ComputeUTXOStats;
@@ -674,18 +675,20 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTransaction
     }
 
-
+   
         
 
     // Coinbase is only valid in a block, not as a loose transaction
     if (tx.IsCoinBase())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "coinbase");
 
+
     // Rather not work on nonstandard transactions (unless -testnet/-regtest)
     std::string reason;
     if (m_pool.m_require_standard && !IsStandardTx(tx, m_pool.m_max_datacarrier_bytes, m_pool.m_permit_bare_multisig, m_pool.m_dust_relay_feerate, reason)) {
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, reason);
     }
+
 
     // Transactions smaller than 65 non-witness bytes are not relayed to mitigate CVE-2017-12842.
     if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) < MIN_STANDARD_TX_NONWITNESS_SIZE)
@@ -789,6 +792,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // The mempool holds txs for the next block, so pass height+1 to CheckTxInputs
     if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees)) {
         return false; // state filled in by CheckTxInputs
+    }
+
+    if(!AreChromaTransactionStandard(tx, m_view)) {
+       LogPrintf("Invalid transaction standard \n");
+       return false; // state filled in by CheckTxInputs
     }
 
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
@@ -1532,7 +1540,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     /* If there is no auxpow, just check the block hash.  */
     if (!block.auxpow)
     {
-        if(block.GetHash().ToString().compare("9787326f81bf5270e4cd778b0ece9f716cd81da5af7dca1b9c97ece24a406b33") == 0 || block.GetHash().ToString().compare("9218fcfe8489c717240c6b9fc14231700d64ce686f9295834b18bc3d66e04a70") == 0 || block.GetHash().ToString().compare("75a11b3257a3b18be8420c46c0973f253adb466d912044fef44ff7c59c796891") == 0) {
+        if(block.GetHash().ToString().compare("7833a679afac55aa332bc576c37f437cd76bae0dbf2ea189058e97ad9b23d60d") == 0 || block.GetHash().ToString().compare("adf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab") == 0) {
             return true;
         } else {
             return error("%s : block hash no auxpow on block with auxpow version",
@@ -1628,6 +1636,12 @@ void Chainstate::InitCoinsCache(size_t cache_size_bytes)
     assert(m_coins_views != nullptr);
     m_coinstip_cache_size_bytes = cache_size_bytes;
     m_coins_views->InitCache();
+}
+
+void Chainstate::InitAssetCache(bool fReset)
+{
+    AssertLockHeld(::cs_main);
+    passettree.reset(new ChromaAssetDB(1 << 21, false, fReset));
 }
 
 // Note that though this is marked const, we may end up modifying `m_cached_finished_ibd`, which
@@ -1736,20 +1750,38 @@ void Chainstate::InvalidBlockFound(CBlockIndex* pindex, const BlockValidationSta
     }
 }
 
-void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight)
+void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight, CAmount& amountAssetInOut, int& nControlNOut, uint32_t& nAssetIDOut, uint32_t nNewAssetIDIn)
 {
+    amountAssetInOut = CAmount(0); // Track asset inputs
+    nControlNOut = -1; // Track asset controller outputs
+    nAssetIDOut = 0; // Track asset ID
     // mark inputs spent
     if (!tx.IsCoinBase()) {
         txundo.vprevout.reserve(tx.vin.size());
-        for (const CTxIn &txin : tx.vin) {
+        for (size_t x = 0; x < tx.vin.size(); x++) {
+            const CTxIn &txin = tx.vin[x];
             txundo.vprevout.emplace_back();
-            bool is_spent = inputs.SpendCoin(txin.prevout, &txundo.vprevout.back());
+            bool fBitAsset = false;
+            bool fBitAssetControl = false;
+            uint32_t nAssetID = 0;
+            bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
+
             assert(is_spent);
+            
+            // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
+            if (nAssetID)
+                nAssetIDOut = nAssetID;
+
+            if (fBitAsset)
+                amountAssetInOut += txundo.vprevout.back().out.nValue;
+
+            if (fBitAssetControl)
+                nControlNOut = x;
         }
     }
     
     // add outputs
-    AddCoins(inputs, tx, nHeight);
+    AddCoins(inputs, tx, nHeight, nAssetIDOut, amountAssetInOut, nControlNOut, nNewAssetIDIn);
 }
 
 bool CScriptCheck::operator()() {
@@ -1962,13 +1994,31 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
         bool is_coinbase = tx.IsCoinBase();
         bool is_bip30_exception = (is_coinbase && !fEnforceBIP30);
 
+        // Undo ChromaAssetDB updates
+        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+            // Undo ChromaAsset creation & revert asset ID #
+            uint32_t nIDLast = 0;
+            passettree->GetLastAssetID(nIDLast);
+            if (!passettree->WriteLastAssetID(nIDLast - 1)) {
+                error("DisconnectBlock(): Failed to undo ChromaAssetDB asset ID #!");
+                return DISCONNECT_FAILED;
+            }
+            if (!passettree->RemoveAsset(nIDLast)) {
+                error("DisconnectBlock(): Failed to remove ChromaAssetDB asset!");
+                return DISCONNECT_FAILED;
+            }
+        }
+
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
         for (size_t o = 0; o < tx.vout.size(); o++) {
             if (!tx.vout[o].scriptPubKey.IsUnspendable()) {
                 COutPoint out(hash, o);
                 Coin coin;
-                bool is_spent = view.SpendCoin(out, &coin);
+                bool fBitAsset = false;
+                bool fBitAssetControl = false;
+                uint32_t nAssetID = 0;
+                bool is_spent = view.SpendCoin(out, fBitAsset, fBitAssetControl, nAssetID, &coin);
                 if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                     if (!is_bip30_exception) {
                         fClean = false; // transaction output mismatch
@@ -2300,11 +2350,19 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    std::vector<ChromaAsset> vAsset;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
+
+        if (!tx.IsCoinBase()) {
+            if (!AreChromaTransactionStandard(tx,view)) {
+                LogPrintf("Invalid transaction standard \n");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
+            }
+        }
 
         if (!tx.IsCoinBase())
         {
@@ -2361,11 +2419,63 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             control.Add(vChecks);
         }
 
+        // New asset created - set asset ID # and update ChromaAssetDB
+        uint32_t nNewAssetID = 0;
+        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+            if (tx.vout.size() < 2) {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
+            }
+
+            uint32_t nIDLast = 0;
+            passettree->GetLastAssetID(nIDLast);
+
+            ChromaAsset asset;
+            asset.nID = nIDLast + 1;
+            asset.assetType = tx.assetType;
+            asset.strTicker = tx.ticker;
+            asset.strHeadline = tx.headline;
+            asset.payload = tx.payload;
+            asset.txid = tx.GetHash();
+            asset.nSupply = tx.vout[1].nValue;
+
+            CTxDestination controllerDest;
+            if (ExtractDestination(tx.vout[0].scriptPubKey, controllerDest)) {
+                asset.strController = EncodeDestination(controllerDest);
+            }
+            else
+            if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
+                asset.strController = "OP_RETURN";
+            }
+            else {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
+            }
+
+            CTxDestination ownerDest;
+            if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+            }
+            asset.strOwner = EncodeDestination(ownerDest);
+
+            vAsset.push_back(asset);
+
+            // Update latest ChromaAsset ID #
+            if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID))
+                return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
+
+            // Copy new asset ID, we will pass it to CoinDB when we UpdateCoins
+            nNewAssetID = asset.nID;
+        }
+
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
         }
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight);
+
+        CAmount amountAssetIn = CAmount(0);
+        int nControlN = -1;
+        uint32_t nAssetID = 0;
+
+        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID);
     }
     const auto time_3{SteadyClock::now()};
     time_connect += time_3 - time_2;
@@ -2435,6 +2545,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         nSigOpsCost,
         time_5 - time_start // in microseconds (µs)
     );
+
+    // Write asset objects to db
+    if (vAsset.size()) {
+        if (!passettree->WriteChromaAssets(vAsset))
+            return state.Error("Failed to write ChromaAsset index!");
+    }
 
     resetDeposit(pindex->nHeight);
 
@@ -4281,15 +4397,28 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
     if (!ReadBlockFromDisk(block, pindex, m_chainman.GetConsensus())) {
         return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
     }
+    CAmount amountAssetIn = CAmount(0);
+    int nControlN = -1;
 
-    for (const CTransactionRef& tx : block.vtx) {
+    for (size_t x = 0; x < block.vtx.size(); x++) {
+            const CTransactionRef &tx = block.vtx[x];
         if (!tx->IsCoinBase()) {
             for (const CTxIn &txin : tx->vin) {
-                inputs.SpendCoin(txin.prevout);
+                bool fBitAsset = false;
+                bool fBitAssetControl = false;
+                uint32_t nAssetID = 0;
+                Coin coin;
+                inputs.SpendCoin(txin.prevout,fBitAsset, fBitAssetControl, nAssetID,  &coin);
+
+                if (fBitAsset)
+                    amountAssetIn += coin.out.nValue;
+                if (fBitAssetControl)
+                    nControlN = x;
+
             }
         }
         // Pass check = true as every addition may be an overwrite.
-        AddCoins(inputs, *tx, pindex->nHeight, true);
+        AddCoins(inputs, *tx, pindex->nHeight, amountAssetIn, nControlN, true);
     }
     return true;
 }

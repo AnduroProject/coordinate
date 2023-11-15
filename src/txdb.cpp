@@ -16,6 +16,7 @@
 
 #include <stdint.h>
 
+
 static constexpr uint8_t DB_COIN{'C'};
 static constexpr uint8_t DB_BLOCK_FILES{'f'};
 static constexpr uint8_t DB_BLOCK_INDEX{'b'};
@@ -30,6 +31,9 @@ static constexpr uint8_t DB_LAST_BLOCK{'l'};
 static constexpr uint8_t DB_COINS{'c'};
 static constexpr uint8_t DB_TXINDEX_BLOCK{'T'};
 //               uint8_t DB_TXINDEX{'t'}
+
+static constexpr uint8_t DB_ASSET{'A'};
+static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
 {
@@ -334,3 +338,65 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
     return true;
 }
+
+
+ChromaAssetDB::ChromaAssetDB(size_t nCacheSize, bool fMemory, bool fWipe)
+    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "assets", nCacheSize, fMemory, fWipe) { }
+
+bool ChromaAssetDB::WriteChromaAssets(const std::vector<ChromaAsset>& vAsset)
+{
+    CDBBatch batch(*this);
+    for (const ChromaAsset& asset : vAsset) {
+        std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, asset.nID);
+        batch.Write(key, asset);
+    }
+    return WriteBatch(batch, true);
+}
+
+std::vector<ChromaAsset> ChromaAssetDB::GetAssets()
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    pcursor->Seek(std::make_pair(DB_ASSET, uint256()));
+
+    std::vector<ChromaAsset> vAsset;
+
+    while (pcursor->Valid()) {
+        std::pair<uint8_t, uint32_t> key;
+        ChromaAsset asset;
+        if (pcursor->GetKey(key) && key.first == DB_ASSET) {
+            if (pcursor->GetValue(asset))
+                vAsset.push_back(asset);
+        }
+
+        pcursor->Next();
+    }
+    return vAsset;
+}
+
+bool ChromaAssetDB::GetLastAssetID(uint32_t& nID)
+{
+    // Look up the last asset ID (in chronological order)
+    if (!Read(DB_ASSET_LAST_ID, nID))
+        return false;
+
+    return true;
+}
+
+bool ChromaAssetDB::WriteLastAssetID(const uint32_t nID)
+{
+    return Write(DB_ASSET_LAST_ID, nID);
+}
+
+bool ChromaAssetDB::RemoveAsset(const uint32_t nID)
+{
+    std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, nID);
+    return Erase(key);
+}
+
+bool ChromaAssetDB::GetAsset(const uint32_t nID, ChromaAsset& asset)
+{
+    return Read(std::make_pair(DB_ASSET, nID), asset);
+}
+
+
+

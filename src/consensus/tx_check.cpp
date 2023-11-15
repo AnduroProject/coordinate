@@ -19,15 +19,22 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
     if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
 
+    bool fBitAsset = tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
+    std::vector<CTxOut>::const_iterator it;
+    if (fBitAsset && tx.vout.size() > 2)
+        it = tx.vout.begin() + 2;
+    else
+        it = tx.vout.begin();
+
     // Check for negative or overflow output values (see CVE-2010-5139)
     CAmount nValueOut = 0;
-    for (const auto& txout : tx.vout)
+    for (; it != tx.vout.end(); it++)
     {
-        if (txout.nValue < 0)
+        if (it->nValue < 0)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-negative");
-        if (txout.nValue > MAX_MONEY)
+        if (it->nValue > MAX_MONEY)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-toolarge");
-        nValueOut += txout.nValue;
+        nValueOut += it->nValue;
         if (!MoneyRange(nValueOut))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-txouttotal-toolarge");
     }

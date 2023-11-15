@@ -9,6 +9,8 @@
 #include <federation_deposit.h>
 #include <federation_validator.h>
 
+using node::NodeContext;
+
 static RPCHelpMan createAuxBlock()
 {
     return RPCHelpMan{
@@ -166,6 +168,67 @@ static RPCHelpMan getPendingDeposit() {
 
 }
 
+static RPCHelpMan listAllAssets() {
+        return RPCHelpMan{
+        "listallassets",
+        "get all chroma assets",
+        {
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::ARR, "assets", "",
+                {
+                     {RPCResult::Type::OBJ, "", "",
+                        {
+                            {RPCResult::Type::NUM, "id", "AssetID"},
+                            {RPCResult::Type::NUM, "assettype", "Asset Type"},
+                            {RPCResult::Type::STR, "ticker", "Asset Ticker"},
+                            {RPCResult::Type::NUM, "supply", "Asset supply"},
+                            {RPCResult::Type::STR, "headline", "Asset title"},
+                            {RPCResult::Type::STR, "payload", "Asset payload"},
+                            {RPCResult::Type::STR, "txid", "Asset genesis"},
+                            {RPCResult::Type::STR, "controller", "Asset controller"},
+                            {RPCResult::Type::STR, "owner", "Asset owner"},
+                        }
+                     }
+                }},
+            },
+        },
+        RPCExamples{
+           HelpExampleCli("listallassets", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            const CTxMemPool& mempool = EnsureMemPool(node);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+                UniValue result(UniValue::VOBJ);
+                UniValue assets(UniValue::VARR);
+                std::vector<ChromaAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
+            ;
+                for (const ChromaAsset& asset_item : assetList) {
+                    UniValue obj(UniValue::VOBJ);
+                    obj.pushKV("id", (uint64_t)asset_item.nID);
+                    obj.pushKV("assettype", asset_item.assetType);
+                    obj.pushKV("ticker", asset_item.strTicker);
+                    obj.pushKV("supply", asset_item.nSupply);
+                    obj.pushKV("headline", asset_item.strHeadline);
+                    obj.pushKV("payload", asset_item.payload.ToString());
+                    obj.pushKV("txid", asset_item.txid.ToString());
+                    obj.pushKV("controller", asset_item.strController);
+                    obj.pushKV("owner", asset_item.strOwner);
+                    assets.push_back(obj);
+                }
+                result.pushKV("assets", assets);
+                return result;
+        }
+    };
+
+}
+
+
 static std::vector<RPCArg> CreateTxDoc()
 {
     return {
@@ -190,6 +253,7 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &getPendingDeposit},
         {"marachain", &federationDepositAddress},
         {"marachain", &federationWithdrawAddress},
+        {"marachain", &listAllAssets},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
