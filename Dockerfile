@@ -25,20 +25,12 @@
         systemtap-sdt-dev \
         curl 
 
-    #configure nodejs 16.x
-    RUN curl -s https://deb.nodesource.com/setup_16.x | bash
-    RUN apt install nodejs -y
-    
+
     #Setup base directory
     RUN mkdir -p /opt/marachain
     WORKDIR /opt/marachain
 
     COPY . ./
-
-    #configure federation cli
-    WORKDIR /opt/marachain/cliapp
-    RUN npm install && npm run build && npm install -g . 
-
 
     #Configure sidechain node
     WORKDIR /opt/marachain
