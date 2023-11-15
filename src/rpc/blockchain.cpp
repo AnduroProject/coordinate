@@ -957,7 +957,8 @@ static RPCHelpMan gettxoutsetinfo()
                         {RPCResult::Type::NUM, "transactions", /*optional=*/true, "The number of transactions with unspent outputs (not available when coinstatsindex is used)"},
                         {RPCResult::Type::NUM, "disk_size", /*optional=*/true, "The estimated size of the chainstate on disk (not available when coinstatsindex is used)"},
                         {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of coins in the UTXO set"},
-                        {RPCResult::Type::NUM, "total_assets", "The total amount of assets in the UTXO set"},
+                        {RPCResult::Type::NUM, "overall_supply", "The total amount of assets in the UTXO set"},
+                        {RPCResult::Type::NUM, "total_assets", "The total amount of assets"},
                         {RPCResult::Type::STR_AMOUNT, "total_unspendable_amount", /*optional=*/true, "The total amount of coins permanently excluded from the UTXO set (only available if coinstatsindex is used)"},
                         {RPCResult::Type::OBJ, "block_info", /*optional=*/true, "Info on amounts in the block at this block height (only available if coinstatsindex is used)",
                         {
@@ -1047,9 +1048,14 @@ static RPCHelpMan gettxoutsetinfo()
         if (hash_type == CoinStatsHashType::MUHASH) {
             ret.pushKV("muhash", stats.hashSerialized.GetHex());
         }
+
+        uint32_t nIDLast = 0;
+        active_chainstate.passettree->GetLastAssetID(nIDLast);
+
         CHECK_NONFATAL(stats.total_amount.has_value());
         ret.pushKV("total_amount", ValueFromAmount(stats.total_amount.value()));
-        ret.pushKV("total_assets", stats.total_assets.value());
+        ret.pushKV("overall_supply", stats.total_assets.value());
+        ret.pushKV("total_assets", nIDLast);
         if (!stats.index_used) {
             ret.pushKV("transactions", static_cast<int64_t>(stats.nTransactions));
             ret.pushKV("disk_size", stats.nDiskSize);
@@ -2147,7 +2153,6 @@ static const auto scan_asset_arg_desc = RPCArg{
     "is_asset", RPCArg::Type::BOOL, RPCArg::Default{false}, "check is asset"
 };
 
-
 static const auto scan_objects_arg_desc = RPCArg{
     "scanobjects", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "Array of scan objects. Required for \"start\" action\n"
         "Every scan object is either a string descriptor or an object:",
@@ -2196,7 +2201,7 @@ static RPCHelpMan scantxoutset()
         {
             scan_action_arg_desc,
             scan_objects_arg_desc,
-            scan_asset_arg_desc,
+            scan_asset_arg_desc,     
         },
         {
             RPCResult{"when action=='start'; only returns after scan completes", RPCResult::Type::OBJ, "", "", {
@@ -2311,6 +2316,9 @@ static RPCHelpMan scantxoutset()
             total_in += txo.nValue;
 
             UniValue unspent(UniValue::VOBJ);
+            if(isAsset) {
+               unspent.pushKV("assetId", (int32_t)coin.nAssetID);
+            }
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));

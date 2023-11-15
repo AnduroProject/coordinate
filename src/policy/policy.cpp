@@ -205,6 +205,7 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
               currentAssetID = nAssetID;
             } else {
                 if(fBitAsset) {
+                     // prevent to include multiple asset id
                     if(currentAssetID != nAssetID) {
                        LogPrintf(" Multiple asset is detected and it is invalid \n");
                        return false;
@@ -226,7 +227,8 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
             }
         }
     }
-    if(tx.nVersion != TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+    
+    if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
         CAmount amountAssetOut = CAmount(0); 
         for (unsigned int i = 0; i < tx.vout.size(); i++) {
         if(amountAssetOut == amountAssetInOut) {
