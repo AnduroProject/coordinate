@@ -123,7 +123,7 @@ BITCOIN_CORE_H = \
   attributes.h \
   auxpow.h \
   federation_deposit.h \
-  federation_validator.h \
+  chroma_assets.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -644,6 +644,7 @@ libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
   auxpow.cpp \
   federation_deposit.cpp \
+  chroma/chroma_assets.cpp \
   federation_validator.cpp \
   base58.cpp \
   bech32.cpp \
@@ -905,6 +906,7 @@ libbitcoinkernel_la_SOURCES = \
   arith_uint256.cpp \
   auxpow.cpp \
   federation_deposit.cpp \
+  chroma/chroma_assets.cpp \
   federation_validator.cpp \
   chain.cpp \
   chainparamsbase.cpp \

@@ -11,7 +11,7 @@
 #include <script/interpreter.h>
 #include <script/script.h>
 #include <util/strencodings.h>
-
+#include <logging.h>
 #include <string>
 
 typedef std::vector<unsigned char> valtype;
@@ -229,7 +229,6 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         vSolutionsRet.push_back({static_cast<unsigned char>(keys.size())}); // safe as size is in range 1..20
         return TxoutType::MULTISIG;
     }
-
     vSolutionsRet.clear();
     return TxoutType::NONSTANDARD;
 }

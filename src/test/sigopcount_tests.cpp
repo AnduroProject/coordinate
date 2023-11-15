@@ -102,8 +102,9 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
     spendingTx.vout.resize(1);
     spendingTx.vout[0].nValue = 1;
     spendingTx.vout[0].scriptPubKey = CScript();
-
-    AddCoins(coins, CTransaction(creationTx), 0);
+    CAmount amountAssetIn = CAmount(0);
+    int nControlN = -1;
+    AddCoins(coins, CTransaction(creationTx), 0, 0, amountAssetIn, nControlN);
 }
 
 BOOST_AUTO_TEST_CASE(GetTxSigOpCost)

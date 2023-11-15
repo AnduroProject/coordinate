@@ -174,7 +174,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         int tIndex = 1;
         for (const FederationTxOut& tx_out : pending_deposits) {
             if (tx_out.nValue > 0) {
-                resize = resize + 2;
+                resize = resize + 1;
                 tIndex = tIndex + 1;
             }
         }
@@ -184,32 +184,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
     resize = resize + 1;
     
-
-
-
-    LogPrintf("address ******************** %s \n",getCurrentKeys(m_chainstate.m_chainman));
-    std::string pegExpected = "";
-    if (pending_deposits[0].pegInfo.compare(pegExpected) != 0) {
-        if(isPegInfoValid(pending_deposits[0].pegInfo,pending_deposits[0].pegWitness,m_chainstate.m_chainman, nHeight-1)) {
-            pblock->pegInfo = pending_deposits[0].pegInfo;
-            pblock->pegWitness = pending_deposits[0].pegWitness;
-        } 
-    } 
-
+     LogPrintf("test with pegin 1 %i \n", pending_deposits.size());
 
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
-        pblock->pegTime = pending_deposits[0].pegTime;
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
         pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
     } else {
+        LogPrintf("test with pegin 2 \n");
         FederationTxOut& tx_out = pending_deposits[0];
-        pblock->pegTime = tx_out.pegTime;
         pblock->currentKeys = tx_out.currentKeys;
         pblock->nextIndex = tx_out.nextIndex;
     }
-
-
-
 
     // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
@@ -217,38 +202,26 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(resize);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    //coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    // coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     coinbaseTx.vout[0].nValue = nFees;
-    int incr = 1;
-    int oIncr = 1;
-    LogPrintf("***************coinbase transaction details - 3 %i \n",nFees);
 
+    int oIncr = 1;
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
 
     } else {
+        LogPrintf("test with pegin 3 \n");
         for (const FederationTxOut& tx_out : pending_deposits) {
             coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
             coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
-            UniValue tx_out_addtional(UniValue::VOBJ);
-            tx_out_addtional.pushKV("index", oIncr);
-            tx_out_addtional.pushKV("peg_hash", tx_out.peg_hash);
-            std::string finalHex = string_to_hex(tx_out_addtional.write());
-            std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
-            CTxOut out(0, CScript() << OP_RETURN << data);
             oIncr = oIncr + 1;
-            coinbaseTx.vout[oIncr] = out;
-            oIncr = oIncr + 1;
-            incr = incr + 1;
         }
     }
-   
-    UniValue tx_out_addtional(UniValue::VOBJ);
-    tx_out_addtional.pushKV("witness", pending_deposits[0].witness);
-    std::string finalHex = string_to_hex(tx_out_addtional.write());
-    std::vector<unsigned char> data = ParseHexV(finalHex, "Data");
+
+    LogPrintf("witness is %s \n",pending_deposits[0].witness);
+
+    std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
     CTxOut out(0, CScript() << OP_RETURN << data);
     coinbaseTx.vout[oIncr] = out;
-    
 
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));

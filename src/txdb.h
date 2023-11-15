@@ -17,6 +17,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <chroma/chroma_assets.h>
+
 
 class CBlockFileInfo;
 class CBlockIndex;
@@ -94,5 +96,19 @@ public:
 };
 
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
+
+/** Access to the ChromaAsset database (blocks/ChromaAssets/) */
+class ChromaAssetDB : public CDBWrapper
+{
+public:
+    ChromaAssetDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    bool WriteChromaAssets(const std::vector<ChromaAsset>& vAsset);
+    std::vector<ChromaAsset> GetAssets();
+    bool GetLastAssetID(uint32_t& nID);
+    bool WriteLastAssetID(const uint32_t nID);
+    bool GetAsset(const uint32_t nID,ChromaAsset& asset);
+    bool RemoveAsset(const uint32_t nID);
+};
+
 
 #endif // BITCOIN_TXDB_H

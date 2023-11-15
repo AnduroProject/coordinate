@@ -183,9 +183,6 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
     LogPrintf("full block ******************** %s \n",block.ToString());
     result.pushKV("currentkeys", block.currentKeys.empty() ? "" : block.currentKeys);
     result.pushKV("nextindex", block.nextIndex);
-    result.pushKV("peginfo", block.pegInfo);
-    result.pushKV("pegwitness", block.pegWitness);
-    result.pushKV("pegtime", block.pegTime);
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
     result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));
@@ -960,6 +957,8 @@ static RPCHelpMan gettxoutsetinfo()
                         {RPCResult::Type::NUM, "transactions", /*optional=*/true, "The number of transactions with unspent outputs (not available when coinstatsindex is used)"},
                         {RPCResult::Type::NUM, "disk_size", /*optional=*/true, "The estimated size of the chainstate on disk (not available when coinstatsindex is used)"},
                         {RPCResult::Type::STR_AMOUNT, "total_amount", "The total amount of coins in the UTXO set"},
+                        {RPCResult::Type::NUM, "overall_asset_supply", "The total amount of assets in the UTXO set"},
+                        {RPCResult::Type::NUM, "total_assets", "The total amount of assets"},
                         {RPCResult::Type::STR_AMOUNT, "total_unspendable_amount", /*optional=*/true, "The total amount of coins permanently excluded from the UTXO set (only available if coinstatsindex is used)"},
                         {RPCResult::Type::OBJ, "block_info", /*optional=*/true, "Info on amounts in the block at this block height (only available if coinstatsindex is used)",
                         {
@@ -1049,8 +1048,14 @@ static RPCHelpMan gettxoutsetinfo()
         if (hash_type == CoinStatsHashType::MUHASH) {
             ret.pushKV("muhash", stats.hashSerialized.GetHex());
         }
+
+        uint32_t nIDLast = 0;
+        active_chainstate.passettree->GetLastAssetID(nIDLast);
+
         CHECK_NONFATAL(stats.total_amount.has_value());
         ret.pushKV("total_amount", ValueFromAmount(stats.total_amount.value()));
+        ret.pushKV("overall_asset_supply", stats.total_assets.value());
+        ret.pushKV("total_assets", nIDLast);
         if (!stats.index_used) {
             ret.pushKV("transactions", static_cast<int64_t>(stats.nTransactions));
             ret.pushKV("disk_size", stats.nDiskSize);
@@ -2071,7 +2076,7 @@ static RPCHelpMan getblockstats()
 
 namespace {
 //! Search for a given set of pubkey scripts
-bool FindScriptPubKey(std::atomic<int>& scan_progress, const std::atomic<bool>& should_abort, int64_t& count, CCoinsViewCursor* cursor, const std::set<CScript>& needles, std::map<COutPoint, Coin>& out_results, std::function<void()>& interruption_point)
+bool FindScriptPubKey(std::atomic<int>& scan_progress, const std::atomic<bool>& should_abort, int64_t& count, CCoinsViewCursor* cursor, const std::set<CScript>& needles, std::map<COutPoint, Coin>& out_results, std::function<void()>& interruption_point, const bool isAsset)
 {
     scan_progress = 0;
     count = 0;
@@ -2091,9 +2096,16 @@ bool FindScriptPubKey(std::atomic<int>& scan_progress, const std::atomic<bool>& 
             uint32_t high = 0x100 * *key.hash.begin() + *(key.hash.begin() + 1);
             scan_progress = (int)(high * 100.0 / 65536.0 + 0.5);
         }
-        if (needles.count(coin.out.scriptPubKey)) {
-            out_results.emplace(key, coin);
+        if(!isAsset) {
+            if (needles.count(coin.out.scriptPubKey) && !coin.fBitAsset) {
+                out_results.emplace(key, coin);
+            }
+        } else {
+            if (needles.count(coin.out.scriptPubKey) && (coin.fBitAsset && !coin.fBitAssetControl)) {
+                out_results.emplace(key, coin);
+            }
         }
+
         cursor->Next();
     }
     scan_progress = 100;
@@ -2135,6 +2147,10 @@ static const auto scan_action_arg_desc = RPCArg{
         "\"start\" for starting a scan\n"
         "\"abort\" for aborting the current scan (returns true when abort was successful)\n"
         "\"status\" for progress report (in %) of the current scan"
+};
+
+static const auto scan_asset_arg_desc = RPCArg{
+    "is_asset", RPCArg::Type::BOOL, RPCArg::Default{false}, "check is asset"
 };
 
 static const auto scan_objects_arg_desc = RPCArg{
@@ -2185,6 +2201,7 @@ static RPCHelpMan scantxoutset()
         {
             scan_action_arg_desc,
             scan_objects_arg_desc,
+            scan_asset_arg_desc,     
         },
         {
             RPCResult{"when action=='start'; only returns after scan completes", RPCResult::Type::OBJ, "", "", {
@@ -2281,7 +2298,11 @@ static RPCHelpMan scantxoutset()
             pcursor = CHECK_NONFATAL(active_chainstate.CoinsDB().Cursor());
             tip = CHECK_NONFATAL(active_chainstate.m_chain.Tip());
         }
-        bool res = FindScriptPubKey(g_scan_progress, g_should_abort_scan, count, pcursor.get(), needles, coins, node.rpc_interruption_point);
+        bool isAsset = false;
+        if(!request.params[2].isNull()) {
+            isAsset = request.params[2].get_bool();
+        }
+        bool res = FindScriptPubKey(g_scan_progress, g_should_abort_scan, count, pcursor.get(), needles, coins, node.rpc_interruption_point, isAsset);
         result.pushKV("success", res);
         result.pushKV("txouts", count);
         result.pushKV("height", tip->nHeight);
@@ -2295,6 +2316,9 @@ static RPCHelpMan scantxoutset()
             total_in += txo.nValue;
 
             UniValue unspent(UniValue::VOBJ);
+            if(isAsset) {
+               unspent.pushKV("assetId", (int32_t)coin.nAssetID);
+            }
             unspent.pushKV("txid", outpoint.hash.GetHex());
             unspent.pushKV("vout", (int32_t)outpoint.n);
             unspent.pushKV("scriptPubKey", HexStr(txo.scriptPubKey));
