@@ -794,10 +794,10 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if(!AreChromaTransactionStandard(tx, m_view)) {
-       LogPrintf("Invalid transaction standard \n");
-       return false; // state filled in by CheckTxInputs
-    }
+    // if(!AreChromaTransactionStandard(tx, m_view)) {
+    //    LogPrintf("Invalid transaction standard \n");
+    //    return false; // state filled in by CheckTxInputs
+    // }
 
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
