@@ -10,16 +10,19 @@
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
 {
+    bool fBitAsset = tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
     // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vin-empty");
     if (tx.vout.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-empty");
-    // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
-    if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
 
-    bool fBitAsset = tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
+    if(!fBitAsset) {
+      // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
+      if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
+         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
+    }
+
     std::vector<CTxOut>::const_iterator it;
     if (fBitAsset && tx.vout.size() > 2)
         it = tx.vout.begin() + 2;
