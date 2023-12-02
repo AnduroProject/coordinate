@@ -1580,7 +1580,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    return 0;
+    // return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2426,35 +2426,58 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
             }
 
+
             uint32_t nIDLast = 0;
-            passettree->GetLastAssetID(nIDLast);
-
+            uint32_t nAssetID = 0;
             ChromaAsset asset;
-            asset.nID = nIDLast + 1;
-            asset.assetType = tx.assetType;
-            asset.strTicker = tx.ticker;
-            asset.strHeadline = tx.headline;
-            asset.payload = tx.payload;
-            asset.txid = tx.GetHash();
-            asset.nSupply = tx.vout[1].nValue;
+            passettree->GetLastAssetID(nIDLast);
+            nIDLast = nIDLast + 1;
+            // addtional mint for tokens
+            if (tx.assetType == 0) {
+                if (tx.vin.size() == 0) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - no input spciefied");
+                }
+                bool fBitAsset = false;
+                bool fBitAssetControl = false;
+                Coin coin;
+                // check first input is asset controller
+                bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+                if(fBitAssetControl) {
+                   nIDLast = nAssetID;
+                   bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
+                }
+            }
+            // additional mint not available for current minting
+            if(nAssetID == 0) {
+                asset.nID = nIDLast;
+                asset.assetType = tx.assetType;
+                asset.strTicker = tx.ticker;
+                asset.strHeadline = tx.headline;
+                asset.payload = tx.payload;
+                asset.txid = tx.GetHash();
 
-            CTxDestination controllerDest;
-            if (ExtractDestination(tx.vout[0].scriptPubKey, controllerDest)) {
-                asset.strController = EncodeDestination(controllerDest);
-            }
-            else
-            if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
-                asset.strController = "OP_RETURN";
-            }
-            else {
-                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
-            }
+                asset.nSupply = tx.vout[1].nValue;
 
-            CTxDestination ownerDest;
-            if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
-                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+                CTxDestination controllerDest;
+                if (ExtractDestination(tx.vout[0].scriptPubKey, controllerDest)) {
+                    asset.strController = EncodeDestination(controllerDest);
+                }
+                else
+                if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
+                    asset.strController = "OP_RETURN";
+                }
+                else {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
+                }
+
+                CTxDestination ownerDest;
+                if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+                }
+                asset.strOwner = EncodeDestination(ownerDest);
+            } else {
+                asset.nSupply =  asset.nSupply + tx.vout[1].nValue;
             }
-            asset.strOwner = EncodeDestination(ownerDest);
 
             vAsset.push_back(asset);
 
