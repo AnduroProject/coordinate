@@ -2447,6 +2447,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                    bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
                 }
             }
+
+
+
             // additional mint not available for current minting
             if(nAssetID == 0) {
                 asset.nID = nIDLast;
@@ -2455,8 +2458,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 asset.strHeadline = tx.headline;
                 asset.payload = tx.payload;
                 asset.txid = tx.GetHash();
-
                 asset.nSupply = tx.vout[1].nValue;
+
+                CTxDestination ownerDest;
+                if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+                }
+                asset.strOwner = EncodeDestination(ownerDest);
+
 
                 CTxDestination controllerDest;
                 if (ExtractDestination(tx.vout[0].scriptPubKey, controllerDest)) {
@@ -2470,11 +2479,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
                 }
 
-                CTxDestination ownerDest;
-                if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+                ChromaAssetData assetData;
+                bool is_asset_data = passettree->GetAssetData(tx.GetHash(), assetData);
+                if(!assetData.txid.IsNull()) {
+                    passettree->RemoveAssetData(assetData.txid);
+                    assetData.nID = nIDLast;
+                    passettree->WriteChromaAssetData(assetData);
                 }
-                asset.strOwner = EncodeDestination(ownerDest);
             } else {
                 asset.nSupply =  asset.nSupply + tx.vout[1].nValue;
             }

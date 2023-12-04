@@ -108,6 +108,13 @@ public:
     bool WriteLastAssetID(const uint32_t nID);
     bool GetAsset(const uint32_t nID,ChromaAsset& asset);
     bool RemoveAsset(const uint32_t nID);
+
+    bool GetLastAssetTempID(uint32_t& nID);
+    bool WriteLastAssetTempID(const uint32_t nID);
+
+    bool WriteChromaAssetData(const ChromaAssetData& vAssetData);
+    bool GetAssetData(const uint256 txid,ChromaAssetData& asset);
+    bool RemoveAssetData(const uint256 txid);
 };
 
 

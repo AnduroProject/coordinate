@@ -24,7 +24,7 @@
 #include <util/time.h>
 #include <utility>
 #include <federation_deposit.h>
-
+#include <federation_validator.h>
 using kernel::DumpMempool;
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
@@ -42,6 +42,9 @@ static RPCHelpMan sendrawtransaction()
         "\nRelated RPCs: createrawtransaction, signrawtransactionwithkey\n",
         {
             {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
+            {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
+             "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
+                 "/kvB.\nSet to 0 to accept any fee rate.\n"},
             {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pre signed block signature details from federation",
               {
                 {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
@@ -66,9 +69,7 @@ static RPCHelpMan sendrawtransaction()
                 }
               }
             },
-            {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
-             "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
-                 "/kvB.\nSet to 0 to accept any fee rate.\n"},
+            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the asset data"},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -85,13 +86,9 @@ static RPCHelpMan sendrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            if(!request.params[1].isNull()) {
-                if (request.params[1].isNull()) {
-                    throw JSONRPCError(RPC_WALLET_ERROR, "Transaction out are empty");
-                    return "fail";
-                }
+            if(!request.params[2].isNull()) {
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                const UniValue& main_params = request.params[1].get_array();
+                const UniValue& main_params = request.params[2].get_array();
                 std::vector<FederationTxOut> tOuts;
                 std::vector<FederationTxOut> mainOuts;
                 for (unsigned int idx = 0; idx < main_params.size(); idx++) {
@@ -137,7 +134,7 @@ static RPCHelpMan sendrawtransaction()
                     throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
                 }
                 CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-                const CFeeRate max_raw_tx_fee_rate = request.params[3].isNull() ?
+                const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
                                                         DEFAULT_MAX_RAW_TX_FEE_RATE :
                                                         CFeeRate(AmountFromValue(request.params[6]));
 
@@ -147,11 +144,31 @@ static RPCHelpMan sendrawtransaction()
                 AssertLockNotHeld(cs_main);
                 NodeContext& node = EnsureAnyNodeContext(request.context);
                 const CTransaction& ptx = *tx;  
+
+                if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
+                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
+                }
+
+                if(!request.params[3].isNull()) {
+                    std::string assetHex = request.params[2].get_str();
+                    uint256 payloadHash = prepareMessageHash(assetHex);
+                    std::vector<ChromaAssetData> vAssetData;
+                    if(payloadHash.ToString().compare(ptx.payload.ToString()) == 0) {
+                        ChainstateManager& chainman = EnsureAnyChainman(request.context);
+                        ChromaAssetData assetData;
+                        assetData.nID = -1;
+                        assetData.txid = ptx.GetHash();
+                        assetData.dataHex = assetHex;
+                        chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
+                    }
+                }
    
                 const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);
                 if (TransactionError::OK != err) {
                     throw JSONRPCTransactionError(err, err_string);
                 }
+
+
                  
                 return tx->GetHash().GetHex();
             }

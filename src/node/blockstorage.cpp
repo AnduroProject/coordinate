@@ -27,6 +27,7 @@
 namespace node {
 std::atomic_bool fImporting(false);
 std::atomic_bool fReindex(false);
+std::atomic_bool fAssetPrune(false);
 bool fPruneMode = false;
 uint64_t nPruneTarget = 0;
 

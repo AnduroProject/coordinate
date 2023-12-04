@@ -154,6 +154,8 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
             }
             assert(chainstate->m_chain.Tip() != nullptr);
         }
+
+        chainstate->isAssetPrune = options.asset_prune;
     }
 
     if (!options.reindex) {
@@ -169,6 +171,8 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
     // disk, rebalance the coins caches to desired levels based
     // on the condition of each chainstate.
     chainman.MaybeRebalanceCaches();
+
+
 
     return {ChainstateLoadStatus::SUCCESS, {}};
 }

@@ -228,6 +228,42 @@ static RPCHelpMan listAllAssets() {
 
 }
 
+static RPCHelpMan getAssetData() {
+        return RPCHelpMan{
+        "getassetdata",
+        "get asset data lime images, image url and properites related to the nft",
+        {
+             {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "asset gensis transaction id"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns asset data"},
+            },
+        },
+        RPCExamples{
+           HelpExampleCli("getassetdata", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            const CTxMemPool& mempool = EnsureMemPool(node);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+                UniValue result(UniValue::VOBJ);
+                UniValue assets(UniValue::VARR);
+                ChromaAssetData assetData;
+
+                uint256 txid = uint256S(request.params[0].get_str());
+                chainman.ActiveChainstate().passettree->GetAssetData(txid, assetData);
+                if(assetData.txid.IsNull()) {
+                    return "";
+                }
+                return assetData.dataHex;
+        }
+    };
+
+}
 
 static std::vector<RPCArg> CreateTxDoc()
 {

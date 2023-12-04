@@ -35,6 +35,9 @@ static constexpr uint8_t DB_TXINDEX_BLOCK{'T'};
 static constexpr uint8_t DB_ASSET{'A'};
 static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 
+static constexpr uint8_t DB_ASSET_DATA{'J'};
+static constexpr uint8_t DB_ASSET_DATA_LAST_ID{'K'};
+
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
 {
     CBlockLocator ignored{};
@@ -398,5 +401,38 @@ bool ChromaAssetDB::GetAsset(const uint32_t nID, ChromaAsset& asset)
     return Read(std::make_pair(DB_ASSET, nID), asset);
 }
 
+bool ChromaAssetDB::WriteChromaAssetData(const ChromaAssetData& assetdata)
+{
+    CDBBatch batch(*this);
 
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_ASSET_DATA, assetdata.txid);
+    batch.Write(key, assetdata);
+
+    return WriteBatch(batch, true);
+}
+
+bool ChromaAssetDB::GetAssetData(const uint256 txid, ChromaAssetData& assetData)
+{
+    return Read(std::make_pair(DB_ASSET, txid), assetData);
+}
+
+bool ChromaAssetDB::RemoveAssetData(const uint256 txid)
+{
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_ASSET_DATA, txid);
+    return Erase(key);
+}
+
+bool ChromaAssetDB::GetLastAssetTempID(uint32_t& nID)
+{
+    // Look up the last asset ID (in chronological order)
+    if (!Read(DB_ASSET_DATA_LAST_ID, nID))
+        return false;
+
+    return true;
+}
+
+bool ChromaAssetDB::WriteLastAssetTempID(const uint32_t nID)
+{
+    return Write(DB_ASSET_DATA_LAST_ID, nID);
+}
 

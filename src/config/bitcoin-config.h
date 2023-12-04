@@ -251,16 +251,16 @@
 /* #undef HAVE_MALLOPT_ARENA_MAX */
 
 /* Define to 1 if you have the <miniupnpc/miniupnpc.h> header file. */
-/* #undef HAVE_MINIUPNPC_MINIUPNPC_H */
+#define HAVE_MINIUPNPC_MINIUPNPC_H 1
 
 /* Define to 1 if you have the <miniupnpc/upnpcommands.h> header file. */
-/* #undef HAVE_MINIUPNPC_UPNPCOMMANDS_H */
+#define HAVE_MINIUPNPC_UPNPCOMMANDS_H 1
 
 /* Define to 1 if you have the <miniupnpc/upnperrors.h> header file. */
-/* #undef HAVE_MINIUPNPC_UPNPERRORS_H */
+#define HAVE_MINIUPNPC_UPNPERRORS_H 1
 
 /* Define to 1 if you have the <natpmp.h> header file. */
-/* #undef HAVE_NATPMP_H */
+#define HAVE_NATPMP_H 1
 
 /* Define to 1 if O_CLOEXEC flag is available. */
 #define HAVE_O_CLOEXEC 1
@@ -404,7 +404,7 @@
 #define USE_DBUS 1
 
 /* Define to 1 if UPnP support should be compiled in. */
-/* #undef USE_NATPMP */
+#define USE_NATPMP 1
 
 /* Define if QR support should be compiled in */
 #define USE_QRCODE 1
@@ -416,7 +416,7 @@
 /* #undef USE_SYSCALL_SANDBOX */
 
 /* Define to 1 if UPnP support should be compiled in. */
-/* #undef USE_UPNP */
+#define USE_UPNP 1
 
 /* Define WORDS_BIGENDIAN to 1 if your processor stores words with the most
    significant byte first (like Motorola and SPARC, unlike Intel). */

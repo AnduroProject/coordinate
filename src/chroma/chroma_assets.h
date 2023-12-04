@@ -3,6 +3,9 @@
 #include <uint256.h>
 #include <serialize.h>
 
+/**
+ * Asset Basic registry structure
+*/
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
     s >> assetData.nID;
@@ -28,7 +31,6 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
     s << assetData.strController;
     s << assetData.strOwner;
 }
-
 
 struct ChromaAsset {
 public:
@@ -76,3 +78,57 @@ public:
     }
 
 };
+
+
+/**
+ * Asset data registry structure
+*/
+template<typename Stream, typename ChromaDataType>
+inline void UnserializeAssetData(ChromaDataType& assetData, Stream& s) {
+    s >> assetData.nID;
+    s >> assetData.txid;
+    s >> assetData.dataHex;
+}
+
+template<typename Stream, typename ChromaDataType>
+inline void SerializeAssetData(const ChromaDataType& assetData, Stream& s) {
+    s << assetData.nID;
+    s << assetData.txid;
+    s << assetData.dataHex;
+}
+
+struct ChromaAssetData {
+public:
+    uint32_t nID;
+    uint256 txid;
+    std::string dataHex;
+
+    template <typename Stream>
+    inline void Serialize(Stream& s) const {
+        SerializeAssetData(*this, s);
+    }
+
+
+    template <typename Stream>
+    inline void Unserialize(Stream& s) {
+        UnserializeAssetData(*this, s);
+    }
+
+    template <typename Stream>
+    ChromaAssetData(deserialize_type, Stream& s) {
+        Unserialize(s);
+    }
+
+    ChromaAssetData() {
+        SetNull();
+    }
+
+    void SetNull()
+    {
+        nID = -1;
+        txid.SetNull();
+        dataHex="";
+    }
+
+};
+
