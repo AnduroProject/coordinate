@@ -1638,10 +1638,10 @@ void Chainstate::InitCoinsCache(size_t cache_size_bytes)
     m_coins_views->InitCache();
 }
 
-void Chainstate::InitAssetCache(bool fReset)
+void Chainstate::InitAssetCache()
 {
     AssertLockHeld(::cs_main);
-    passettree.reset(new ChromaAssetDB(1 << 21, false, fReset));
+    passettree.reset(new ChromaAssetDB(1 << 21, false, false));
 }
 
 // Note that though this is marked const, we may end up modifying `m_cached_finished_ibd`, which
@@ -1772,7 +1772,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             if (nAssetID)
                 nAssetIDOut = nAssetID;
 
-            if (fBitAsset)
+            if (fBitAsset && !fBitAssetControl)
                 amountAssetInOut += txundo.vprevout.back().out.nValue;
 
             if (fBitAssetControl)
@@ -1993,21 +1993,6 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
         uint256 hash = tx.GetHash();
         bool is_coinbase = tx.IsCoinBase();
         bool is_bip30_exception = (is_coinbase && !fEnforceBIP30);
-
-        // Undo ChromaAssetDB updates
-        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-            // Undo ChromaAsset creation & revert asset ID #
-            uint32_t nIDLast = 0;
-            passettree->GetLastAssetID(nIDLast);
-            if (!passettree->WriteLastAssetID(nIDLast - 1)) {
-                error("DisconnectBlock(): Failed to undo ChromaAssetDB asset ID #!");
-                return DISCONNECT_FAILED;
-            }
-            if (!passettree->RemoveAsset(nIDLast)) {
-                error("DisconnectBlock(): Failed to remove ChromaAssetDB asset!");
-                return DISCONNECT_FAILED;
-            }
-        }
 
         // Check that all outputs are available and match the outputs in the block itself
         // exactly.
@@ -2425,7 +2410,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (tx.vout.size() < 2) {
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
             }
-
+            ChromaAssetData assetData;
+            bool is_asset_data = passettree->GetAssetData(tx.GetHash(), assetData);
+            passettree->RemoveAssetData(tx.GetHash());
 
             uint32_t nIDLast = 0;
             uint32_t nAssetID = 0;
@@ -2434,18 +2421,22 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             nIDLast = nIDLast + 1;
             // addtional mint for tokens
             if (tx.assetType == 0) {
+                LogPrintf("testing 1 \n");
                 if (tx.vin.size() == 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - no input spciefied");
                 }
+                LogPrintf("testing 2 \n");
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
                 Coin coin;
                 // check first input is asset controller
                 bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
                 if(fBitAssetControl) {
+                   LogPrintf("testing 3 %i\n",nAssetID);
                    nIDLast = nAssetID;
                    bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
                 }
+                LogPrintf("testing 4 \n");
             }
 
 
@@ -2479,22 +2470,20 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
                 }
 
-                ChromaAssetData assetData;
-                bool is_asset_data = passettree->GetAssetData(tx.GetHash(), assetData);
                 if(!assetData.txid.IsNull()) {
-                    passettree->RemoveAssetData(assetData.txid);
                     assetData.nID = nIDLast;
                     passettree->WriteChromaAssetData(assetData);
                 }
+                // Update latest ChromaAsset ID #
+                if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID))
+                    return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
+
             } else {
                 asset.nSupply =  asset.nSupply + tx.vout[1].nValue;
+                LogPrintf("testing 5 %i \n", asset.nSupply);
             }
 
             vAsset.push_back(asset);
-
-            // Update latest ChromaAsset ID #
-            if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID))
-                return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
 
             // Copy new asset ID, we will pass it to CoinDB when we UpdateCoins
             nNewAssetID = asset.nID;
@@ -2508,6 +2497,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
+
+        LogPrintf("testing 5 %i \n", nNewAssetID);
 
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID);
     }

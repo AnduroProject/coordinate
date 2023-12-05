@@ -5198,6 +5198,7 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
 void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now)
 {
     const auto current_time = NodeClock::now();
+
     if (current_time - peer.m_last_peg_req_timestamp > PEG_CHECK_TIME) {
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
@@ -5209,10 +5210,12 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         }
 
         if(!m_chainman.ActiveChainstate().isAssetPrune) {
+
             uint32_t lastAssetId = 0;
             uint32_t lastAssetDataId = 0;
             m_chainman.ActiveChainstate().passettree->GetLastAssetID(lastAssetId);
             m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
+
             if(lastAssetId > lastAssetDataId) {
                 ChromaAsset asset;
                 bool is_asset = m_chainman.ActiveChainstate().passettree->GetAsset(lastAssetDataId + 1,asset);

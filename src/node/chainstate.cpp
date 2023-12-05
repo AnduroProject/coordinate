@@ -141,7 +141,7 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
         }
 
         // asset memory allocation
-        chainstate->InitAssetCache(options.reindex);
+        chainstate->InitAssetCache();
 
         // The on-disk coinsdb is now in a good state, create the cache
         chainstate->InitCoinsCache(chainman.m_total_coinstip_cache * init_cache_fraction);

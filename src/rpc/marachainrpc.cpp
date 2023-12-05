@@ -238,7 +238,13 @@ static RPCHelpMan getAssetData() {
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns asset data"},
+                {
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::NUM, "id", "AssetID"},
+                        {RPCResult::Type::NUM, "data", "Asset data"},
+                    }
+                }
             },
         },
         RPCExamples{
@@ -255,11 +261,12 @@ static RPCHelpMan getAssetData() {
                 ChromaAssetData assetData;
 
                 uint256 txid = uint256S(request.params[0].get_str());
+
                 chainman.ActiveChainstate().passettree->GetAssetData(txid, assetData);
-                if(assetData.txid.IsNull()) {
-                    return "";
-                }
-                return assetData.dataHex;
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("id", (uint64_t)assetData.nID);
+                obj.pushKV("data", assetData.dataHex);
+                return obj;
         }
     };
 
@@ -290,6 +297,7 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &federationDepositAddress},
         {"marachain", &federationWithdrawAddress},
         {"marachain", &listAllAssets},
+        {"marachain", &getAssetData},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

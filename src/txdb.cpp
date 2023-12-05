@@ -344,7 +344,7 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 
 
 ChromaAssetDB::ChromaAssetDB(size_t nCacheSize, bool fMemory, bool fWipe)
-    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "assets", nCacheSize, fMemory, fWipe) { }
+    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "assets",nCacheSize,fMemory,fWipe) { }
 
 bool ChromaAssetDB::WriteChromaAssets(const std::vector<ChromaAsset>& vAsset)
 {
@@ -413,7 +413,7 @@ bool ChromaAssetDB::WriteChromaAssetData(const ChromaAssetData& assetdata)
 
 bool ChromaAssetDB::GetAssetData(const uint256 txid, ChromaAssetData& assetData)
 {
-    return Read(std::make_pair(DB_ASSET, txid), assetData);
+    return Read(std::make_pair(DB_ASSET_DATA, txid), assetData);
 }
 
 bool ChromaAssetDB::RemoveAssetData(const uint256 txid)

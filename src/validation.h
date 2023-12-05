@@ -521,7 +521,7 @@ public:
 
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).
-    void InitAssetCache(bool fReset) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    void InitAssetCache() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! @returns whether or not the CoinsViews object has been fully initialized and we can
     //!          safely flush this object to disk.

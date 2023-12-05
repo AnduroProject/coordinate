@@ -89,89 +89,86 @@ static RPCHelpMan sendrawtransaction()
             if(!request.params[2].isNull()) {
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
                 const UniValue& main_params = request.params[2].get_array();
-                std::vector<FederationTxOut> tOuts;
-                std::vector<FederationTxOut> mainOuts;
-                for (unsigned int idx = 0; idx < main_params.size(); idx++) {
-                    const UniValue& fedParams = main_params[idx].get_obj();
-                    RPCTypeCheckObj(fedParams,
-                    {
-                        {"inputs", UniValueType(UniValue::VARR)},
-                        {"nextindex", UniValueType(UniValue::VNUM)},
-                        {"currentkeys", UniValueType(UniValue::VSTR)},
-                    });
-                    const UniValue output_params = find_value(fedParams, "inputs").get_array();
-    
-                    for (unsigned int idx = 0; idx < output_params.size(); idx++) {
-                        const UniValue& o = output_params[idx].get_obj();
-                        RPCTypeCheckObj(o,
+                if(main_params.size() > 0) {
+                    std::vector<FederationTxOut> tOuts;
+                    std::vector<FederationTxOut> mainOuts;
+                    for (unsigned int idx = 0; idx < main_params.size(); idx++) {
+                        const UniValue& fedParams = main_params[idx].get_obj();
+                        RPCTypeCheckObj(fedParams,
                         {
-                            {"address", UniValueType(UniValue::VSTR)},
-                            {"amount", UniValueType(UniValue::VNUM)},
-                            {"witness", UniValueType(UniValue::VSTR)},
-                            {"block_height", UniValueType(UniValue::VNUM)},
-                            {"deposit_address", UniValueType(UniValue::VSTR)},
-                            {"burn_address", UniValueType(UniValue::VSTR)},
+                            {"inputs", UniValueType(UniValue::VARR)},
+                            {"nextindex", UniValueType(UniValue::VNUM)},
+                            {"currentkeys", UniValueType(UniValue::VSTR)},
                         });
-                        const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
-                        const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                        FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
+                        const UniValue output_params = find_value(fedParams, "inputs").get_array();
+        
+                        for (unsigned int idx = 0; idx < output_params.size(); idx++) {
+                            const UniValue& o = output_params[idx].get_obj();
+                            RPCTypeCheckObj(o,
+                            {
+                                {"address", UniValueType(UniValue::VSTR)},
+                                {"amount", UniValueType(UniValue::VNUM)},
+                                {"witness", UniValueType(UniValue::VSTR)},
+                                {"block_height", UniValueType(UniValue::VNUM)},
+                                {"deposit_address", UniValueType(UniValue::VSTR)},
+                                {"burn_address", UniValueType(UniValue::VSTR)},
+                            });
+                            const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
+                            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+                            FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
 
-                        tOuts.push_back(out);
+                            tOuts.push_back(out);
+                        }
+                        if(!isSpecialTxoutValid(tOuts,chainman)) {
+                            throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
+                        }
+                        for (const FederationTxOut& txOut : tOuts) {
+                            mainOuts.push_back(txOut);
+                        }
+                        tOuts.clear();
                     }
-                    if(!isSpecialTxoutValid(tOuts,chainman)) {
-                        throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
-                    }
-                    for (const FederationTxOut& txOut : tOuts) {
-                        mainOuts.push_back(txOut);
-                    }
-                    tOuts.clear();
+                    addDeposit(mainOuts);
+                    return "sucess";
                 }
-                addDeposit(mainOuts);
-                return "sucess";
-            } else {
-                CMutableTransaction mtx;
-                if (!DecodeHexTx(mtx, request.params[0].get_str())) {
-                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
-                }
-                CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-                const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
-                                                        DEFAULT_MAX_RAW_TX_FEE_RATE :
-                                                        CFeeRate(AmountFromValue(request.params[6]));
-
-                int64_t virtual_size = GetVirtualTransactionSize(*tx);
-                CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
-                std::string err_string;
-                AssertLockNotHeld(cs_main);
-                NodeContext& node = EnsureAnyNodeContext(request.context);
-                const CTransaction& ptx = *tx;  
-
-                if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
-                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
-                }
-
-                if(!request.params[3].isNull()) {
-                    std::string assetHex = request.params[2].get_str();
-                    uint256 payloadHash = prepareMessageHash(assetHex);
-                    std::vector<ChromaAssetData> vAssetData;
-                    if(payloadHash.ToString().compare(ptx.payload.ToString()) == 0) {
-                        ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                        ChromaAssetData assetData;
-                        assetData.nID = -1;
-                        assetData.txid = ptx.GetHash();
-                        assetData.dataHex = assetHex;
-                        chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-                    }
-                }
-   
-                const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);
-                if (TransactionError::OK != err) {
-                    throw JSONRPCTransactionError(err, err_string);
-                }
-
-
-                 
-                return tx->GetHash().GetHex();
             }
+            
+            CMutableTransaction mtx;
+            if (!DecodeHexTx(mtx, request.params[0].get_str())) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
+            }
+            CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
+            const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
+                                                    DEFAULT_MAX_RAW_TX_FEE_RATE :
+                                                    CFeeRate(AmountFromValue(request.params[1]));
+
+            int64_t virtual_size = GetVirtualTransactionSize(*tx);
+            CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
+            std::string err_string;
+            AssertLockNotHeld(cs_main);
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            const CTransaction& ptx = *tx;  
+
+            if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
+                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
+            }
+
+            if(!request.params[3].isNull()) {
+                ChainstateManager& chainman = EnsureAnyChainman(request.context);
+                ChromaAssetData assetData;
+                assetData.nID = -1;
+                assetData.txid = ptx.GetHash();
+                assetData.dataHex = request.params[3].get_str();
+                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
+                
+            }
+
+            const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);
+            if (TransactionError::OK != err) {
+                throw JSONRPCTransactionError(err, err_string);
+            }
+                
+            return tx->GetHash().GetHex();
+            
         },
     };
 }
