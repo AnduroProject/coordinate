@@ -4662,7 +4662,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         return;
     }
-    
+    // receive request from other peer to get recent federation pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREQUEST) {
         uint32_t currentHeight = 0;
         vRecv >> currentHeight;
@@ -4676,6 +4676,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
+    // receive response from other peer for recent federation pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
@@ -4684,6 +4685,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
+    // receive request from other peer to get recent asset information based on asset id
     if (msg_type == NetMsgType::ASSETDATAREQUEST) {
         uint32_t requestedAssetDataId = 0;
         vRecv >> requestedAssetDataId;
@@ -4704,6 +4706,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
+    // receive response from other peer for recent asset information based on asset id
     if (msg_type == NetMsgType::ASSETDATAREPONSE) {
         ChromaAssetData assetData;
         vRecv >> assetData;
@@ -5198,19 +5201,20 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
 void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now)
 {
     const auto current_time = NodeClock::now();
-
+  
     if (current_time - peer.m_last_peg_req_timestamp > PEG_CHECK_TIME) {
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
         int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
         std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        // Every 5 second node will check and request if no presigned block data exist
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
         }
 
         if(!m_chainman.ActiveChainstate().isAssetPrune) {
-
+           // Every 5 second node will check and request asset data is not fully synced
             uint32_t lastAssetId = 0;
             uint32_t lastAssetDataId = 0;
             m_chainman.ActiveChainstate().passettree->GetLastAssetID(lastAssetId);
