@@ -18,8 +18,6 @@ noinst_HEADERS += src/scalar_8x32_impl.h
 noinst_HEADERS += src/scalar_low_impl.h
 noinst_HEADERS += src/group.h
 noinst_HEADERS += src/group_impl.h
-noinst_HEADERS += src/eccommit.h
-noinst_HEADERS += src/eccommit_impl.h
 noinst_HEADERS += src/ecdsa.h
 noinst_HEADERS += src/ecdsa_impl.h
 noinst_HEADERS += src/eckey.h
@@ -184,17 +182,6 @@ schnorr_example_LDFLAGS += -lbcrypt
 endif
 TESTS += schnorr_example
 endif
-if ENABLE_MODULE_MUSIG
-noinst_PROGRAMS += musig_example
-musig_example_SOURCES = examples/musig.c
-musig_example_CPPFLAGS = -I$(top_srcdir)/include -DSECP256K1_STATIC
-musig_example_LDADD = libsecp256k1.la
-musig_example_LDFLAGS = -static
-if BUILD_WINDOWS
-musig_example_LDFLAGS += -lbcrypt
-endif
-TESTS += musig_example
-endif
 endif
 
 ### Precomputed tables
@@ -265,36 +252,12 @@ EXTRA_DIST += src/wycheproof/WYCHEPROOF_COPYING
 EXTRA_DIST += src/wycheproof/ecdsa_secp256k1_sha256_bitcoin_test.json
 EXTRA_DIST += tools/tests_wycheproof_generate.py
 
-if ENABLE_MODULE_BPPP
-include src/modules/bppp/Makefile.am.include
-endif
-
 if ENABLE_MODULE_ECDH
 include src/modules/ecdh/Makefile.am.include
 endif
 
-if ENABLE_MODULE_MUSIG
-include src/modules/musig/Makefile.am.include
-endif
-
 if ENABLE_MODULE_RECOVERY
 include src/modules/recovery/Makefile.am.include
-endif
-
-if ENABLE_MODULE_GENERATOR
-include src/modules/generator/Makefile.am.include
-endif
-
-if ENABLE_MODULE_RANGEPROOF
-include src/modules/rangeproof/Makefile.am.include
-endif
-
-if ENABLE_MODULE_WHITELIST
-include src/modules/whitelist/Makefile.am.include
-endif
-
-if ENABLE_MODULE_SURJECTIONPROOF
-include src/modules/surjection/Makefile.am.include
 endif
 
 if ENABLE_MODULE_EXTRAKEYS
@@ -307,12 +270,4 @@ endif
 
 if ENABLE_MODULE_ELLSWIFT
 include src/modules/ellswift/Makefile.am.include
-endif
-
-if ENABLE_MODULE_ECDSA_S2C
-include src/modules/ecdsa_s2c/Makefile.am.include
-endif
-
-if ENABLE_MODULE_ECDSA_ADAPTOR
-include src/modules/ecdsa_adaptor/Makefile.am.include
 endif

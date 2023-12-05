@@ -42,9 +42,6 @@ static int secp256k1_scalar_set_b32_seckey(secp256k1_scalar *r, const unsigned c
 /** Set a scalar to an unsigned integer. */
 static void secp256k1_scalar_set_int(secp256k1_scalar *r, unsigned int v);
 
-/** Set a scalar to an unsigned 64-bit integer */
-static void secp256k1_scalar_set_u64(secp256k1_scalar *r, uint64_t v);
-
 /** Convert a scalar to a byte array. */
 static void secp256k1_scalar_get_b32(unsigned char *bin, const secp256k1_scalar* a);
 
@@ -60,9 +57,6 @@ static void secp256k1_scalar_mul(secp256k1_scalar *r, const secp256k1_scalar *a,
 /** Shift a scalar right by some amount strictly between 0 and 16, returning
  *  the low bits that were shifted off */
 static int secp256k1_scalar_shr_int(secp256k1_scalar *r, int n);
-
-/** Compute the square of a scalar (modulo the group order). */
-static void secp256k1_scalar_sqr(secp256k1_scalar *r, const secp256k1_scalar *a);
 
 /** Compute the inverse of a scalar (modulo the group order). */
 static void secp256k1_scalar_inverse(secp256k1_scalar *r, const secp256k1_scalar *a);
@@ -104,5 +98,8 @@ static void secp256k1_scalar_mul_shift_var(secp256k1_scalar *r, const secp256k1_
 
 /** If flag is true, set *r equal to *a; otherwise leave it. Constant-time.  Both *r and *a must be initialized.*/
 static void secp256k1_scalar_cmov(secp256k1_scalar *r, const secp256k1_scalar *a, int flag);
+
+/** Check invariants on a scalar (no-op unless VERIFY is enabled). */
+static void secp256k1_scalar_verify(const secp256k1_scalar *r);
 
 #endif /* SECP256K1_SCALAR_H */

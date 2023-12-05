@@ -15,11 +15,11 @@ Unicode true
 !define URL https://bitcoincore.org/
 
 # MUI Symbol Definitions
-!define MUI_ICON "/Users/jk/MIKE/federation/mara-sidechain-node/share/pixmaps/bitcoin.ico"
-!define MUI_WELCOMEFINISHPAGE_BITMAP "/Users/jk/MIKE/federation/mara-sidechain-node/share/pixmaps/nsis-wizard.bmp"
+!define MUI_ICON "/home/qrsnap/git/mara-sidechain-node/share/pixmaps/bitcoin.ico"
+!define MUI_WELCOMEFINISHPAGE_BITMAP "/home/qrsnap/git/mara-sidechain-node/share/pixmaps/nsis-wizard.bmp"
 !define MUI_HEADERIMAGE
 !define MUI_HEADERIMAGE_RIGHT
-!define MUI_HEADERIMAGE_BITMAP "/Users/jk/MIKE/federation/mara-sidechain-node/share/pixmaps/nsis-header.bmp"
+!define MUI_HEADERIMAGE_BITMAP "/home/qrsnap/git/mara-sidechain-node/share/pixmaps/nsis-header.bmp"
 !define MUI_FINISHPAGE_NOAUTOCLOSE
 !define MUI_STARTMENUPAGE_REGISTRY_ROOT HKLM
 !define MUI_STARTMENUPAGE_REGISTRY_KEY ${REGKEY}
@@ -28,7 +28,7 @@ Unicode true
 !define MUI_FINISHPAGE_RUN "$WINDIR\explorer.exe"
 !define MUI_FINISHPAGE_RUN_PARAMETERS $INSTDIR\bitcoin-qt
 !define MUI_UNICON "${NSISDIR}\Contrib\Graphics\Icons\modern-uninstall.ico"
-!define MUI_UNWELCOMEFINISHPAGE_BITMAP "/Users/jk/MIKE/federation/mara-sidechain-node/share/pixmaps/nsis-wizard.bmp"
+!define MUI_UNWELCOMEFINISHPAGE_BITMAP "/home/qrsnap/git/mara-sidechain-node/share/pixmaps/nsis-wizard.bmp"
 !define MUI_UNFINISHPAGE_NOAUTOCLOSE
 
 # Included files
@@ -72,18 +72,18 @@ ShowUninstDetails show
 Section -Main SEC0000
     SetOutPath $INSTDIR
     SetOverwrite on
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/bitcoin-qt
-    File /oname=COPYING.txt /Users/jk/MIKE/federation/mara-sidechain-node/COPYING
-    File /oname=readme.txt /Users/jk/MIKE/federation/mara-sidechain-node/doc/README_windows.txt
-    File /Users/jk/MIKE/federation/mara-sidechain-node/share/examples/bitcoin.conf
+    File /home/qrsnap/git/mara-sidechain-node/release/bitcoin-qt
+    File /oname=COPYING.txt /home/qrsnap/git/mara-sidechain-node/COPYING
+    File /oname=readme.txt /home/qrsnap/git/mara-sidechain-node/doc/README_windows.txt
+    File /home/qrsnap/git/mara-sidechain-node/share/examples/bitcoin.conf
     SetOutPath $INSTDIR\share\rpcauth
-    File /Users/jk/MIKE/federation/mara-sidechain-node/share/rpcauth/*.*
+    File /home/qrsnap/git/mara-sidechain-node/share/rpcauth/*.*
     SetOutPath $INSTDIR\daemon
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/bitcoind
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/bitcoin-cli
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/bitcoin-tx
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/bitcoin-wallet
-    File /Users/jk/MIKE/federation/mara-sidechain-node/release/test_bitcoin
+    File /home/qrsnap/git/mara-sidechain-node/release/bitcoind
+    File /home/qrsnap/git/mara-sidechain-node/release/bitcoin-cli
+    File /home/qrsnap/git/mara-sidechain-node/release/bitcoin-tx
+    File /home/qrsnap/git/mara-sidechain-node/release/bitcoin-wallet
+    File /home/qrsnap/git/mara-sidechain-node/release/test_bitcoin
     SetOutPath $INSTDIR
     WriteRegStr HKCU "${REGKEY}\Components" Main 1
 SectionEnd
