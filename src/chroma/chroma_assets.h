@@ -3,9 +3,7 @@
 #include <uint256.h>
 #include <serialize.h>
 
-/**
- * Asset Basic registry structure
-*/
+
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
     s >> assetData.nID;
@@ -34,15 +32,15 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
 
 struct ChromaAsset {
 public:
-    uint32_t nID;
-    uint32_t assetType;
-    std::string strTicker;
-    std::string strHeadline;
-    uint256 payload;
-    uint256 txid;
-    int64_t nSupply;
-    std::string strController;
-    std::string strOwner;
+    uint32_t nID;   /*!< Asset unique number */
+    uint32_t assetType; /*!< Asset type - (e.g. 0 - tokens, 1 - nft, 1 - blob nft) */
+    std::string strTicker; /*!< Asset symbol. */
+    std::string strHeadline; /*!< Asset name. */
+    uint256 payload; /*!< Asset sha256 id combination for all asset information with asset data. */
+    uint256 txid; /*!< Asset gensis id when the asset is newly minted */
+    int64_t nSupply; /*!< Asset current supply */
+    std::string strController; /*!< Asset controller details, which used to mint additionally */
+    std::string strOwner; /*!< Asset owner at the time of creating asset */
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -76,7 +74,6 @@ public:
         strController="";
         strOwner="";
     }
-
 };
 
 
@@ -99,9 +96,9 @@ inline void SerializeAssetData(const ChromaDataType& assetData, Stream& s) {
 
 struct ChromaAssetData {
 public:
-    uint32_t nID;
-    uint256 txid;
-    std::string dataHex;
+    uint32_t nID; /*!< Asset unique number */
+    uint256 txid;  /*!< Asset gensis id when the asset is newly minted or additionaly minted */
+    std::string dataHex; /*!< Asset data field hold asset image data or url with additional asset attributes  */
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
