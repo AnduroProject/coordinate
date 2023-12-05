@@ -6,8 +6,10 @@
 #include <outputtype.h>
 #include <rpc/util.h>
 
+/**
+ * This function used to validate presigned signature 
+*/
 bool validateFederationSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-
    std::vector<unsigned char> sData(ParseHex(signatureHex));
    const std::string signatureHexStr(sData.begin(), sData.end());
    UniValue val(UniValue::VOBJ);
@@ -46,6 +48,10 @@ bool validateFederationSignature(std::string signatureHex, std::string messageIn
 
 }
 
+
+/**
+ * This function check used to prepare sha256 hash for presigned block message
+*/
 uint256 prepareMessageHash(std::string message) {
     uint256 messageBuffer;
     CSHA256().Write((unsigned char*)message.data(), message.size()).Finalize(messageBuffer.begin());
@@ -53,7 +59,9 @@ uint256 prepareMessageHash(std::string message) {
 }
 
 
-
+/**
+ * This function check witness signature path available in authorized federation keys
+*/
 bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string signaturePath) {
     bool isSignaturePathExist = false;
     for (size_t i = 0; i < fullQuorum.size(); i++) {
