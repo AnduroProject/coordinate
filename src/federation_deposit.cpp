@@ -14,13 +14,19 @@
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
-
+// temporary storage for including presigned signature on next block
 std::vector<FederationTxOut> tDeposits;
+// check blocks are fully synced to active federation presign validation
 bool isValidationActivate = false;
+// temporary storage for deposit address
 std::string depositAddress = "";
+// temporary storage for withdraw address
 std::string burnAddress = "";
 
-void addDeposit(std::vector<FederationTxOut> txOuts) {
+/**
+ * This function include presigned signature from federation 
+*/
+void includePreSignedSignature(std::vector<FederationTxOut> txOuts) {
    if (txOuts.size() == 0) {
       return;
    }
@@ -53,13 +59,14 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    if(txOuts[0].block_height <= blockindex) {
       blockindex = blockindex - 1;
    }
-
+   // get block to find the eligible federation keys to be signed on presigned block
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
    }
 
    UniValue messages(UniValue::VARR);
    int tIndex = 1;
+   // preparing message for signature verification
    for (const FederationTxOut& txOut : txOuts) {
 
       CTxDestination address;
@@ -75,19 +82,18 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
       tIndex = tIndex + 1;
       messages.push_back(message);
    }
-
-   LogPrintf("============== message is 1 %s \n",messages.write());
-
+   // check signature is valid 
    bool isValid = validateFederationSignature(txOuts[0].witness,messages.write(),block.currentKeys);
 
    if (isValid) {
-      LogPrintf("message is 2 \n");
       return true;
    }
-   LogPrintf("message is 3 \n");
    return false;
 }
 
+/**
+ * This function list all presigned pegin details for upcoming blocks by height
+*/
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height) {
    if(block_height == -1) {
       return tDeposits;
@@ -101,6 +107,9 @@ std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height)
    return tDepositsNew;
 }
 
+/**
+ * This function find total pegin amount for particular block
+*/
 CAmount listPendingDepositTotal(int32_t block_height) {
    std::vector<FederationTxOut> tDepositsNew;
    if(block_height == -1) {
@@ -121,6 +130,9 @@ CAmount listPendingDepositTotal(int32_t block_height) {
     return totalDeposit;
 } 
 
+/**
+ * This function used to reset presigned signature for processed blocks
+*/
 void resetDeposit(int32_t block_height) {
    std::vector<FederationTxOut> tDepositsNew;
    bool hasDeposits = true;
@@ -141,6 +153,9 @@ void resetDeposit(int32_t block_height) {
    tDeposits = tDepositsNew;
 }
 
+/**
+ * This function used to get current keys to be signed for upcoming block
+*/
 std::string getCurrentKeys(ChainstateManager& chainman) {
    int block_height = chainman.ActiveChain().Height();
    LOCK(cs_main);
@@ -151,6 +166,9 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
    return block.currentKeys;
 }
 
+/**
+ * This function used to get current next index to be signed for upcoming block
+*/
 int32_t getNextIndex(ChainstateManager& chainman) {
    int block_height = chainman.ActiveChain().Height();
    LOCK(cs_main);
@@ -161,15 +179,21 @@ int32_t getNextIndex(ChainstateManager& chainman) {
    return block.nextIndex;
 }
 
+/**
+ * This function check block are fully synced to start validating federation new presigned signature for upcoming blocks
+*/
 bool isFederationValidationActive() {
    return isValidationActivate;
 }
 
+/**
+ * validate the federation signature on confirmed blocks
+*/
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    return true;
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
-   
+   // activate presigned signature checker after blocks fully synced in node 
    if(listPendingDepositTransaction(active_chain.Height()+1).size()>0) {
          isValidationActivate = true;
    }
@@ -178,19 +202,20 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       return true;
    }
 
-
-   LogPrintf("*********************** verifyCoinbase *********************** %s \n", block.vtx[0]->ToString());
+   // check coinbase should have three output 
+   //  0 - fee reward for merge mine
+   //  1 - coinbase message
+   //  2 - signature by previous block federation current keys 
    if(block.vtx[0]->vout.size() < 3) {
       return false;
    }
-   LogPrintf("current block %i \n",active_chain.Height());
+
+
+   // check for current keys for federation
    CBlock prevblock;
    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[active_chain.Height()]), Params().GetConsensus())) {
       return false;
    }
-
-   LogPrintf("previous address %s \n",prevblock.currentKeys);
-   LogPrintf("current address %s \n",block.currentKeys);
 
    std::vector<unsigned char> wData(ParseHex(prevblock.currentKeys));
    const std::string prevWitnessHexStr(wData.begin(), wData.end());
@@ -203,17 +228,16 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    CTxOut witnessOut = block.vtx[0]->vout[block.vtx[0]->vout.size()-2];
 
    const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
-   LogPrintf("testing federation validation 5 %s\n",witnessStr);
+
 
    std::vector<FederationTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
-      LogPrintf("testing federation validation 6 \n");
       const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
       FederationTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
-      LogPrintf("testing federation validation 7 \n");
    } else {
+      // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with federation current keys
       for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {  
          CTxOut pegTx = block.vtx[0]->vout[i];
          FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
@@ -228,10 +252,16 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    return true;
 }
 
+/**
+ * This function get recent bitcoin deposit address used to peg in
+*/
 std::string getDepositAddress() {
    return depositAddress;
 }
 
+/**
+ * This function get sidechain withdrawal address used to peg out
+*/
 std::string getBurnAddress() {
    return burnAddress;
 }

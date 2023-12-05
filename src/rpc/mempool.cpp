@@ -127,7 +127,7 @@ static RPCHelpMan sendrawtransaction()
                         }
                         tOuts.clear();
                     }
-                    addDeposit(mainOuts);
+                    includePreSignedSignature(mainOuts);
                     return "sucess";
                 }
             }

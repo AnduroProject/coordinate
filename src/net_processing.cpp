@@ -4680,7 +4680,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
         if(isSpecialTxoutValid(vData,m_chainman)) {
-           addDeposit(vData);
+           includePreSignedSignature(vData);
         }
     }
 
