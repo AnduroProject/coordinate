@@ -190,7 +190,6 @@ bool isFederationValidationActive() {
  * validate the federation signature on confirmed blocks
 */
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
-   return true;
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    // activate presigned signature checker after blocks fully synced in node 
