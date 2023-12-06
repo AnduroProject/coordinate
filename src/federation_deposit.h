@@ -66,7 +66,7 @@ public:
 
     void SetNull()
     {
-        nValue = -1;
+        nValue = 0;
         scriptPubKey.clear();
         witness = "";
         block_height = 0;

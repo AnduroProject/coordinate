@@ -64,13 +64,13 @@ public:
 
     void SetNull()
     {
-        nID = -1;
-        assetType = -1;
+        nID = 0;
+        assetType = 0;
         strTicker="";
         strHeadline="";
         payload.SetNull();
         txid.SetNull();
-        nSupply=-1;
+        nSupply= 0;
         strController="";
         strOwner="";
     }
@@ -122,7 +122,7 @@ public:
 
     void SetNull()
     {
-        nID = -1;
+        nID = 0;
         txid.SetNull();
         dataHex="";
     }
