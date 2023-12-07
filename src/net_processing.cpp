@@ -4683,21 +4683,19 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
     // receive request from other peer to get recent asset information based on asset id
     if (msg_type == NetMsgType::ASSETDATAREQUEST) {
         uint32_t requestedAssetDataId = 0;
-        vRecv >> requestedAssetDataId;
         uint32_t lastAssetDataId = 0;
+
+        vRecv >> requestedAssetDataId;
         m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
         if(requestedAssetDataId <= lastAssetDataId) {
-           ChromaAsset asset;
-           bool is_asset = m_chainman.ActiveChainstate().passettree->GetAsset(requestedAssetDataId,asset);
-           if(is_asset) {
-              ChromaAssetData assetData;
-              bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
-              if(!assetData.txid.IsNull()) {
-                if(assetData.nID > 0) {
-                   m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::ASSETDATAREPONSE, assetData));
+            ChromaAsset asset;
+            if(m_chainman.ActiveChainstate().passettree->GetAsset(requestedAssetDataId, asset)) {
+                ChromaAssetData assetData;
+                bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
+                if(!assetData.txid.IsNull() && assetData.nID > 0) {
+                    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::ASSETDATAREPONSE, assetData));
                 }
-              }
-           }
+            }
         }
     }
 
