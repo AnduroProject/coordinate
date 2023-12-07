@@ -187,7 +187,6 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         entry.pushKV("payload",tx.payload.ToString());
     }
 
-
     UniValue vin{UniValue::VARR};
 
     // If available, use Undo data to calculate the fee. Note that txundo == nullptr
@@ -220,7 +219,9 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
             const Coin& prev_coin = txundo->vprevout[i];
             const CTxOut& prev_txout = prev_coin.out;
 
-            amt_total_in += prev_txout.nValue;
+            if(!prev_coin.IsBitAssetController()) {
+              amt_total_in += prev_txout.nValue;
+            }
 
             if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
                 UniValue o_script_pub_key(UniValue::VOBJ);

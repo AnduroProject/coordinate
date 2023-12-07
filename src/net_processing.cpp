@@ -3939,9 +3939,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
         CNodeState *nodestate = State(pfrom.GetId());
         const CBlockIndex* pindex = nullptr;
-        if (locator.IsNull())
-        {
-            LogPrintf("*************  it is coming here1 ************* ");
+        if (locator.IsNull()) {
             // If locator is null, return the hashStop block
             pindex = m_chainman.m_blockman.LookupBlockIndex(hashStop);
             if (!pindex) {
@@ -3952,17 +3950,14 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 LogPrint(BCLog::NET, "%s: ignoring request from peer=%i for old block header that isn't in the main chain\n", __func__, pfrom.GetId());
                 return;
             }
-        }
-        else
-        {
+        } else {
             // Find the last block the caller has in the main chain
             pindex = m_chainman.ActiveChainstate().FindForkInGlobalIndex(locator);
-    
-            
+
             if (pindex) {
                pindex = m_chainman.ActiveChain().Next(pindex);
             }
-   
+
         }
 
         // LogPrintf("*************  it is coming here3 ************* %d \n",pindex->nHeight);
@@ -4662,7 +4657,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         return;
     }
-    
+    // receive request from other peer to get recent federation pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREQUEST) {
         uint32_t currentHeight = 0;
         vRecv >> currentHeight;
@@ -4676,14 +4671,42 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
+    // receive response from other peer for recent federation pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<FederationTxOut> vData;
         vRecv >> vData;
         if(isSpecialTxoutValid(vData,m_chainman)) {
-           addDeposit(vData);
+           includePreSignedSignature(vData);
         }
     }
-   
+
+    // receive request from other peer to get recent asset information based on asset id
+    if (msg_type == NetMsgType::ASSETDATAREQUEST) {
+        uint32_t requestedAssetDataId = 0;
+        uint32_t lastAssetDataId = 0;
+
+        vRecv >> requestedAssetDataId;
+        m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
+        if(requestedAssetDataId <= lastAssetDataId) {
+            ChromaAsset asset;
+            if(m_chainman.ActiveChainstate().passettree->GetAsset(requestedAssetDataId, asset)) {
+                ChromaAssetData assetData;
+                bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
+                if(!assetData.txid.IsNull() && assetData.nID > 0) {
+                    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::ASSETDATAREPONSE, assetData));
+                }
+            }
+        }
+    }
+
+    // receive response from other peer for recent asset information based on asset id
+    if (msg_type == NetMsgType::ASSETDATAREPONSE) {
+        ChromaAssetData assetData;
+        vRecv >> assetData;
+        m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
+        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
+    }
+
     if (msg_type == NetMsgType::PONG) {
         const auto ping_end = time_received;
         uint64_t nonce = 0;
@@ -5171,16 +5194,40 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
 void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now)
 {
     const auto current_time = NodeClock::now();
+
     if (current_time - peer.m_last_peg_req_timestamp > PEG_CHECK_TIME) {
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
         int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
         std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        // Every 5 second node will check and request if no presigned block data exist
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
         }
 
+        if(!m_chainman.ActiveChainstate().isAssetPrune) {
+           // Every 5 second node will check and request asset data is not fully synced
+            uint32_t lastAssetId = 0;
+            uint32_t lastAssetDataId = 0;
+            m_chainman.ActiveChainstate().passettree->GetLastAssetID(lastAssetId);
+            m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
+
+            if(lastAssetId > lastAssetDataId) {
+                ChromaAsset asset;
+                bool is_asset = m_chainman.ActiveChainstate().passettree->GetAsset(lastAssetDataId + 1,asset);
+                if(is_asset) {
+                    ChromaAssetData assetData;
+                    bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
+                    if(!assetData.txid.IsNull()) {
+                        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(lastAssetDataId + 1);
+                    } else {
+                        const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
+                        m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::ASSETDATAREQUEST, lastAssetDataId + 1));
+                    }
+                }
+            }
+        }
     }
 }
 

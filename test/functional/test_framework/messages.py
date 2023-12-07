@@ -73,6 +73,11 @@ MAX_OP_RETURN_RELAY = 83
 
 DEFAULT_MEMPOOL_EXPIRY_HOURS = 336  # hours
 
+VERSION_AUXPOW = (1 << 8)
+VERSION_CHAIN_START = (1 << 16)
+CHAIN_ID = 1
+
+
 def sha256(s):
     return hashlib.sha256(s).digest()
 
@@ -683,7 +688,7 @@ class CAuxPow(CTransaction):
 class CBlockHeader:
     __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce",
                  "auxpow",
-                 "nTime", "nVersion", "sha256")
+                 "nTime", "nVersion", "sha256", "nextIndex", "currentKeys")
 
     def __init__(self, header=None):
         if header is None:
@@ -698,6 +703,8 @@ class CBlockHeader:
             self.sha256 = header.sha256
             self.auxpow = header.auxpow
             self.hash = header.hash
+            self.nextIndex = header.nextIndex
+            self.currentKeys = header.currentKeys
             self.calc_sha256()
 
     def set_null(self):
@@ -707,6 +714,8 @@ class CBlockHeader:
         self.nTime = 0
         self.nBits = 0
         self.nNonce = 0
+        self.nextIndex = 0
+        self.currentKeys = ""
         self.auxpow = None
         self.sha256 = None
         self.hash = None

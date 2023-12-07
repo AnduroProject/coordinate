@@ -228,6 +228,49 @@ static RPCHelpMan listAllAssets() {
 
 }
 
+static RPCHelpMan getAssetData() {
+        return RPCHelpMan{
+        "getassetdata",
+        "get asset data lime images, image url and properites related to the nft",
+        {
+             {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "asset gensis transaction id"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::NUM, "id", "AssetID"},
+                        {RPCResult::Type::NUM, "data", "Asset data"},
+                    }
+                }
+            },
+        },
+        RPCExamples{
+           HelpExampleCli("getassetdata", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            const CTxMemPool& mempool = EnsureMemPool(node);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+                UniValue result(UniValue::VOBJ);
+                UniValue assets(UniValue::VARR);
+                ChromaAssetData assetData;
+
+                uint256 txid = uint256S(request.params[0].get_str());
+
+                chainman.ActiveChainstate().passettree->GetAssetData(txid, assetData);
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("id", (uint64_t)assetData.nID);
+                obj.pushKV("data", assetData.dataHex);
+                return obj;
+        }
+    };
+
+}
 
 static std::vector<RPCArg> CreateTxDoc()
 {
@@ -254,6 +297,7 @@ void RegisterMarachainRPCCommands(CRPCTable& t)
         {"marachain", &federationDepositAddress},
         {"marachain", &federationWithdrawAddress},
         {"marachain", &listAllAssets},
+        {"marachain", &getAssetData},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

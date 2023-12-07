@@ -214,6 +214,7 @@ void TestingSetup::LoadVerifyActivateChainstate()
     options.block_tree_db_in_memory = m_block_tree_db_in_memory;
     options.coins_db_in_memory = m_coins_db_in_memory;
     options.reindex = node::fReindex;
+    options.asset_prune = m_args.GetBoolArg("-assetprune", false);
     options.reindex_chainstate = m_args.GetBoolArg("-reindex-chainstate", false);
     options.prune = chainman.m_blockman.IsPruneMode();
     options.check_blocks = m_args.GetIntArg("-checkblocks", DEFAULT_CHECKBLOCKS);

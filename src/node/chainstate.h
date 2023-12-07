@@ -23,6 +23,7 @@ struct ChainstateLoadOptions {
     bool block_tree_db_in_memory{false};
     bool coins_db_in_memory{false};
     bool reindex{false};
+    bool asset_prune{false};
     bool reindex_chainstate{false};
     bool prune{false};
     int64_t check_blocks{DEFAULT_CHECKBLOCKS};
