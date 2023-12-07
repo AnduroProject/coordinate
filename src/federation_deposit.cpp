@@ -5,12 +5,12 @@
 
 #include <federation_deposit.h>
 #include <federation_validator.h>
+#include <logging.h>
 #include <node/blockstorage.h>
 #include <rpc/util.h>
 #include <rpc/client.h>
 #include <univalue.h>
 #include <core_io.h>
-
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
@@ -24,8 +24,8 @@ std::string depositAddress = "";
 std::string burnAddress = "";
 
 /**
- * This function include presigned signature from federation 
-*/
+ * Include presigned signature from federation.
+ */
 void includePreSignedSignature(std::vector<FederationTxOut> txOuts) {
    if (txOuts.size() == 0) {
       return;
@@ -49,7 +49,7 @@ bool isSignatureAlreadyExist(FederationTxOut txOut) {
 }
 
 bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
- 
+
    if(txOuts.size()==0) {
       return false;
    }
@@ -62,6 +62,8 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    // get block to find the eligible federation keys to be signed on presigned block
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+        // Log the disk read error to the user.
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
 
    UniValue messages(UniValue::VARR);
@@ -82,12 +84,13 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
       tIndex = tIndex + 1;
       messages.push_back(message);
    }
-   // check signature is valid 
+   // check signature is valid
    bool isValid = validateFederationSignature(txOuts[0].witness,messages.write(),block.currentKeys);
 
    if (isValid) {
       return true;
    }
+
    return false;
 }
 
@@ -95,62 +98,64 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
  * This function list all presigned pegin details for upcoming blocks by height
 */
 std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height) {
-   if(block_height == -1) {
-      return tDeposits;
-   }
-   std::vector<FederationTxOut> tDepositsNew;
-    for (const FederationTxOut& tx_out : tDeposits) {
-      if(tx_out.block_height == block_height) {
-         tDepositsNew.push_back(tx_out);
-      }
+    if(block_height == -1) {
+        return tDeposits;
     }
-   return tDepositsNew;
+
+    std::vector<FederationTxOut> tDepositsNew;
+    for (const FederationTxOut& tx_out : tDeposits) {
+        if(tx_out.block_height == block_height) {
+            tDepositsNew.push_back(tx_out);
+        }
+    }
+
+    return tDepositsNew;
 }
 
 /**
  * This function find total pegin amount for particular block
-*/
+ */
 CAmount listPendingDepositTotal(int32_t block_height) {
-   std::vector<FederationTxOut> tDepositsNew;
-   if(block_height == -1) {
-      tDepositsNew = tDeposits;
-   } else {
-    for (const FederationTxOut& tx_out : tDeposits) {
-      if(tx_out.block_height == block_height) {
-         tDepositsNew.push_back(tx_out);
-      }
+    std::vector<FederationTxOut> tDepositsNew;
+    if(block_height == -1) {
+        tDepositsNew = tDeposits;
+    } else {
+        for (const FederationTxOut& tx_out : tDeposits) {
+            if(tx_out.block_height == block_height) {
+                tDepositsNew.push_back(tx_out);
+            }
+        }
     }
-   }
-
 
     CAmount totalDeposit = CAmount(0);
     for (const FederationTxOut& txOut: tDepositsNew) {
         totalDeposit = totalDeposit + CAmount(txOut.nValue);
     }
+
     return totalDeposit;
-} 
+}
 
 /**
  * This function used to reset presigned signature for processed blocks
-*/
-void resetDeposit(int32_t block_height) {
-   std::vector<FederationTxOut> tDepositsNew;
-   bool hasDeposits = true;
-   uint32_t currentHeight = block_height;
-   while(hasDeposits) {
-      for (const FederationTxOut& tx_out : tDeposits) {
-         if(tx_out.block_height != block_height) {
-            tDepositsNew.push_back(tx_out);
-         }
-      }
-      currentHeight = currentHeight - 1;
-      std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
-      if(pending_deposits.size()==0) {
-         hasDeposits = false;
-      }
-   }
+ */
+void resetDeposit(uint32_t block_height) {
+    std::vector<FederationTxOut> tDepositsNew;
+    bool hasDeposits = true;
+    uint32_t currentHeight = block_height;
+    while(hasDeposits) {
+        for (const FederationTxOut& tx_out : tDeposits) {
+            if(tx_out.block_height != block_height) {
+                tDepositsNew.push_back(tx_out);
+            }
+        }
+        currentHeight = currentHeight - 1;
+        std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
+        if(pending_deposits.size() == 0) {
+            hasDeposits = false;
+        }
+    }
 
-   tDeposits = tDepositsNew;
+    tDeposits = tDepositsNew;
 }
 
 /**
@@ -162,6 +167,8 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
+        // Log the disk read error to the user.
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
    return block.currentKeys;
 }
@@ -175,6 +182,8 @@ int32_t getNextIndex(ChainstateManager& chainman) {
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
+        // Log the disk read error to the user.
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
    return block.nextIndex;
 }
@@ -187,12 +196,12 @@ bool isFederationValidationActive() {
 }
 
 /**
- * validate the federation signature on confirmed blocks
-*/
+ * validate the federation signature on confirmed blocks !!!FIXME!!! Currently just returns true.
+ */
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
-   // activate presigned signature checker after blocks fully synced in node 
+   // activate presigned signature checker after blocks fully synced in node
    if(listPendingDepositTransaction(active_chain.Height()+1).size()>0) {
          isValidationActivate = true;
    }
@@ -201,14 +210,13 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       return true;
    }
 
-   // check coinbase should have three output 
+   // check coinbase should have three output
    //  0 - fee reward for merge mine
    //  1 - coinbase message
-   //  2 - signature by previous block federation current keys 
+   //  2 - signature by previous block federation current keys
    if(block.vtx[0]->vout.size() < 3) {
       return false;
    }
-
 
    // check for current keys for federation
    CBlock prevblock;
@@ -228,7 +236,6 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
 
    const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
 
-
    std::vector<FederationTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
       const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
@@ -237,13 +244,13 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
       tOuts.push_back(out);
    } else {
       // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with federation current keys
-      for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {  
+      for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {
          CTxOut pegTx = block.vtx[0]->vout[i];
          FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);
       }
-   } 
-      
+   }
+
    if(!isSpecialTxoutValid(tOuts,chainman)) {
       return false;
    }
@@ -263,4 +270,4 @@ std::string getDepositAddress() {
 */
 std::string getBurnAddress() {
    return burnAddress;
-}
+}/

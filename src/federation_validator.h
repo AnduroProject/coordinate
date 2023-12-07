@@ -1,5 +1,3 @@
-
-
 #include <iostream>
 #include <util/strencodings.h>
 #include "pubkey.h"
@@ -10,17 +8,19 @@
  * This function check witness signature path available in authorized federation keys
  * @param[in] fullQuorum  authorized federation full path
  * @param[in] signaturePath  path signed by the federation for presigned block
-*/
+ */
 bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string signaturePath);
+
 /**
  * This function check used to prepare sha256 hash for presigned block message
  * @param[in] message  presigned block message
-*/
+ */
 uint256 prepareMessageHash(std::string message);
+
 /**
- * This function used to validate presigned signature 
+ * This function used to validate presigned signature
  * @param[in] witnessHex  block witness which hold signature path and signature
  * @param[in] message  sha256 presigned block message
  * @param[in] prevWitnessHex federation current keys
 */
-bool validateFederationSignature(std::string witnessHex, std::string message, std::string prevWitnessHex); 
+bool validateFederationSignature(std::string witnessHex, std::string message, std::string prevWitnessHex);

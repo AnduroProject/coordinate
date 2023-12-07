@@ -1,8 +1,6 @@
-
 #include <iostream>
 #include <uint256.h>
 #include <serialize.h>
-
 
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
@@ -38,7 +36,7 @@ public:
     std::string strHeadline; /*!< Asset name. */
     uint256 payload; /*!< Asset sha256 id combination for all asset information with asset data. */
     uint256 txid; /*!< Asset gensis id when the asset is newly minted */
-    int64_t nSupply; /*!< Asset current supply */
+    uint64_t nSupply; /*!< Asset current supply */
     std::string strController; /*!< Asset controller details, which used to mint additionally */
     std::string strOwner; /*!< Asset owner at the time of creating asset */
 
@@ -46,7 +44,6 @@ public:
     inline void Serialize(Stream& s) const {
         SerializeAsset(*this, s);
     }
-
 
     template <typename Stream>
     inline void Unserialize(Stream& s) {
@@ -76,7 +73,6 @@ public:
     }
 };
 
-
 /**
  * Asset data registry structure
 */
@@ -105,7 +101,6 @@ public:
         SerializeAssetData(*this, s);
     }
 
-
     template <typename Stream>
     inline void Unserialize(Stream& s) {
         UnserializeAssetData(*this, s);
@@ -126,6 +121,5 @@ public:
         txid.SetNull();
         dataHex="";
     }
-
 };
 

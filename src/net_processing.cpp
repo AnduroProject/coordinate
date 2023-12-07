@@ -3957,12 +3957,12 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         {
             // Find the last block the caller has in the main chain
             pindex = m_chainman.ActiveChainstate().FindForkInGlobalIndex(locator);
-    
-            
+
+
             if (pindex) {
                pindex = m_chainman.ActiveChain().Next(pindex);
             }
-   
+
         }
 
         // LogPrintf("*************  it is coming here3 ************* %d \n",pindex->nHeight);
@@ -4713,7 +4713,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
         m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
     }
-   
+
     if (msg_type == NetMsgType::PONG) {
         const auto ping_end = time_received;
         uint64_t nonce = 0;
@@ -5201,7 +5201,7 @@ void PeerManagerImpl::CheckForStaleTipAndEvictPeers()
 void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::microseconds now)
 {
     const auto current_time = NodeClock::now();
-  
+
     if (current_time - peer.m_last_peg_req_timestamp > PEG_CHECK_TIME) {
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
@@ -5235,8 +5235,6 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
                 }
             }
         }
-
-
     }
 }
 
