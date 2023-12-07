@@ -3,14 +3,14 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#include <federation_deposit.h>
-#include <federation_validator.h>
+#include <core_io.h>
 #include <logging.h>
+#include <univalue.h>
 #include <node/blockstorage.h>
 #include <rpc/util.h>
 #include <rpc/client.h>
-#include <univalue.h>
-#include <core_io.h>
+#include <federation_deposit.h>
+#include <federation_validator.h>
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
@@ -97,7 +97,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
 /**
  * This function list all presigned pegin details for upcoming blocks by height
 */
-std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height) {
+std::vector<FederationTxOut> listPendingDepositTransaction(uint32_t block_height) {
     if(block_height == -1) {
         return tDeposits;
     }
@@ -115,7 +115,7 @@ std::vector<FederationTxOut> listPendingDepositTransaction(int32_t block_height)
 /**
  * This function find total pegin amount for particular block
  */
-CAmount listPendingDepositTotal(int32_t block_height) {
+CAmount listPendingDepositTotal(uint32_t block_height) {
     std::vector<FederationTxOut> tDepositsNew;
     if(block_height == -1) {
         tDepositsNew = tDeposits;
@@ -162,13 +162,13 @@ void resetDeposit(uint32_t block_height) {
  * This function used to get current keys to be signed for upcoming block
 */
 std::string getCurrentKeys(ChainstateManager& chainman) {
-   int block_height = chainman.ActiveChain().Height();
+   int block_index = chainman.ActiveChain().Height();
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
+   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_index]), Params().GetConsensus())) {
         // Log the disk read error to the user.
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[block_index])->GetBlockHash().ToString());
    }
    return block.currentKeys;
 }
@@ -177,11 +177,11 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
  * This function used to get current next index to be signed for upcoming block
 */
 int32_t getNextIndex(ChainstateManager& chainman) {
-   int block_height = chainman.ActiveChain().Height();
+   int blockindex = chainman.ActiveChain().Height();
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_height]), Params().GetConsensus())) {
+   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
@@ -196,7 +196,7 @@ bool isFederationValidationActive() {
 }
 
 /**
- * validate the federation signature on confirmed blocks !!!FIXME!!! Currently just returns true.
+ * validate the federation signature on confirmed blocks
  */
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    LOCK(cs_main);
@@ -270,4 +270,4 @@ std::string getDepositAddress() {
 */
 std::string getBurnAddress() {
    return burnAddress;
-}/
+}

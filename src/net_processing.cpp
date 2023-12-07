@@ -3939,9 +3939,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
         CNodeState *nodestate = State(pfrom.GetId());
         const CBlockIndex* pindex = nullptr;
-        if (locator.IsNull())
-        {
-            LogPrintf("*************  it is coming here1 ************* ");
+        if (locator.IsNull()) {
             // If locator is null, return the hashStop block
             pindex = m_chainman.m_blockman.LookupBlockIndex(hashStop);
             if (!pindex) {
@@ -3952,12 +3950,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 LogPrint(BCLog::NET, "%s: ignoring request from peer=%i for old block header that isn't in the main chain\n", __func__, pfrom.GetId());
                 return;
             }
-        }
-        else
-        {
+        } else {
             // Find the last block the caller has in the main chain
             pindex = m_chainman.ActiveChainstate().FindForkInGlobalIndex(locator);
-
 
             if (pindex) {
                pindex = m_chainman.ActiveChain().Next(pindex);
