@@ -62,7 +62,6 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    // get block to find the eligible federation keys to be signed on presigned block
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-        // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
 
@@ -96,7 +95,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
 
 /**
  * This function list all presigned pegin details for upcoming blocks by height
-*/
+ */
 std::vector<FederationTxOut> listPendingDepositTransaction(uint32_t block_height) {
     if(block_height == -1) {
         return tDeposits;
@@ -136,7 +135,7 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
 }
 
 /**
- * This function used to reset presigned signature for processed blocks
+ * Used to reset presigned signature for processed blocks
  */
 void resetDeposit(uint32_t block_height) {
     std::vector<FederationTxOut> tDepositsNew;
@@ -159,8 +158,8 @@ void resetDeposit(uint32_t block_height) {
 }
 
 /**
- * This function used to get current keys to be signed for upcoming block
-*/
+ * Used to get current keys to be signed for upcoming block
+ */
 std::string getCurrentKeys(ChainstateManager& chainman) {
    int block_index = chainman.ActiveChain().Height();
    LOCK(cs_main);
@@ -174,8 +173,8 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
 }
 
 /**
- * This function used to get current next index to be signed for upcoming block
-*/
+ * Used to get current next index to be signed for upcoming block
+ */
 int32_t getNextIndex(ChainstateManager& chainman) {
    int blockindex = chainman.ActiveChain().Height();
    LOCK(cs_main);
@@ -189,14 +188,14 @@ int32_t getNextIndex(ChainstateManager& chainman) {
 }
 
 /**
- * This function check block are fully synced to start validating federation new presigned signature for upcoming blocks
-*/
+ * Check block are fully synced to start validating federation new presigned signature for upcoming blocks
+ */
 bool isFederationValidationActive() {
    return isValidationActivate;
 }
 
 /**
- * validate the federation signature on confirmed blocks
+ * Validate the federation signature on confirmed blocks
  */
 bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
    LOCK(cs_main);
@@ -259,15 +258,15 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
 }
 
 /**
- * This function get recent bitcoin deposit address used to peg in
-*/
+ * Get recent bitcoin deposit address used to peg in
+ */
 std::string getDepositAddress() {
    return depositAddress;
 }
 
 /**
- * This function get sidechain withdrawal address used to peg out
-*/
+ * Get sidechain withdrawal address used to peg out
+ */
 std::string getBurnAddress() {
    return burnAddress;
 }
