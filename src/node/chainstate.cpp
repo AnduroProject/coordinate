@@ -172,8 +172,6 @@ ChainstateLoadResult LoadChainstate(ChainstateManager& chainman, const CacheSize
     // on the condition of each chainstate.
     chainman.MaybeRebalanceCaches();
 
-
-
     return {ChainstateLoadStatus::SUCCESS, {}};
 }
 
