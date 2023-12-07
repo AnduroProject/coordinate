@@ -190,7 +190,7 @@ bool CheckSequenceLocksAtTip(CBlockIndex* tip,
                 if (!coins_view.GetCoin(txin.prevout, coin)) {
                     return error("%s: Missing input", __func__);
                 }
-    
+
             if (coin.nHeight == MEMPOOL_HEIGHT) {
                 // Assume all mempool transaction confirm in the next block
                 prevheights[txinIndex] = tip->nHeight + 1;
@@ -675,8 +675,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTransaction
     }
 
-   
-        
+
+
 
     // Coinbase is only valid in a block, not as a loose transaction
     if (tx.IsCoinBase())
@@ -767,7 +767,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             }
         }
 
-    
+
 
     // This is const, but calls into the back end CoinsViews. The CCoinsViewDB at the bottom of the
     // hierarchy brings the best block into scope. See CCoinsViewDB::GetBestBlock().
@@ -838,7 +838,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // package feerate later.
 
             if (!bypass_limits && !args.m_package_feerates && !CheckFeeRate(ws.m_vsize, ws.m_modified_fees, state)) return false;
-     
+
 
 
     ws.m_iters_conflicting = m_pool.GetIterSet(ws.m_conflicts);
@@ -1567,10 +1567,10 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     /* FIXME: Remove this check with a hardfork later on.  */
     if (block.auxpow->getParentBlock().IsAuxpow())
         return error("%s : auxpow parent block has auxpow version", __func__);
-    
+
     if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
         return error("%s : AUX proof of work failed", __func__);
-    
+
     /*if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
         return error("%s : AUX POW is not valid", __func__);*/
 
@@ -1671,7 +1671,7 @@ bool Chainstate::IsInitialBlockDownload() const
     // if (m_chain.Tip()->Time() < Now<NodeSeconds>() - m_chainman.m_options.max_tip_age) {
     //     return true;
     // }
-    
+
     LogPrintf("Leaving InitialBlockDownload (latching to false)\n");
     m_cached_finished_ibd.store(true, std::memory_order_relaxed);
     return false;
@@ -1768,7 +1768,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
 
             assert(is_spent);
-            
+
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
             if (nAssetID)
                 nAssetIDOut = nAssetID;
@@ -1780,7 +1780,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
                 nControlNOut = x;
         }
     }
-    
+
     // add outputs
     AddCoins(inputs, tx, nHeight, nAssetIDOut, amountAssetInOut, nControlNOut, nNewAssetIDIn);
 }
@@ -2462,12 +2462,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 CTxDestination controllerDest;
                 if (ExtractDestination(tx.vout[0].scriptPubKey, controllerDest)) {
                     asset.strController = EncodeDestination(controllerDest);
-                }
-                else
-                if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
+                } else if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
                     asset.strController = "OP_RETURN";
-                }
-                else {
+                } else {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
                 }
 
@@ -2475,9 +2472,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     assetData.nID = nIDLast;
                     passettree->WriteChromaAssetData(assetData);
                 }
+
                 // Update latest ChromaAsset ID #
-                if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID))
+                if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID)) {
                     return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
+                }
 
             } else {
                 asset.nSupply =  asset.nSupply + tx.vout[1].nValue;
@@ -4156,7 +4155,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         CBlockIndex *pindex = nullptr;
         if (new_block) *new_block = false;
         BlockValidationState state;
-  
+
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
         // Therefore, the following critical section must include the CheckBlock() call as well.
