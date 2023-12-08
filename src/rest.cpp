@@ -22,6 +22,7 @@
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <rpc/marachainrpc.h>
+#include <rpc/preconf_mempool.h>
 #include <streams.h>
 #include <sync.h>
 #include <txmempool.h>

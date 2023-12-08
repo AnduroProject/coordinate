@@ -250,6 +250,7 @@ BITCOIN_CORE_H = \
   rpc/server_util.h \
   rpc/util.h \
   rpc/marachainrpc.h \
+  rpc/preconf_mempool.h \
   scheduler.h \
   script/descriptor.h \
   script/keyorigin.h \
@@ -421,6 +422,7 @@ libbitcoin_node_a_SOURCES = \
   rpc/fees.cpp \
   rpc/mempool.cpp \
   rpc/marachainrpc.cpp \
+  rpc/preconf_mempool.cpp \
   rpc/mining.cpp \
   rpc/net.cpp \
   rpc/node.cpp \
