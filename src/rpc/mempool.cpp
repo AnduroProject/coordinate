@@ -69,7 +69,7 @@ static RPCHelpMan sendrawtransaction()
                 }
               }
             },
-            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the asset data"},
+            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex string of the asset data"},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -128,7 +128,7 @@ static RPCHelpMan sendrawtransaction()
                         tOuts.clear();
                     }
                     includePreSignedSignature(mainOuts);
-                    return "sucess";
+                    return "success";
                 }
             }
             
