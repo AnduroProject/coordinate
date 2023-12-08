@@ -115,7 +115,7 @@ static const CRPCConvertParam vRPCConvertParams[] =
     { "signrawtransactionwithkey", 1, "privkeys" },
     { "signrawtransactionwithkey", 2, "prevtxs" },
     { "signrawtransactionwithwallet", 1, "prevtxs" },
-    { "sendrawtransaction", 2, "maxfeerate" },
+    { "sendrawtransaction", 1, "maxfeerate" },
     { "testmempoolaccept", 0, "rawtxs" },
     { "testmempoolaccept", 1, "maxfeerate" },
     { "submitpackage", 0, "package" },
