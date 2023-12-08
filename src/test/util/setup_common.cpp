@@ -175,6 +175,7 @@ ChainTestingSetup::ChainTestingSetup(const std::string& chainName, const std::ve
 
     m_node.fee_estimator = std::make_unique<CBlockPolicyEstimator>(FeeestPath(*m_node.args));
     m_node.mempool = std::make_unique<CTxMemPool>(MemPoolOptionsForTest(m_node));
+    m_node.preconfmempool = std::make_unique<CTxMemPool>(MemPoolOptionsForTest(m_node));
 
     m_cache_sizes = CalculateCacheSizes(m_args);
 
@@ -202,6 +203,7 @@ ChainTestingSetup::~ChainTestingSetup()
     m_node.netgroupman.reset();
     m_node.args = nullptr;
     m_node.mempool.reset();
+    m_node.preconfmempool.reset();
     m_node.scheduler.reset();
     m_node.chainman.reset();
 }
@@ -211,6 +213,7 @@ void TestingSetup::LoadVerifyActivateChainstate()
     auto& chainman{*Assert(m_node.chainman)};
     node::ChainstateLoadOptions options;
     options.mempool = Assert(m_node.mempool.get());
+    options.preconfmempool = Assert(m_node.preconfmempool.get());
     options.block_tree_db_in_memory = m_block_tree_db_in_memory;
     options.coins_db_in_memory = m_coins_db_in_memory;
     options.reindex = node::fReindex;
@@ -254,7 +257,7 @@ TestingSetup::TestingSetup(
     m_node.connman = std::make_unique<ConnmanTestMsg>(0x1337, 0x1337, *m_node.addrman, *m_node.netgroupman); // Deterministic randomness for tests.
     m_node.peerman = PeerManager::make(*m_node.connman, *m_node.addrman,
                                        m_node.banman.get(), *m_node.chainman,
-                                       *m_node.mempool, false);
+                                       *m_node.mempool,  *m_node.preconfmempool, false);
     {
         CConnman::Options options;
         options.m_msgproc = m_node.peerman.get();

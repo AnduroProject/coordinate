@@ -1609,10 +1609,12 @@ void CoinsViews::InitCache()
 
 Chainstate::Chainstate(
     CTxMemPool* mempool,
+    CTxMemPool* preconfmempool,
     BlockManager& blockman,
     ChainstateManager& chainman,
     std::optional<uint256> from_snapshot_blockhash)
     : m_mempool(mempool),
+      m_preconf_mempool(preconfmempool),
       m_blockman(blockman),
       m_chainman(chainman),
       m_from_snapshot_blockhash(from_snapshot_blockhash) {}
@@ -5117,13 +5119,13 @@ std::vector<Chainstate*> ChainstateManager::GetAll()
     return out;
 }
 
-Chainstate& ChainstateManager::InitializeChainstate(CTxMemPool* mempool)
+Chainstate& ChainstateManager::InitializeChainstate(CTxMemPool* mempool, CTxMemPool* preconfmempool)
 {
     AssertLockHeld(::cs_main);
     assert(!m_ibd_chainstate);
     assert(!m_active_chainstate);
 
-    m_ibd_chainstate = std::make_unique<Chainstate>(mempool, m_blockman, *this);
+    m_ibd_chainstate = std::make_unique<Chainstate>(mempool, preconfmempool, m_blockman, *this);
     m_active_chainstate = m_ibd_chainstate.get();
     return *m_active_chainstate;
 }
@@ -5226,7 +5228,7 @@ bool ChainstateManager::ActivateSnapshot(
 
     auto snapshot_chainstate = WITH_LOCK(::cs_main,
         return std::make_unique<Chainstate>(
-            /*mempool=*/nullptr, m_blockman, *this, base_blockhash));
+            /*mempool=*/nullptr, nullptr, m_blockman, *this, base_blockhash));
 
     {
         LOCK(::cs_main);
@@ -5573,7 +5575,7 @@ ChainstateManager::~ChainstateManager()
     }
 }
 
-bool ChainstateManager::DetectSnapshotChainstate(CTxMemPool* mempool)
+bool ChainstateManager::DetectSnapshotChainstate(CTxMemPool* mempool, CTxMemPool* preconfmempool)
 {
     assert(!m_snapshot_chainstate);
     std::optional<fs::path> path = node::FindSnapshotChainstateDir();
@@ -5587,15 +5589,15 @@ bool ChainstateManager::DetectSnapshotChainstate(CTxMemPool* mempool)
     LogPrintf("[snapshot] detected active snapshot chainstate (%s) - loading\n",
         fs::PathToString(*path));
 
-    this->ActivateExistingSnapshot(mempool, *base_blockhash);
+    this->ActivateExistingSnapshot(mempool, preconfmempool, *base_blockhash);
     return true;
 }
 
-Chainstate& ChainstateManager::ActivateExistingSnapshot(CTxMemPool* mempool, uint256 base_blockhash)
+Chainstate& ChainstateManager::ActivateExistingSnapshot(CTxMemPool* mempool, CTxMemPool* preconfmempool, uint256 base_blockhash)
 {
     assert(!m_snapshot_chainstate);
     m_snapshot_chainstate =
-        std::make_unique<Chainstate>(mempool, m_blockman, *this, base_blockhash);
+        std::make_unique<Chainstate>(mempool, preconfmempool, m_blockman, *this, base_blockhash);
     LogPrintf("[snapshot] switching active chainstate to %s\n", m_snapshot_chainstate->ToString());
     m_active_chainstate = m_snapshot_chainstate.get();
     return *m_snapshot_chainstate;

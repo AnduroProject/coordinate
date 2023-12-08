@@ -73,7 +73,7 @@ CreateAndActivateUTXOSnapshot(
             LOCK(::cs_main);
             uint256 gen_hash = node.chainman->ActiveChainstate().m_chain[0]->GetBlockHash();
             node.chainman->ResetChainstates();
-            node.chainman->InitializeChainstate(node.mempool.get());
+            node.chainman->InitializeChainstate(node.mempool.get(), node.preconfmempool.get());
             Chainstate& chain = node.chainman->ActiveChainstate();
             Assert(chain.LoadGenesisBlock());
             // These cache values will be corrected shortly in `MaybeRebalanceCaches`.

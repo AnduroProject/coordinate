@@ -119,6 +119,7 @@ using node::DEFAULT_PRINTPRIORITY;
 using node::DEFAULT_STOPAFTERBLOCKIMPORT;
 using node::LoadChainstate;
 using node::MempoolPath;
+using node::PreConfMempoolPath;
 using node::ShouldPersistMempool;
 using node::NodeContext;
 using node::ThreadImport;
@@ -241,6 +242,7 @@ void Shutdown(NodeContext& node)
     /// module was initialized.
     util::ThreadRename("shutoff");
     if (node.mempool) node.mempool->AddTransactionsUpdated(1);
+    if (node.preconfmempool) node.preconfmempool->AddTransactionsUpdated(1);
 
     StopHTTPRPC();
     StopREST();
@@ -274,6 +276,7 @@ void Shutdown(NodeContext& node)
 
     if (node.mempool && node.mempool->GetLoadTried() && ShouldPersistMempool(*node.args)) {
         DumpMempool(*node.mempool, MempoolPath(*node.args));
+        DumpMempool(*node.preconfmempool, PreConfMempoolPath(*node.args));
     }
 
     // Drop transactions we were still watching, and record fee estimations.
@@ -338,6 +341,7 @@ void Shutdown(NodeContext& node)
     GetMainSignals().UnregisterBackgroundSignalScheduler();
     node.kernel.reset();
     node.mempool.reset();
+    node.preconfmempool.reset();
     node.fee_estimator.reset();
     node.chainman.reset();
     node.scheduler.reset();
@@ -1477,6 +1481,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     LogPrintf("* Using %.1f MiB for chain state database\n", cache_sizes.coins_db * (1.0 / 1024 / 1024));
 
     assert(!node.mempool);
+    assert(!node.preconfmempool);
     assert(!node.chainman);
 
     CTxMemPool::Options mempool_opts{
@@ -1496,12 +1501,14 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     for (bool fLoaded = false; !fLoaded && !ShutdownRequested();) {
         node.mempool = std::make_unique<CTxMemPool>(mempool_opts);
+        node.preconfmempool = std::make_unique<CTxMemPool>(mempool_opts);
 
         node.chainman = std::make_unique<ChainstateManager>(chainman_opts);
         ChainstateManager& chainman = *node.chainman;
 
         node::ChainstateLoadOptions options;
         options.mempool = Assert(node.mempool.get());
+        options.preconfmempool = Assert(node.preconfmempool.get());
         options.reindex = node::fReindex;
         options.reindex_chainstate = fReindexChainState;
         options.prune = chainman.m_blockman.IsPruneMode();
@@ -1575,7 +1582,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
 
     assert(!node.peerman);
     node.peerman = PeerManager::make(*node.connman, *node.addrman, node.banman.get(),
-                                     chainman, *node.mempool, ignores_incoming_txs);
+                                     chainman, *node.mempool, *node.preconfmempool, ignores_incoming_txs);
     RegisterValidationInterface(node.peerman.get());
 
     // ********************************************************* Step 8: start indexers

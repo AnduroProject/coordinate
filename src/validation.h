@@ -479,6 +479,10 @@ protected:
     //! Only the active chainstate has a mempool.
     CTxMemPool* m_mempool;
 
+    //! Optional preconf mempool that is kept in sync with the chain.
+    //! Only the active chainstate has a preconf mempool.
+    CTxMemPool* m_preconf_mempool;
+
     //! Manages the UTXO set, which is a reflection of the contents of `m_chain`.
     std::unique_ptr<CoinsViews> m_coins_views;
 
@@ -499,6 +503,7 @@ public:
 
     explicit Chainstate(
         CTxMemPool* mempool,
+        CTxMemPool* preconf_mempool,
         node::BlockManager& blockman,
         ChainstateManager& chainman,
         std::optional<uint256> from_snapshot_blockhash = std::nullopt);
@@ -573,6 +578,12 @@ public:
     CTxMemPool* GetMempool()
     {
         return m_mempool;
+    }
+
+    //! @returns A pointer to the mempool.
+    CTxMemPool* GetPreConfMempool()
+    {
+        return m_preconf_mempool;
     }
 
     //! @returns A reference to a wrapped view of the in-memory UTXO set that
@@ -956,7 +967,7 @@ public:
     //!
     //! @param[in] mempool              The mempool to pass to the chainstate
     //                                  constructor
-    Chainstate& InitializeChainstate(CTxMemPool* mempool) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    Chainstate& InitializeChainstate(CTxMemPool* mempool, CTxMemPool* preconfmempool) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! Get all chainstates currently being used.
     std::vector<Chainstate*> GetAll();
@@ -1072,13 +1083,13 @@ public:
 
     //! When starting up, search the datadir for a chainstate based on a UTXO
     //! snapshot that is in the process of being validated.
-    bool DetectSnapshotChainstate(CTxMemPool* mempool) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+    bool DetectSnapshotChainstate(CTxMemPool* mempool, CTxMemPool* preconfmempool) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     void ResetChainstates() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! Switch the active chainstate to one based on a UTXO snapshot that was loaded
     //! previously.
-    Chainstate& ActivateExistingSnapshot(CTxMemPool* mempool, uint256 base_blockhash)
+    Chainstate& ActivateExistingSnapshot(CTxMemPool* mempool, CTxMemPool* preconfmempool, uint256 base_blockhash)
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     ~ChainstateManager();

@@ -24,6 +24,7 @@ BOOST_AUTO_TEST_CASE(validation_chainstate_resize_caches)
 {
     ChainstateManager& manager = *Assert(m_node.chainman);
     CTxMemPool& mempool = *Assert(m_node.mempool);
+    CTxMemPool& preconfmempool = *Assert(m_node.preconfmempool);
 
     //! Create and add a Coin with DynamicMemoryUsage of 80 bytes to the given view.
     auto add_coin = [](CCoinsViewCache& coins_view) -> COutPoint {
@@ -38,7 +39,7 @@ BOOST_AUTO_TEST_CASE(validation_chainstate_resize_caches)
         return outp;
     };
 
-    Chainstate& c1 = WITH_LOCK(cs_main, return manager.InitializeChainstate(&mempool));
+    Chainstate& c1 = WITH_LOCK(cs_main, return manager.InitializeChainstate(&mempool,&preconfmempool));
     c1.InitCoinsDB(
         /*cache_size_bytes=*/1 << 23, /*in_memory=*/true, /*should_wipe=*/false);
     WITH_LOCK(::cs_main, c1.InitCoinsCache(1 << 23));

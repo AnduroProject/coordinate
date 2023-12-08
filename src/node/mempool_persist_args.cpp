@@ -20,4 +20,10 @@ fs::path MempoolPath(const ArgsManager& argsman)
     return argsman.GetDataDirNet() / "mempool.dat";
 }
 
+fs::path PreConfMempoolPath(const ArgsManager& argsman)
+{
+    return argsman.GetDataDirNet() / "preconf_mempool.dat";
+}
+
+
 } // namespace node
