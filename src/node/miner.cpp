@@ -162,68 +162,68 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_weight = nBlockWeight;
     
     int resize = 1;
-    // get next block presigned data
-    std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
+    // // get next block presigned data
+    // std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
 
-    // prevent to get block template if not presigned signature available for next block
-    if(pending_deposits.size() == 0) {
-        LogPrintf("peg queue unavailable\n");
-        return nullptr;
-    }
+    // // prevent to get block template if not presigned signature available for next block
+    // if(pending_deposits.size() == 0) {
+    //     LogPrintf("peg queue unavailable\n");
+    //     return nullptr;
+    // }
 
-    // increase transaction out size based on available pegin 
-    if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
-        int tIndex = 1;
-        for (const FederationTxOut& tx_out : pending_deposits) {
-            if (tx_out.nValue > 0) {
-                resize = resize + 1;
-                tIndex = tIndex + 1;
-            }
-        }
-    } else {
-        LogPrintf("special txsetout invalid \n");
-        return nullptr;
-    }
-    // increase transaction out size by one for include witness
-    resize = resize + 1;
+    // // increase transaction out size based on available pegin 
+    // if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
+    //     int tIndex = 1;
+    //     for (const FederationTxOut& tx_out : pending_deposits) {
+    //         if (tx_out.nValue > 0) {
+    //             resize = resize + 1;
+    //             tIndex = tIndex + 1;
+    //         }
+    //     }
+    // } else {
+    //     LogPrintf("special txsetout invalid \n");
+    //     return nullptr;
+    // }
+    // // increase transaction out size by one for include witness
+    // resize = resize + 1;
     
 
-    if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
-        // if no new pegin included, then existing federation key added in next block 
-        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
-    } else {
-        // if new pegin included, then existing federation key replaced in next block 
-        FederationTxOut& tx_out = pending_deposits[0];
-        pblock->currentKeys = tx_out.currentKeys;
-        pblock->nextIndex = tx_out.nextIndex;
-    }
+    // if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+    //     // if no new pegin included, then existing federation key added in next block 
+    //     pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
+    //     pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+    // } else {
+    //     // if new pegin included, then existing federation key replaced in next block 
+    //     FederationTxOut& tx_out = pending_deposits[0];
+    //     pblock->currentKeys = tx_out.currentKeys;
+    //     pblock->nextIndex = tx_out.nextIndex;
+    // }
 
-    // Create coinbase transaction.
+    // // Create coinbase transaction.
     CMutableTransaction coinbaseTx;
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(resize);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    // coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    // disable block subsidy. only fee will be given as reward
-    coinbaseTx.vout[0].nValue = nFees;
+    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    // // disable block subsidy. only fee will be given as reward
+    // coinbaseTx.vout[0].nValue = nFees;
 
-    int oIncr = 1;
-    if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+    // int oIncr = 1;
+    // if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
 
-    } else {
-        // include new pegin in transaction output
-        for (const FederationTxOut& tx_out : pending_deposits) {
-            coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
-            coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
-            oIncr = oIncr + 1;
-        }
-    }
-     // including federation signature information
-    std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
-    CTxOut out(0, CScript() << OP_RETURN << data);
-    coinbaseTx.vout[oIncr] = out;
+    // } else {
+    //     // include new pegin in transaction output
+    //     for (const FederationTxOut& tx_out : pending_deposits) {
+    //         coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
+    //         coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
+    //         oIncr = oIncr + 1;
+    //     }
+    // }
+    //  // including federation signature information
+    // std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
+    // CTxOut out(0, CScript() << OP_RETURN << data);
+    // coinbaseTx.vout[oIncr] = out;
 
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
