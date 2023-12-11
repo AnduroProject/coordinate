@@ -36,7 +36,11 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
     // chainman, mempool and peerman are initialized before the RPC server and wallet are started
     // and reset after the RPC sever and wallet are stopped.
     assert(node.chainman);
-    assert(node.mempool);
+    if(is_preconf) {
+        assert(node.preconfmempool);
+    } else {
+        assert(node.mempool);
+    }
     assert(node.peerman);
 
     std::promise<void> promise;
@@ -66,12 +70,14 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
             // The mempool transaction may have the same or different witness (and
             // wtxid) as this transaction. Use the mempool's wtxid for reannouncement.
             wtxid = mempool_tx->GetWitnessHash();
-        } else {
+        } else if (auto mempool_tx = node.preconfmempool->get(txid); mempool_tx) {
+            wtxid = mempool_tx->GetWitnessHash();
+        }  else {
             // Transaction is not already in the mempool.
             if (max_tx_fee > 0) {
                 // First, call ATMP with test_accept and check the fee. If ATMP
                 // fails here, return error immediately.
-                const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ true);
+                const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ true, is_preconf);
                 if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
                     return HandleATMPError(result.m_state, err_string);
                 } else if (result.m_base_fees.value() > max_tx_fee) {
@@ -79,17 +85,20 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
                 }
             }
             // Try to submit the transaction to the mempool.
-            const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ false);
+            const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ false, is_preconf);
             if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
                 return HandleATMPError(result.m_state, err_string);
             }
 
             // Transaction was accepted to the mempool.
-
             if (relay) {
                 // the mempool tracks locally submitted transactions to make a
                 // best-effort of initial broadcast
-                node.mempool->AddUnbroadcastTx(txid);
+                if(is_preconf) {
+                    node.preconfmempool->AddUnbroadcastTx(txid);
+                } else {
+                    node.mempool->AddUnbroadcastTx(txid);
+                }
             }
 
             if (wait_callback) {

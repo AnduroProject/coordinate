@@ -1212,8 +1212,8 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
-    GetMainSignals().TransactionAddedToMempool(ptx, m_pool.GetAndIncrementSequence());
 
+    GetMainSignals().TransactionAddedToMempool(ptx, m_pool.is_preconf ? 0 : m_pool.GetAndIncrementSequence());
 
     return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees,
                                         effective_feerate, single_wtxid);
@@ -1466,13 +1466,19 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptPackage(const Package& package, 
 } // anon namespace
 
 MempoolAcceptResult AcceptToMemoryPool(Chainstate& active_chainstate, const CTransactionRef& tx,
-                                       int64_t accept_time, bool bypass_limits, bool test_accept)
+                                       int64_t accept_time, bool bypass_limits, bool test_accept, bool is_preconf)
     EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
 {
     AssertLockHeld(::cs_main);
     const CChainParams& chainparams{active_chainstate.m_chainman.GetParams()};
-    assert(active_chainstate.GetMempool() != nullptr);
-    CTxMemPool& pool{*active_chainstate.GetMempool()};
+    if(is_preconf) {
+        assert(active_chainstate.GetPreConfMempool() != nullptr);
+    } else {
+       assert(active_chainstate.GetMempool() != nullptr);
+    }
+   
+
+    CTxMemPool& pool{is_preconf ? *active_chainstate.GetPreConfMempool() : *active_chainstate.GetMempool()};
 
     std::vector<COutPoint> coins_to_uncache;
     auto args = MemPoolAccept::ATMPArgs::SingleAccept(chainparams, accept_time, bypass_limits, coins_to_uncache, test_accept);
@@ -4197,17 +4203,31 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
     return true;
 }
 
-MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef& tx, bool test_accept)
+MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef& tx, bool test_accept, bool is_preconf)
 {
     AssertLockHeld(cs_main);
     Chainstate& active_chainstate = ActiveChainstate();
-    if (!active_chainstate.GetMempool()) {
-        TxValidationState state;
-        state.Invalid(TxValidationResult::TX_NO_MEMPOOL, "no-mempool");
-        return MempoolAcceptResult::Failure(state);
+    if(is_preconf) {
+        if (!active_chainstate.GetPreConfMempool()) {
+            TxValidationState state;
+            state.Invalid(TxValidationResult::TX_NO_MEMPOOL, "no-mempool");
+            return MempoolAcceptResult::Failure(state);
+        }
+    } else {
+        if (!active_chainstate.GetMempool()) {
+            TxValidationState state;
+            state.Invalid(TxValidationResult::TX_NO_MEMPOOL, "no-mempool");
+            return MempoolAcceptResult::Failure(state);
+        }
     }
-    auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept);
-    active_chainstate.GetMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
+
+    auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept, is_preconf);
+    if(is_preconf) {
+       active_chainstate.GetPreConfMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
+    } else {
+       active_chainstate.GetMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
+    }
+
     return result;
 }
 
@@ -4254,10 +4274,16 @@ void PruneBlockFilesManual(Chainstate& active_chainstate, int nManualPruneHeight
     }
 }
 
-void Chainstate::LoadMempool(const fs::path& load_path, FopenFn mockable_fopen_function)
+void Chainstate::LoadMempool(const fs::path& load_path, FopenFn mockable_fopen_function, bool is_preconf)
 {
-    if (!m_mempool) return;
-    ::LoadMempool(*m_mempool, load_path, *this, mockable_fopen_function);
+    if (is_preconf) {
+       if (!m_preconf_mempool) return;
+        ::LoadMempool(*m_preconf_mempool, load_path, *this, mockable_fopen_function, is_preconf);
+    } else {
+       if (!m_mempool) return;
+        ::LoadMempool(*m_mempool, load_path, *this, mockable_fopen_function, is_preconf);
+    }
+
     m_mempool->SetLoadTried(!ShutdownRequested());
 }
 

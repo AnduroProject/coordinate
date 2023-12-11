@@ -1,23 +1,33 @@
 
-#include <rpc/marachainrpc.h>
-#include <rpc/util.h>
-#include <rpc/server.h>
+#include <rpc/blockchain.h>
+#include <kernel/mempool_persist.h>
+#include <chainparams.h>
+#include <core_io.h>
+#include <fs.h>
+#include <kernel/mempool_entry.h>
+#include <node/mempool_persist_args.h>
+#include <policy/rbf.h>
+#include <policy/settings.h>
+#include <primitives/transaction.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
-#include <key_io.h>
-#include <rpc/auxpow_miner.h>
-#include <core_io.h>
+#include <rpc/util.h>
+#include <txmempool.h>
+#include <univalue.h>
 #include <util/moneystr.h>
+#include <util/time.h>
+#include <utility>
 #include <federation_deposit.h>
 #include <federation_validator.h>
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
 using node::NodeContext;
 
+
 static RPCHelpMan sendpreconftransaction()
 {
     return RPCHelpMan{"sendpreconftransaction",
-        "\nSubmit a preconf transaction (serialized, hex-encoded) to local node and network.\n"
+        "\nSubmit a raw transaction (serialized, hex-encoded) to local node and network.\n"
         "\nThe transaction will be sent unconditionally to all peers, so using sendpreconftransaction\n"
         "for manual rebroadcast may degrade privacy by leaking the transaction's origin, as\n"
         "nodes will normally not rebroadcast non-wallet transactions already in their mempool.\n"
@@ -26,7 +36,9 @@ static RPCHelpMan sendpreconftransaction()
         {
             {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
-            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the asset data"},
+             "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
+                 "/kvB.\nSet to 0 to accept any fee rate.\n"},
+            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex string of the asset data"},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -37,9 +49,9 @@ static RPCHelpMan sendpreconftransaction()
             "Sign the transaction, and get back the hex\n"
             + HelpExampleCli("signrawtransactionwithwallet", "\"myhex\"") +
             "\nSend the transaction (signed hex)\n"
-            + HelpExampleCli("sendpreconftransaction", "\"signedhex\"") +
+            + HelpExampleCli("sendrawtransaction", "\"signedhex\"") +
             "\nAs a JSON-RPC call\n"
-            + HelpExampleRpc("signrawtransactionwithkey", "\"signedhex\"")
+            + HelpExampleRpc("sendrawtransaction", "\"signedhex\"")
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -67,7 +79,7 @@ static RPCHelpMan sendpreconftransaction()
             if(!request.params[2].isNull()) {
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
                 ChromaAssetData assetData;
-                assetData.nID = -1;
+                assetData.nID = 0;
                 assetData.txid = ptx.GetHash();
                 assetData.dataHex = request.params[2].get_str();
                 chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
@@ -82,9 +94,9 @@ static RPCHelpMan sendpreconftransaction()
             return tx->GetHash().GetHex();
             
         },
-    }
-   };
+    };
 }
+
 
 
 

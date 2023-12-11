@@ -116,6 +116,11 @@ extern const char* GETHEADERS;
  * The tx message transmits a single transaction.
  */
 extern const char* TX;
+
+/**
+ * The pre confirmed tx message transmits a single transaction.
+ */
+extern const char* PRETX;
 /**
  * The headers message sends one or more block headers to a node which
  * previously requested certain headers with a getheaders message.

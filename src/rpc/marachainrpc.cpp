@@ -1,7 +1,6 @@
 #include <rpc/marachainrpc.h>
 #include <rpc/util.h>
 #include <rpc/server.h>
-#include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <key_io.h>
 #include <rpc/auxpow_miner.h>
