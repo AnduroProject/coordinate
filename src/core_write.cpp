@@ -218,9 +218,10 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
         if (have_undo) {
             const Coin& prev_coin = txundo->vprevout[i];
             const CTxOut& prev_txout = prev_coin.out;
-
-            if(!prev_coin.IsBitAssetController()) {
-              amt_total_in += prev_txout.nValue;
+            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !prev_coin.IsBitAssetController()) {
+               amt_total_in += prev_txout.nValue;
+            } else {
+               amt_total_in += prev_txout.nValue;
             }
 
             if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
