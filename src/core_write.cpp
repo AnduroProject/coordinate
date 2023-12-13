@@ -215,19 +215,17 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
             }
             in.pushKV("txinwitness", txinwitness);
         }
+
         if (have_undo) {
             const Coin& prev_coin = txundo->vprevout[i];
             const CTxOut& prev_txout = prev_coin.out;
-            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !prev_coin.IsBitAssetController()) {
+            if(!(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && prev_coin.IsBitAssetController())) {
                amt_total_in += prev_txout.nValue;
-            } else {
-               amt_total_in += prev_txout.nValue;
-            }
+            } 
 
             if (verbosity == TxVerbosity::SHOW_DETAILS_AND_PREVOUT) {
                 UniValue o_script_pub_key(UniValue::VOBJ);
                 ScriptToUniv(prev_txout.scriptPubKey, /*out=*/o_script_pub_key, /*include_hex=*/true, /*include_address=*/true);
-
                 UniValue p(UniValue::VOBJ);
                 p.pushKV("generated", bool(prev_coin.fCoinBase));
                 p.pushKV("height", uint64_t(prev_coin.nHeight));
@@ -236,8 +234,10 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
                 in.pushKV("prevout", p);
             }
         }
+
         in.pushKV("sequence", (int64_t)txin.nSequence);
         vin.push_back(in);
+
     }
     entry.pushKV("vin", vin);
 
