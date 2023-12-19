@@ -27,6 +27,7 @@
 #include <optional>
 #include <string_view>
 #include <utility>
+#include <chroma/chroma_mempool_entry.h>
 
 bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
 {
@@ -478,6 +479,7 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         // in transactions included in blocks can subscribe to the BlockConnected
         // notification.
         GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx(), reason, mempool_sequence);
+        removeMempoolAsset(it->GetTx().GetHash());
     }
 
     const uint256 hash = it->GetTx().GetHash();

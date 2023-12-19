@@ -12,6 +12,7 @@
 
 /** Amount in satoshis (Can be negative) */
 typedef int64_t CAmount;
+typedef uint64_t CAssetAmount;
 
 /** The amount of satoshis in one BTC. */
 static constexpr CAmount COIN = 100000000;
@@ -25,7 +26,8 @@ static constexpr CAmount COIN = 100000000;
  * critical; in unusual circumstances like a(nother) overflow bug that allowed
  * for the creation of coins out of thin air modification could lead to a fork.
  * */
-static constexpr CAmount MAX_MONEY = std::numeric_limits<int64_t>::max();
+static constexpr CAmount MAX_MONEY = 21000000 * COIN;
+static constexpr CAssetAmount MAX_ASSET_OUT_VALUE = std::numeric_limits<uint64_t>::max();
 inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0); }
 //inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 

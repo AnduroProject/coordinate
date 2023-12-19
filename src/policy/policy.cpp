@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <vector>
+#include <chroma/chroma_mempool_entry.h>
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
@@ -181,11 +182,22 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
         bool fBitAssetControl = false;
         uint32_t nAssetID = 0;
         Coin coin;
+        CAmount coinValue = 0;
         // check input is unspent
         bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
         if(!is_asset) {
-            LogPrintf("Invalid inputs \n");
-            return false;
+            ChromaMempoolEntry* assetMempoolObj;
+            bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, assetMempoolObj);
+            if(!is_mempool_asset) {
+                LogPrintf("Invalid inputs \n");
+                return false;
+            }
+            fBitAsset = true;
+            fBitAssetControl = false;
+            nAssetID = assetMempoolObj->assetID;
+            coinValue = assetMempoolObj->nValue;
+        } else {
+            coinValue = coin.out.nValue;
         }
 
         if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
@@ -215,26 +227,24 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
 
             if(fBitAsset) {
                 // find spent asset value
-                amountAssetInOut = amountAssetInOut +  coin.out.nValue;
+                amountAssetInOut = amountAssetInOut +  coinValue;
             }
     
         }
 
-        if (tx.nVersion != TRANSACTION_CHROMAASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
-            if(fBitAsset) {
-                LogPrintf("Asset inputs not accepted in standard transaction \n");
-                return false;
-            }
+        if (tx.nVersion == 2 && fBitAsset) {
+            LogPrintf("Asset inputs not accepted in standard transaction \n");
+            return false;
         }
     }
     
     if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
         CAmount amountAssetOut = CAmount(0); 
         for (unsigned int i = 0; i < tx.vout.size(); i++) {
-        if(amountAssetOut == amountAssetInOut) {
-            break;
-        }
-        amountAssetOut = amountAssetOut + tx.vout[i].nValue;
+            if(amountAssetOut == amountAssetInOut) {
+                break;
+            }
+            amountAssetOut = amountAssetOut + tx.vout[i].nValue;
         }
         // check asset full spent on output
         if(amountAssetOut != amountAssetInOut) {

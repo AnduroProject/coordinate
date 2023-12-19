@@ -124,6 +124,7 @@ BITCOIN_CORE_H = \
   auxpow.h \
   federation_deposit.h \
   chroma_assets.h \
+  chroma_mempool_entry.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -645,6 +646,7 @@ libbitcoin_common_a_SOURCES = \
   auxpow.cpp \
   federation_deposit.cpp \
   chroma/chroma_assets.cpp \
+  chroma/chroma_mempool_entry.cpp \
   federation_validator.cpp \
   base58.cpp \
   bech32.cpp \
@@ -907,6 +909,7 @@ libbitcoinkernel_la_SOURCES = \
   auxpow.cpp \
   federation_deposit.cpp \
   chroma/chroma_assets.cpp \
+  chroma/chroma_mempool_entry.cpp \
   federation_validator.cpp \
   chain.cpp \
   chainparamsbase.cpp \

@@ -64,7 +64,7 @@
 #include <string>
 #include <utility>
 #include <federation_deposit.h>
-
+#include <chroma/chroma_mempool_entry.h>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -671,6 +671,13 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     TxValidationState& state = ws.m_state;
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
 
+    int chromaOutputs = 0; 
+    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        chromaOutputs = 2;
+    } else if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+        chromaOutputs = getAssetOutputCount(tx,m_active_chainstate);
+    }
+
     if (!CheckTransaction(tx, state)) {
         return false; // state filled in by CheckTransaction
     }
@@ -794,10 +801,10 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    // if(!AreChromaTransactionStandard(tx, m_view)) {
-    //    LogPrintf("Invalid transaction standard \n");
-    //    return false; // state filled in by CheckTxInputs
-    // }
+    if(!AreChromaTransactionStandard(tx, m_view)) {
+       LogPrintf("Invalid transaction standard \n");
+       return false; // state filled in by CheckTxInputs
+    }
 
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
@@ -1172,6 +1179,12 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
                 MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                              ws.m_base_fees, effective_feerate, effective_feerate_wtxids));
             GetMainSignals().TransactionAddedToMempool(ws.m_ptx, m_pool.GetAndIncrementSequence());
+            // adding asset coin info to back track child transaction in checkTransaction Function
+            if(ws.m_ptx->nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+                includeMempoolAsset(*ws.m_ptx, m_active_chainstate);
+            }
+            
+            
         } else {
             all_submitted = false;
             ws.m_state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool full");
@@ -1208,12 +1221,16 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
         return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                             ws.m_base_fees, effective_feerate, single_wtxid);
     }
-
+    
 
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
-
+    
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.GetAndIncrementSequence());
-
+                // adding asset coin info to back track child transaction in checkTransaction Function
+    if(ptx->nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+        includeMempoolAsset(*ptx, m_active_chainstate);
+    }
+    
 
     return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees,
                                         effective_feerate, single_wtxid);
@@ -1581,7 +1598,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // disable block subsidy. only fee will be given as reward
-    return 0;
+    // return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2489,6 +2506,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             nNewAssetID = asset.nID;
         }
 
+        if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+            removeMempoolAsset(tx.GetHash());
+        }
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
