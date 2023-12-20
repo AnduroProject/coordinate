@@ -183,22 +183,25 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
         uint32_t nAssetID = 0;
         Coin coin;
         CAmount coinValue = 0;
-        // check input is unspent
-        bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
-        if(!is_asset) {
-            ChromaMempoolEntry* assetMempoolObj;
-            bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, assetMempoolObj);
-            if(!is_mempool_asset) {
-                LogPrintf("Invalid inputs \n");
-                return false;
-            }
+
+        ChromaMempoolEntry assetMempoolObj;
+        bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
+        if(is_mempool_asset) {
             fBitAsset = true;
             fBitAssetControl = false;
-            nAssetID = assetMempoolObj->assetID;
-            coinValue = assetMempoolObj->nValue;
+            nAssetID = assetMempoolObj.assetID;
+            coinValue = assetMempoolObj.nValue;
         } else {
-            coinValue = coin.out.nValue;
+            // check input is unspent
+            bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+            if(!is_asset) {
+                LogPrintf("Invalid inputs \n");
+                return false;
+            } else {
+                coinValue = coin.out.nValue;
+            }
         }
+
 
         if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
             // check first input is asset
@@ -206,7 +209,6 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
                 LogPrintf("Asset controller value not accepted \n");
                 return false;
             }
-            
             if(i == 0 && !fBitAsset) {
                 LogPrintf("Transfer should have first element as asset \n");
                 return false;

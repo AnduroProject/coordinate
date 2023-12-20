@@ -5,9 +5,7 @@
 #include <primitives/transaction.h>
 #include <validation.h>
 
-/**
- * Chroma mempool entry registry structure
-*/
+
 template<typename Stream, typename ChromaMempoolEntryType>
 inline void UnserializeChromaMempoolEntry(ChromaMempoolEntryType& assetData, Stream& s) {
     s >> assetData.assetID;
@@ -24,12 +22,13 @@ inline void SerializeChromaMempoolEntry(const ChromaMempoolEntryType& assetData,
     s >> assetData.nValue;
 }
 
+
 struct ChromaMempoolEntry {
 public:
     uint32_t assetID; /*!< Asset unique number */
     uint256 txid;  /*!< Asset Mempool txid*/
-    uint32_t vout;  /*!< Asset Transaction vout*/
-    CAmount nValue;  /*!< Asset Transaction value*/
+    uint32_t vout;  /*!< Asset Mempool Transaction vout*/
+    CAmount nValue;  /*!< Asset Mempool Transaction value*/
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -59,12 +58,49 @@ public:
     }
 };
 
-
+/**
+ * This is the function which used to get mempool asset information
+ * @param[in] txid  txid used in transaction inputs
+ * @param[in] voutIn  vout used in transaction inputs
+ * @param[in] assetMempoolObj  chroma mempool entry that return back with value
+ */
 bool getMempoolAsset(uint256 txid, uint32_t voutIn, ChromaMempoolEntry* assetMempoolObj);
+/**
+ * This is the function which used to get mempool asset information by txid
+ * @param[in] txid  mempool transaction id
+ */
 int findMempoolAssetByTxid(uint256 txid);
+/**
+ * This is the function which used to get asset total amount
+ * @param[in] tx  transaction information to find what is the amount asset included
+ * @param[in] m_active_chainstate  active chain state information
+ * @param[in] amountAssetIn  returns total asset amount used in transaction
+ * @param[in] currentAssetID  returns current asset id
+ */
 bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate, CAmount& amountAssetIn, uint32_t& currentAssetID);
+/**
+ * This is the function which insert new parent asset information in mempool
+ * @param[in] assetMempoolObj  chroma mempool entry information
+ */
 bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj);
+/**
+ * This is the function which remove all asset transaction based on txid
+ * @param[in] txidIn  mempool transaction id
+ */
 bool removeMempoolAsset(uint256 txidIn);
+/**
+ * This is the function which include mempool asset
+ * @param[in] tx  transaction, going to included in chroma mempool entry
+ * @param[in] m_active_chainstate  active chain state information
+ */
 void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate);
+/**
+ * This is the function which get asset ouput information for particular transaction 
+ * @param[in] tx  transaction, used to find asset ouputs
+ * @param[in] m_active_chainstate  active chain state information
+ */
 int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate);
+/**
+ * This is the function which get mempool asset information through rpc
+ */
 std::vector<ChromaMempoolEntry> getMempoolAssets();
