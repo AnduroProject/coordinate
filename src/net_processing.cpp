@@ -51,7 +51,11 @@
 #include <optional>
 #include <typeinfo>
 #include <federation_deposit.h>
+#include <chroma/chroma_mempool_entry.h>
+#include <node/transaction.h>
+#include <federation_validator.h>
 
+using node::GetTransaction;
 using node::ReadBlockFromDisk;
 using node::ReadRawBlockFromDisk;
 
@@ -4703,8 +4707,17 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
     if (msg_type == NetMsgType::ASSETDATAREPONSE) {
         ChromaAssetData assetData;
         vRecv >> assetData;
-        m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
+
+        const CBlockIndex* blockindex = m_chainman.m_blockman.LookupBlockIndex(assetData.blockHash);
+        if(blockindex) {
+            const CTransactionRef tx = GetTransaction(blockindex, nullptr, assetData.txid, m_chainman.GetConsensus(), assetData.blockHash);
+            if(assetData.dataHex.size() <= MAX_ASSET_DATA_WEIGHT && (tx->payload.ToString().compare(prepareMessageHash(assetData.dataHex).ToString()) == 0)) {
+                 m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
+                 m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
+            }
+        }
+        
+
     }
 
     if (msg_type == NetMsgType::PONG) {

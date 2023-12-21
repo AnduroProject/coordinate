@@ -1,5 +1,5 @@
 #include <chroma/chroma_mempool_entry.h>
-
+#include <federation_validator.h>
 
 std::vector<ChromaMempoolEntry> chromaMempoolEntry;
 
@@ -20,10 +20,10 @@ bool getMempoolAsset(uint256 txid, uint32_t voutIn, ChromaMempoolEntry* assetMem
 /**
  * This is the function which used to get mempool asset information by txid
  */
-int findMempoolAssetByTxid(uint256 txid) {
+int findMempoolAssetByTxid(uint256 txid, int32_t voutIn) {
     auto it = std::find_if(chromaMempoolEntry.begin(), chromaMempoolEntry.end(), 
-                       [txid] (const ChromaMempoolEntry& d) { 
-                          return d.txid == txid; 
+                       [txid, voutIn] (const ChromaMempoolEntry& d) { 
+                          return d.txid == txid && d.vout == voutIn; ; 
                        });
     if (it == chromaMempoolEntry.end()) {
        return -1;
@@ -42,10 +42,12 @@ bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj) {
 /**
  * This is the function which remove all asset transaction based on txid
  */
-bool removeMempoolAsset(uint256 txidIn) {
-    int indexToRemove =  findMempoolAssetByTxid(txidIn);
-    if(indexToRemove != -1)  {
-        chromaMempoolEntry.erase(chromaMempoolEntry.begin() + indexToRemove);
+bool removeMempoolAsset(const CTransaction& tx) {
+    for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        int indexToRemove =  findMempoolAssetByTxid(tx.GetHash(),i);
+        if(indexToRemove != -1)  {
+            chromaMempoolEntry.erase(chromaMempoolEntry.begin() + indexToRemove);
+        }
     }
 }
 /**

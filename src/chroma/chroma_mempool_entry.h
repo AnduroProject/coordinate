@@ -5,6 +5,7 @@
 #include <primitives/transaction.h>
 #include <validation.h>
 
+static constexpr unsigned int MAX_ASSET_DATA_WEIGHT{150000};
 
 template<typename Stream, typename ChromaMempoolEntryType>
 inline void UnserializeChromaMempoolEntry(ChromaMempoolEntryType& assetData, Stream& s) {
@@ -68,8 +69,9 @@ bool getMempoolAsset(uint256 txid, uint32_t voutIn, ChromaMempoolEntry* assetMem
 /**
  * This is the function which used to get mempool asset information by txid
  * @param[in] txid  mempool transaction id
+ * @param[in] vout  mempool transaction vout
  */
-int findMempoolAssetByTxid(uint256 txid);
+int findMempoolAssetByTxid(uint256 txid, int32_t voutIn);
 /**
  * This is the function which used to get asset total amount
  * @param[in] tx  transaction information to find what is the amount asset included
@@ -85,9 +87,9 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
 bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj);
 /**
  * This is the function which remove all asset transaction based on txid
- * @param[in] txidIn  mempool transaction id
+ * @param[in] tx  transaction, used to find asset ouputs
  */
-bool removeMempoolAsset(uint256 txidIn);
+bool removeMempoolAsset(const CTransaction& tx);
 /**
  * This is the function which include mempool asset
  * @param[in] tx  transaction, going to included in chroma mempool entry

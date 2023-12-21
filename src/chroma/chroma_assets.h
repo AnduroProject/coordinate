@@ -1,6 +1,8 @@
+
 #include <iostream>
 #include <uint256.h>
 #include <serialize.h>
+
 
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
@@ -94,6 +96,7 @@ struct ChromaAssetData {
 public:
     uint32_t nID; /*!< Asset unique number */
     uint256 txid;  /*!< Asset gensis id when the asset is newly minted or additionaly minted */
+    uint256 blockHash;  /*!< block hash where Asset gensis id located*/
     std::string dataHex; /*!< Asset data field hold asset image data or url with additional asset attributes  */
 
     template <typename Stream>
@@ -119,7 +122,9 @@ public:
     {
         nID = 0;
         txid.SetNull();
+        blockHash.SetNull();
         dataHex="";
     }
 };
+
 

@@ -25,6 +25,7 @@
 #include <utility>
 #include <federation_deposit.h>
 #include <federation_validator.h>
+#include <chroma/chroma_mempool_entry.h>
 using kernel::DumpMempool;
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
@@ -147,6 +148,7 @@ static RPCHelpMan sendrawtransaction()
             AssertLockNotHeld(cs_main);
             NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTransaction& ptx = *tx;  
+            
 
             if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
@@ -154,12 +156,23 @@ static RPCHelpMan sendrawtransaction()
 
             if(!request.params[3].isNull()) {
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                ChromaAssetData assetData;
-                assetData.nID = -1;
-                assetData.txid = ptx.GetHash();
-                assetData.dataHex = request.params[3].get_str();
-                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
                 
+                std::string dataHex = request.params[3].get_str();
+                if(dataHex.size() > MAX_ASSET_DATA_WEIGHT) {
+                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset max size failed"); 
+                }
+
+                if(ptx.payload.ToString().compare(prepareMessageHash(dataHex).ToString()) != 0) {
+                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset payload hash not matched"); 
+                }
+
+                ChromaAssetData assetData;
+                assetData.nID = 0;
+                assetData.txid = ptx.GetHash();
+                assetData.dataHex = dataHex;
+                assetData.blockHash = uint256::ZERO; 
+
+                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
             }
 
             const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);

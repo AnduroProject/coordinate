@@ -2487,6 +2487,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
                 if(!assetData.txid.IsNull()) {
                     assetData.nID = nIDLast;
+                    assetData.blockHash = block.GetHash();
                     passettree->WriteChromaAssetData(assetData);
                 }
 
@@ -2507,7 +2508,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
 
         if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
-            removeMempoolAsset(tx.GetHash());
+            removeMempoolAsset(tx);
         }
         CTxUndo undoDummy;
         if (i > 0) {
