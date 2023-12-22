@@ -154,17 +154,19 @@ static RPCHelpMan sendrawtransaction()
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
             }
 
-            if(!request.params[3].isNull()) {
+            if(!request.params[3].isNull() && ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
                 
                 std::string dataHex = request.params[3].get_str();
                 if(dataHex.size() > MAX_ASSET_DATA_WEIGHT) {
                     throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset max size failed"); 
                 }
-
+                LogPrintf("payload hex %s \n",dataHex);
+                
                 if(ptx.payload.ToString().compare(prepareMessageHash(dataHex).ToString()) != 0) {
                     throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset payload hash not matched"); 
                 }
+        
 
                 ChromaAssetData assetData;
                 assetData.nID = 0;
