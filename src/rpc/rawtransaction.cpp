@@ -170,6 +170,7 @@ static std::vector<RPCArg> CreateTxDoc()
                 {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Headline"},
                 {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Ticker"},
                 {"payload", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Payload"},
+                {"payloaddata", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Payload Data"},
             },
         },
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
@@ -378,12 +379,14 @@ static RPCHelpMan createrawtransaction()
             {"headline", UniValueType(UniValue::VSTR)},
             {"ticker", UniValueType(UniValue::VSTR)},
             {"payload", UniValueType(UniValue::VSTR)},
+            {"payloaddata", UniValueType(UniValue::VSTR)},
         });
         rawTx.nVersion = find_value(assetParams,"version").getInt<int>();
         rawTx.assetType = find_value(assetParams,"assettype").getInt<int>();
         rawTx.headline = find_value(assetParams,"headline").get_str();
         rawTx.ticker = find_value(assetParams,"ticker").get_str();
         rawTx.payload = uint256S(find_value(assetParams,"payload").get_str());
+        rawTx.payloadData = find_value(assetParams,"payloaddata").get_str();
     }
 
     return EncodeHexTx(CTransaction(rawTx));

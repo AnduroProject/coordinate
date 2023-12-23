@@ -5,7 +5,6 @@
 #include <primitives/transaction.h>
 #include <validation.h>
 
-static constexpr unsigned int MAX_ASSET_DATA_WEIGHT{1500000};
 
 template<typename Stream, typename ChromaMempoolEntryType>
 inline void UnserializeChromaMempoolEntry(ChromaMempoolEntryType& assetData, Stream& s) {

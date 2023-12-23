@@ -1598,7 +1598,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // disable block subsidy. only fee will be given as reward
-    return 0;
+    // return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2428,9 +2428,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (tx.vout.size() < 2) {
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
             }
-            ChromaAssetData assetData;
-            bool is_asset_data = passettree->GetAssetData(tx.GetHash(), assetData);
-            passettree->RemoveAssetData(tx.GetHash());
+
 
             uint32_t nIDLast = 0;
             uint32_t nAssetID = 0;
@@ -2483,12 +2481,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     asset.strController = "OP_RETURN";
                 } else {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
-                }
-
-                if(!assetData.txid.IsNull()) {
-                    assetData.nID = nIDLast;
-                    assetData.blockHash = block.GetHash();
-                    passettree->WriteChromaAssetData(assetData);
                 }
 
                 // Update latest ChromaAsset ID #

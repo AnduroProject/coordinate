@@ -230,6 +230,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
         s >> tx.ticker;
         s >> tx.headline;
         s >> tx.payload;
+        s >> tx.payloadData;
     }
     unsigned char flags = 0;
     tx.vin.clear();
@@ -277,6 +278,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
         s << tx.ticker;
         s << tx.headline;
         s << tx.payload;
+        s << tx.payloadData;
     }
     unsigned char flags = 0;
     // Consistency check
@@ -336,6 +338,7 @@ public:
     const std::string ticker;
     const std::string headline;
     const uint256 payload;
+    const std::string payloadData;
     const uint32_t nLockTime;
 
 
@@ -419,6 +422,7 @@ struct CMutableTransaction
     std::string ticker;
     std::string headline;
     uint256 payload;
+    std::string payloadData;
     uint32_t nLockTime;
 
 

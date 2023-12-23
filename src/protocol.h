@@ -142,11 +142,6 @@ extern const char* PREBLOCKSIGNREQUEST;
 
 extern const char* PREBLOCKSIGNREPONSE;
 
-
-extern const char* ASSETDATAREQUEST;
-
-extern const char* ASSETDATAREPONSE;
-
 /**
  * The ping message is sent periodically to help confirm that the receiving
  * peer is still connected.

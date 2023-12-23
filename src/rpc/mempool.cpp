@@ -70,7 +70,6 @@ static RPCHelpMan sendrawtransaction()
                 }
               }
             },
-            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex string of the asset data"},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -149,34 +148,6 @@ static RPCHelpMan sendrawtransaction()
             NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTransaction& ptx = *tx;  
             
-
-            if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
-                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
-            }
-
-            if(!request.params[3].isNull() && ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-                ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                
-                std::string dataHex = request.params[3].get_str();
-                if(dataHex.size() > MAX_ASSET_DATA_WEIGHT) {
-                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset max size failed"); 
-                }
-                LogPrintf("payload hex %s \n",dataHex);
-                
-                if(ptx.payload.ToString().compare(prepareMessageHash(dataHex).ToString()) != 0) {
-                    throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset payload hash not matched"); 
-                }
-        
-
-                ChromaAssetData assetData;
-                assetData.nID = 0;
-                assetData.txid = ptx.GetHash();
-                assetData.dataHex = dataHex;
-                assetData.blockHash = uint256::ZERO; 
-
-                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-            }
-
             const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);
             if (TransactionError::OK != err) {
                 throw JSONRPCTransactionError(err, err_string);

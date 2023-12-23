@@ -3,6 +3,7 @@
 #include <uint256.h>
 #include <serialize.h>
 
+static constexpr unsigned int MAX_ASSET_DATA_WEIGHT{1500000};
 
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
@@ -74,57 +75,4 @@ public:
         strOwner="";
     }
 };
-
-/**
- * Asset data registry structure
-*/
-template<typename Stream, typename ChromaDataType>
-inline void UnserializeAssetData(ChromaDataType& assetData, Stream& s) {
-    s >> assetData.nID;
-    s >> assetData.txid;
-    s >> assetData.dataHex;
-}
-
-template<typename Stream, typename ChromaDataType>
-inline void SerializeAssetData(const ChromaDataType& assetData, Stream& s) {
-    s << assetData.nID;
-    s << assetData.txid;
-    s << assetData.dataHex;
-}
-
-struct ChromaAssetData {
-public:
-    uint32_t nID; /*!< Asset unique number */
-    uint256 txid;  /*!< Asset gensis id when the asset is newly minted or additionaly minted */
-    uint256 blockHash;  /*!< block hash where Asset gensis id located*/
-    std::string dataHex; /*!< Asset data field hold asset image data or url with additional asset attributes  */
-
-    template <typename Stream>
-    inline void Serialize(Stream& s) const {
-        SerializeAssetData(*this, s);
-    }
-
-    template <typename Stream>
-    inline void Unserialize(Stream& s) {
-        UnserializeAssetData(*this, s);
-    }
-
-    template <typename Stream>
-    ChromaAssetData(deserialize_type, Stream& s) {
-        Unserialize(s);
-    }
-
-    ChromaAssetData() {
-        SetNull();
-    }
-
-    void SetNull()
-    {
-        nID = 0;
-        txid.SetNull();
-        blockHash.SetNull();
-        dataHex="";
-    }
-};
-
 

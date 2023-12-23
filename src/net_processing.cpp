@@ -4684,42 +4684,6 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
-    // receive request from other peer to get recent asset information based on asset id
-    if (msg_type == NetMsgType::ASSETDATAREQUEST) {
-        uint32_t requestedAssetDataId = 0;
-        uint32_t lastAssetDataId = 0;
-
-        vRecv >> requestedAssetDataId;
-        m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
-        if(requestedAssetDataId <= lastAssetDataId) {
-            ChromaAsset asset;
-            if(m_chainman.ActiveChainstate().passettree->GetAsset(requestedAssetDataId, asset)) {
-                ChromaAssetData assetData;
-                bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
-                if(!assetData.txid.IsNull() && assetData.nID > 0) {
-                    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::ASSETDATAREPONSE, assetData));
-                }
-            }
-        }
-    }
-
-    // receive response from other peer for recent asset information based on asset id
-    if (msg_type == NetMsgType::ASSETDATAREPONSE) {
-        ChromaAssetData assetData;
-        vRecv >> assetData;
-
-        const CBlockIndex* blockindex = m_chainman.m_blockman.LookupBlockIndex(assetData.blockHash);
-        if(blockindex) {
-            const CTransactionRef tx = GetTransaction(blockindex, nullptr, assetData.txid, m_chainman.GetConsensus(), assetData.blockHash);
-            if(assetData.dataHex.size() <= MAX_ASSET_DATA_WEIGHT && (tx->payload.ToString().compare(prepareMessageHash(assetData.dataHex).ToString()) == 0)) {
-                 m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-                 m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
-            }
-        }
-        
-
-    }
-
     if (msg_type == NetMsgType::PONG) {
         const auto ping_end = time_received;
         uint64_t nonce = 0;
@@ -5217,29 +5181,6 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
-        }
-
-        if(!m_chainman.ActiveChainstate().isAssetPrune) {
-           // Every 5 second node will check and request asset data is not fully synced
-            uint32_t lastAssetId = 0;
-            uint32_t lastAssetDataId = 0;
-            m_chainman.ActiveChainstate().passettree->GetLastAssetID(lastAssetId);
-            m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
-
-            if(lastAssetId > lastAssetDataId) {
-                ChromaAsset asset;
-                bool is_asset = m_chainman.ActiveChainstate().passettree->GetAsset(lastAssetDataId + 1,asset);
-                if(is_asset) {
-                    ChromaAssetData assetData;
-                    bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
-                    if(!assetData.txid.IsNull()) {
-                        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(lastAssetDataId + 1);
-                    } else {
-                        const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
-                        m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::ASSETDATAREQUEST, lastAssetDataId + 1));
-                    }
-                }
-            }
         }
     }
 }

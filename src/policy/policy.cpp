@@ -22,6 +22,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <vector>
+#include <federation_validator.h>
 #include <chroma/chroma_mempool_entry.h>
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
@@ -175,6 +176,15 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 }
 
 bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
+    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+      if(tx.payloadData.compare("") != 0) {
+        if(tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+            LogPrintf("Asset payload information in invalid \n");
+            return false;
+        }
+      }
+
+    }
     CAmount amountAssetInOut = CAmount(0); 
     uint32_t currentAssetID = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
