@@ -18,8 +18,8 @@ template<typename Stream, typename ChromaMempoolEntryType>
 inline void SerializeChromaMempoolEntry(const ChromaMempoolEntryType& assetData, Stream& s) {
     s << assetData.assetID;
     s << assetData.txid;
-    s >> assetData.vout;
-    s >> assetData.nValue;
+    s << assetData.vout;
+    s << assetData.nValue;
 }
 
 
@@ -27,7 +27,7 @@ struct ChromaMempoolEntry {
 public:
     uint32_t assetID; /*!< Asset unique number */
     uint256 txid;  /*!< Asset Mempool txid*/
-    uint32_t vout;  /*!< Asset Mempool Transaction vout*/
+    int32_t vout;  /*!< Asset Mempool Transaction vout*/
     CAmount nValue;  /*!< Asset Mempool Transaction value*/
 
     template <typename Stream>
@@ -79,11 +79,6 @@ int findMempoolAssetByTxid(uint256 txid, int32_t voutIn);
  * @param[in] currentAssetID  returns current asset id
  */
 bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate, CAmount& amountAssetIn, uint32_t& currentAssetID);
-/**
- * This is the function which insert new parent asset information in mempool
- * @param[in] assetMempoolObj  chroma mempool entry information
- */
-bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj);
 /**
  * This is the function which remove all asset transaction based on txid
  * @param[in] tx  transaction, used to find asset ouputs

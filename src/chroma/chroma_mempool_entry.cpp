@@ -21,22 +21,7 @@ bool getMempoolAsset(uint256 txid, uint32_t voutIn, ChromaMempoolEntry* assetMem
  * This is the function which used to get mempool asset information by txid
  */
 int findMempoolAssetByTxid(uint256 txid, int32_t voutIn) {
-    auto it = std::find_if(chromaMempoolEntry.begin(), chromaMempoolEntry.end(), 
-                       [txid, voutIn] (const ChromaMempoolEntry& d) { 
-                          return d.txid == txid && d.vout == voutIn; ; 
-                       });
-    if (it == chromaMempoolEntry.end()) {
-       return -1;
-    } else {
-       return it - chromaMempoolEntry.begin();
-    }
-}
-
-/**
- * This is the function which insert new parent asset information in mempool
- */
-bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj) {
-    chromaMempoolEntry.push_back(assetMempoolObj);
+    
 }
 
 /**
@@ -44,9 +29,13 @@ bool addMempoolAsset(ChromaMempoolEntry& assetMempoolObj) {
  */
 bool removeMempoolAsset(const CTransaction& tx) {
     for (unsigned int i = 0; i < tx.vout.size(); i++) {
-        int indexToRemove =  findMempoolAssetByTxid(tx.GetHash(),i);
-        if(indexToRemove != -1)  {
-            chromaMempoolEntry.erase(chromaMempoolEntry.begin() + indexToRemove);
+        auto it = std::find_if(chromaMempoolEntry.begin(), chromaMempoolEntry.end(), 
+                       [txid, voutIn] (const ChromaMempoolEntry& d) { 
+                          return d.txid == txid && d.vout == voutIn; ; 
+                       });
+        if (it == chromaMempoolEntry.end()) {
+        } else {
+           chromaMempoolEntry.erase(chromaMempoolEntry.begin() + it - chromaMempoolEntry.begin());
         }
     }
 }
@@ -59,7 +48,7 @@ void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate
     bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
     if(has_asset_amount) {
         CAmount amountAssetOut = 0;
-        for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        for (int32_t i = 0; i < tx.vout.size(); i++) {
             if(amountAssetOut == amountAssetIn) {
                 break;
             }
@@ -68,7 +57,7 @@ void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate
             assetMempoolObj.txid = tx.GetHash();
             assetMempoolObj.vout = i;
             assetMempoolObj.nValue = tx.vout[i].nValue;
-            addMempoolAsset(assetMempoolObj);
+            chromaMempoolEntry.push_back(assetMempoolObj);
             amountAssetOut = amountAssetOut + tx.vout[i].nValue;
         }
     }
