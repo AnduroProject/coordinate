@@ -27,7 +27,6 @@ static constexpr CAmount COIN = 100000000;
  * */
 static constexpr CAmount MAX_MONEY = 21000000 * COIN;
 static constexpr CAmount MAX_ASSET_OUT_VALUE = std::numeric_limits<int64_t>::max();
-inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0); }
-//inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
+inline bool MoneyRange(const CAmount& nValue) { return (nValue >= 0 && nValue <= MAX_MONEY); }
 
 #endif // BITCOIN_CONSENSUS_AMOUNT_H
