@@ -67,21 +67,12 @@ CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), 
 
 uint256 CMutableTransaction::GetHash() const
 {
-    const CMutableTransaction tx = *this;
-    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        tx.payloadData = "";
-    }
-
-    return SerializeHash(tx, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
 }
 
 uint256 CTransaction::ComputeHash() const
 {
-    const CTransaction tx = *this;
-    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        tx.payloadData = "";
-    }
-    return SerializeHash(tx, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
 }
 
 uint256 CTransaction::ComputeWitnessHash() const
@@ -89,11 +80,7 @@ uint256 CTransaction::ComputeWitnessHash() const
     if (!HasWitness()) {
         return hash;
     }
-    const CTransaction tx = *this;
-    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        tx.payloadData = "";
-    }
-    return SerializeHash(tx, SER_GETHASH, 0);
+    return SerializeHash(*this, SER_GETHASH, 0);
 }
 
 CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), assetType(tx.assetType), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}

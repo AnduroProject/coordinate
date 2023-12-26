@@ -2370,7 +2370,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
         if (!tx.IsCoinBase()) {
             // checking payload is correct for asset transaction
-            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !m_chainman.ActiveChainstate().isAssetPrune) {
+            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
                 if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
                 }
@@ -4162,12 +4162,6 @@ bool Chainstate::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, BlockV
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
-        // removing transaction payload before storing to disk
-        if(m_chainman.ActiveChainstate().isAssetPrune) {
-            for (size_t i = 0; i < block.vtx.size(); i++) {
-                block.vtx[i]->payloadData = "";
-            }
-        }
         FlatFilePos blockPos{m_blockman.SaveBlockToDisk(block, pindex->nHeight, m_chain, params, dbp)};
         if (blockPos.IsNull()) {
             state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
