@@ -1,19 +1,27 @@
-Bitcoin Core integration/staging tree
+Coordinate Sidechain integration/staging tree
 =====================================
 
 https://bitcoincore.org
 
-For an immediately usable, binary version of the Bitcoin Core software, see
+For an immediately usable, binary version of the Coordinate sidechain software, see
 https://bitcoincore.org/en/download/.
 
-What is Bitcoin Core?
----------------------
+What is Coordinate
+------------------
+Coordinate is a Bitcoin Layer 2 Sidechain that support digital assets natively though hash representations and
+on-chain data blobs. (_images_, _audio_, _text_, etc ...) A user can interact with the Coordinate layer 2 by
+pegging in (_depositing_) BTC or TBTC with the sidechain federation. These funds are secured by a 66% super majority.
+You will get CBTC (_coordinate bitcoin_) that are redeemable to the federation at a 1:1 ratio for Bitcoin.
 
-Bitcoin Core connects to the Bitcoin peer-to-peer network to download and fully
-validate blocks and transactions. It also includes a wallet and graphical user
-interface, which can be optionally built.
+CBTC(s) will allow you to perfom various types of transactions on the Coordinate sidechain. You can perform
+any Bitcoin like transaction on the Coordinate sidecahin. _E.x. P2PK, P2PKH, P2SH, P2WPKH, P2WSH, P2TR, etc ...
+This is useful for users who desire more frequent settlement and on average lower fees than what Bitcoins mainnet
+can offer. The second type is Coordinate's version 10 transactions the creation of onchain assets.
 
-Further information about Bitcoin Core is available in the [doc folder](/doc).
+
+What is the Coordinate sidechain node?
+--------------------------------------
+The Coordinate sidechain node implementaton is the reference client to interact with the Coordinate sidechain.
 
 License
 -------
