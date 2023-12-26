@@ -1,11 +1,6 @@
 Coordinate Sidechain integration/staging tree
 =====================================
 
-https://bitcoincore.org
-
-For an immediately usable, binary version of the Coordinate sidechain software, see
-https://bitcoincore.org/en/download/.
-
 What is Coordinate
 ------------------
 Coordinate is a Bitcoin Layer 2 Sidechain that support digital assets natively though hash representations and
@@ -23,10 +18,23 @@ What is the Coordinate sidechain node?
 --------------------------------------
 The Coordinate sidechain node implementaton is the reference client to interact with the Coordinate sidechain.
 
+Building
+--------
+```
+git clone git@github.com:MarathonDH/mara-sidechain-node.git mara-sidechain-node
+cd mara-sidechain-node/depends
+export HOST_TRIPLET=$(`./config.guess`)
+make HOST=$HOST_TRIPLET
+cd ..
+./autogen.sh
+./configure --prefix=$PWD/depends/$HOST_TRIPLET
+make
+```
+
 License
 -------
 
-Bitcoin Core is released under the terms of the MIT license. See [COPYING](COPYING) for more
+The Coordinate Sidechain node is released under the terms of the MIT license. See [COPYING](COPYING) for more
 information or see https://opensource.org/licenses/MIT.
 
 Development Process
