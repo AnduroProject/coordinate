@@ -65,6 +65,7 @@
 #include <utility>
 #include <federation_deposit.h>
 #include <chroma/chroma_mempool_entry.h>
+#include <federation_validator.h>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -676,6 +677,13 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         chromaOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
         chromaOutputs = getAssetOutputCount(tx,m_active_chainstate);
+    }
+
+    uint32_t nIDLast = 0;
+    m_active_chainstate.passettree->GetLastAssetID(nIDLast);
+    if(nIDLast > UINT32_MAX){
+        LogPrintf("asset id maxium count reached");
+        return false;
     }
 
     if (!CheckTransaction(tx, state)) {
@@ -2361,6 +2369,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         nInputs += tx.vin.size();
 
         if (!tx.IsCoinBase()) {
+            // checking payload is correct for asset transaction
+            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !m_chainman.ActiveChainstate().isAssetPrune) {
+                if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
+                }
+            }
+
             if (!AreChromaTransactionStandard(tx,view)) {
                 LogPrintf("Invalid transaction standard \n");
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
@@ -2434,6 +2449,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             uint32_t nAssetID = 0;
             ChromaAsset asset;
             passettree->GetLastAssetID(nIDLast);
+
+            if(nIDLast>UINT32_MAX) {
+               return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Maxium asset count reacheds");
+            }
             nIDLast = nIDLast + 1;
             // addtional mint for tokens
             if (tx.assetType == 0) {
@@ -4143,6 +4162,12 @@ bool Chainstate::AcceptBlock(const std::shared_ptr<const CBlock>& pblock, BlockV
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
+        // removing transaction payload before storing to disk
+        if(m_chainman.ActiveChainstate().isAssetPrune) {
+            for (size_t i = 0; i < block.vtx.size(); i++) {
+                block.vtx[i]->payloadData = "";
+            }
+        }
         FlatFilePos blockPos{m_blockman.SaveBlockToDisk(block, pindex->nHeight, m_chain, params, dbp)};
         if (blockPos.IsNull()) {
             state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
