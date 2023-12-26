@@ -1,8 +1,6 @@
-
 #include <iostream>
 #include <uint256.h>
 #include <serialize.h>
-
 
 template<typename Stream, typename ChromaType>
 inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
@@ -32,8 +30,8 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
 
 struct ChromaAsset {
 public:
-    uint32_t nID;   /*!< Asset unique number */
-    uint32_t assetType; /*!< Asset type - (e.g. 0 - tokens, 1 - nft, 1 - blob nft) */
+    uint32_t nID; /*!< Asset unique number */
+    uint32_t assetType; /*!< Asset type - (e.g. 0 - tokens, 1 - nft, 2 - blob nft) */
     std::string strTicker; /*!< Asset symbol. */
     std::string strHeadline; /*!< Asset name. */
     uint256 payload; /*!< Asset sha256 id combination for all asset information with asset data. */
