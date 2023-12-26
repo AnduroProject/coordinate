@@ -338,7 +338,7 @@ public:
     const std::string ticker;
     const std::string headline;
     const uint256 payload;
-    const std::string payloadData;
+    mutable std::string payloadData;
     const uint32_t nLockTime;
 
 
@@ -422,7 +422,7 @@ struct CMutableTransaction
     std::string ticker;
     std::string headline;
     uint256 payload;
-    std::string payloadData;
+    mutable std::string payloadData;
     uint32_t nLockTime;
 
 

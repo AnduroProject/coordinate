@@ -28,14 +28,16 @@ int findMempoolAssetByTxid(uint256 txid, int32_t voutIn) {
  * This is the function which remove all asset transaction based on txid
  */
 bool removeMempoolAsset(const CTransaction& tx) {
-    for (unsigned int i = 0; i < tx.vout.size(); i++) {
+    uint256 txid = tx.GetHash();
+    for (int32_t i = 0; i < tx.vout.size(); i++) {
         auto it = std::find_if(chromaMempoolEntry.begin(), chromaMempoolEntry.end(), 
-                       [txid, voutIn] (const ChromaMempoolEntry& d) { 
-                          return d.txid == txid && d.vout == voutIn; ; 
+                       [txid, i] (const ChromaMempoolEntry& d) { 
+                          return d.txid == txid && d.vout == i; ; 
                        });
         if (it == chromaMempoolEntry.end()) {
         } else {
-           chromaMempoolEntry.erase(chromaMempoolEntry.begin() + it - chromaMempoolEntry.begin());
+           int indexToRemove = it - chromaMempoolEntry.begin() ;
+           chromaMempoolEntry.erase(chromaMempoolEntry.begin() + indexToRemove);
         }
     }
 }
