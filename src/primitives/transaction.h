@@ -31,8 +31,8 @@
  * or with `ADDRV2_FORMAT`.
  */
 static const int SERIALIZE_TRANSACTION_NO_WITNESS = 0x40000000;
-static const int TRANSACTION_CHROMAASSET_CREATE_VERSION = 10;
-static const int TRANSACTION_CHROMAASSET_TRANSFER_VERSION = 11;
+static const int TRANSACTION_COORDINATE_ASSET_CREATE_VERSION = 10;
+static const int TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION = 11;
 
 /** An outpoint - a combination of a transaction hash and an index n into its vout */
 class COutPoint
@@ -225,7 +225,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s >> tx.nVersion;
-    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+    if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         s >> tx.assetType;
         s >> tx.ticker;
         s >> tx.headline;
@@ -273,7 +273,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     const bool fAllowWitness = !(GetVersionOrProtocol(s) & SERIALIZE_TRANSACTION_NO_WITNESS);
 
     s << tx.nVersion;
-    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+    if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         s << tx.assetType;
         s << tx.ticker;
         s << tx.headline;

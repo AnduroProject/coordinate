@@ -1,4 +1,4 @@
-#include <federation_validator.h>
+#include <anduro_validator.h>
 #include <string.h>
 #include <script/standard.h>
 #include <logging.h>
@@ -8,7 +8,7 @@
 /**
  * Validate presigned signature
  */
-bool validateFederationSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
+bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue val(UniValue::VOBJ);
@@ -58,7 +58,7 @@ uint256 prepareMessageHash(std::string message) {
 }
 
 /**
- * Signature path available in authorized federation keys
+ * Signature path available in authorized anduro keys
  */
 bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string signaturePath) {
     bool isSignaturePathExist = false;

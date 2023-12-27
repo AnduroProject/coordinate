@@ -22,7 +22,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <vector>
-#include <chroma/chroma_mempool_entry.h>
+#include <coordinate/coordinate_mempool_entry.h>
 
 CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
 {
@@ -94,7 +94,7 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
 
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason)
 {
-    if (tx.nVersion != TRANSACTION_CHROMAASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+    if (tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
             reason = "version";
             return false;
@@ -103,7 +103,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     
 
     //size modification for asset creation version
-    if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+    if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         unsigned int sz = GetTransactionWeight(tx);
         if (sz > MAX_STANDARD_TX_WEIGHT_ASSET) {
             reason = "tx-size";
@@ -157,7 +157,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
             reason = "bare-multisig";
             return false;
         } else if (IsDust(txout, dust_relay_fee)) {
-            if (tx.nVersion != TRANSACTION_CHROMAASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+            if (tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
                reason = "dust";
                return false;
             }
@@ -174,7 +174,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
     return true;
 }
 
-bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
+bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
     CAmount amountAssetInOut = CAmount(0); 
     uint32_t currentAssetID = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
@@ -184,7 +184,7 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
         Coin coin;
         CAmount coinValue = 0;
 
-        ChromaMempoolEntry assetMempoolObj;
+        CoordinateMempoolEntry assetMempoolObj;
         bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
         if(is_mempool_asset) {
             fBitAsset = true;
@@ -203,7 +203,7 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
         }
 
 
-        if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             // check first input is asset
             if(fBitAssetControl) {
                 LogPrintf("Asset controller value not accepted \n");
@@ -240,7 +240,7 @@ bool AreChromaTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapIn
         }
     }
     
-    if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         CAmount amountAssetOut = CAmount(0); 
         for (unsigned int i = 0; i < tx.vout.size(); i++) {
             if(amountAssetOut == amountAssetInOut) {

@@ -6,16 +6,16 @@
 #include <validation.h>
 
 
-template<typename Stream, typename ChromaMempoolEntryType>
-inline void UnserializeChromaMempoolEntry(ChromaMempoolEntryType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateMempoolEntryType>
+inline void UnserializeCoordinateMempoolEntry(CoordinateMempoolEntryType& assetData, Stream& s) {
     s >> assetData.assetID;
     s >> assetData.txid;
     s >> assetData.vout;
     s >> assetData.nValue;
 }
 
-template<typename Stream, typename ChromaMempoolEntryType>
-inline void SerializeChromaMempoolEntry(const ChromaMempoolEntryType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateMempoolEntryType>
+inline void SerializeCoordinateMempoolEntry(const CoordinateMempoolEntryType& assetData, Stream& s) {
     s << assetData.assetID;
     s << assetData.txid;
     s << assetData.vout;
@@ -23,7 +23,7 @@ inline void SerializeChromaMempoolEntry(const ChromaMempoolEntryType& assetData,
 }
 
 
-struct ChromaMempoolEntry {
+struct CoordinateMempoolEntry {
 public:
     uint32_t assetID; /*!< Asset unique number */
     uint256 txid;  /*!< Asset Mempool txid*/
@@ -32,20 +32,20 @@ public:
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
-        SerializeChromaMempoolEntry(*this, s);
+        SerializeCoordinateMempoolEntry(*this, s);
     }
 
     template <typename Stream>
     inline void Unserialize(Stream& s) {
-        UnserializeChromaMempoolEntry(*this, s);
+        UnserializeCoordinateMempoolEntry(*this, s);
     }
 
     template <typename Stream>
-    ChromaMempoolEntry(deserialize_type, Stream& s) {
+    CoordinateMempoolEntry(deserialize_type, Stream& s) {
         Unserialize(s);
     }
 
-    ChromaMempoolEntry() {
+    CoordinateMempoolEntry() {
         SetNull();
     }
 
@@ -62,9 +62,9 @@ public:
  * This is the function which used to get mempool asset information
  * @param[in] txid  txid used in transaction inputs
  * @param[in] voutIn  vout used in transaction inputs
- * @param[in] assetMempoolObj  chroma mempool entry that return back with value
+ * @param[in] assetMempoolObj  Coordinate mempool entry that return back with value
  */
-bool getMempoolAsset(uint256 txid, uint32_t voutIn, ChromaMempoolEntry* assetMempoolObj);
+bool getMempoolAsset(uint256 txid, uint32_t voutIn, CoordinateMempoolEntry* assetMempoolObj);
 /**
  * This is the function which used to get mempool asset information by txid
  * @param[in] txid  mempool transaction id
@@ -86,7 +86,7 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
 void removeMempoolAsset(const CTransaction& tx);
 /**
  * This is the function which include mempool asset
- * @param[in] tx  transaction, going to included in chroma mempool entry
+ * @param[in] tx  transaction, going to included in coordinate mempool entry
  * @param[in] m_active_chainstate  active chain state information
  */
 void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate);
@@ -99,4 +99,4 @@ int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate)
 /**
  * This is the function which get mempool asset information through rpc
  */
-std::vector<ChromaMempoolEntry> getMempoolAssets();
+std::vector<CoordinateMempoolEntry> getMempoolAssets();

@@ -63,9 +63,9 @@
 #include <optional>
 #include <string>
 #include <utility>
-#include <federation_deposit.h>
-#include <chroma/chroma_mempool_entry.h>
-#include <federation_validator.h>
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_mempool_entry.h>
+#include <anduro_validator.h>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -672,11 +672,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     TxValidationState& state = ws.m_state;
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
 
-    int chromaOutputs = 0; 
-    if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
-        chromaOutputs = 2;
-    } else if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
-        chromaOutputs = getAssetOutputCount(tx,m_active_chainstate);
+    int coordinateOutputs = 0; 
+    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        coordinateOutputs = 2;
+    } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+        coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
     }
 
     uint32_t nIDLast = 0;
@@ -809,7 +809,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if(!AreChromaTransactionStandard(tx, m_view)) {
+    if(!AreCoordinateTransactionStandard(tx, m_view)) {
        LogPrintf("Invalid transaction standard \n");
        return false; // state filled in by CheckTxInputs
     }
@@ -1188,7 +1188,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
                                              ws.m_base_fees, effective_feerate, effective_feerate_wtxids));
             GetMainSignals().TransactionAddedToMempool(ws.m_ptx, m_pool.GetAndIncrementSequence());
             // adding asset coin info to back track child transaction in checkTransaction Function
-            if(ws.m_ptx->nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+            if(ws.m_ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
                 includeMempoolAsset(*ws.m_ptx, m_active_chainstate);
             }
             
@@ -1235,7 +1235,7 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
     
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.GetAndIncrementSequence());
                 // adding asset coin info to back track child transaction in checkTransaction Function
-    if(ptx->nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         includeMempoolAsset(*ptx, m_active_chainstate);
     }
     
@@ -1667,7 +1667,7 @@ void Chainstate::InitCoinsCache(size_t cache_size_bytes)
 void Chainstate::InitAssetCache()
 {
     AssertLockHeld(::cs_main);
-    passettree.reset(new ChromaAssetDB(1 << 21, false, false));
+    passettree.reset(new CoordinateAssetDB(1 << 21, false, false));
 }
 
 // Note that though this is marked const, we may end up modifying `m_cached_finished_ibd`, which
@@ -2361,7 +2361,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
-    std::vector<ChromaAsset> vAsset;
+    std::vector<CoordinateAsset> vAsset;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2370,13 +2370,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
         if (!tx.IsCoinBase()) {
             // checking payload is correct for asset transaction
-            if(tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+            if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
                 if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
                 }
             }
 
-            if (!AreChromaTransactionStandard(tx,view)) {
+            if (!AreCoordinateTransactionStandard(tx,view)) {
                 LogPrintf("Invalid transaction standard \n");
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
             }
@@ -2437,17 +2437,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             control.Add(vChecks);
         }
 
-        // New asset created - set asset ID # and update ChromaAssetDB
+        // New asset created - set asset ID # and update CoordinateAssetDB
         uint32_t nNewAssetID = 0;
-        if (tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION) {
+        if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
             if (tx.vout.size() < 2) {
-                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - vout too small");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - vout too small");
             }
 
 
             uint32_t nIDLast = 0;
             uint32_t nAssetID = 0;
-            ChromaAsset asset;
+            CoordinateAsset asset;
             passettree->GetLastAssetID(nIDLast);
 
             if(nIDLast>UINT32_MAX) {
@@ -2458,7 +2458,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (tx.assetType == 0) {
                 LogPrintf("testing 1 \n");
                 if (tx.vin.size() == 0) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - no input spciefied");
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input spciefied");
                 }
                 LogPrintf("testing 2 \n");
                 bool fBitAsset = false;
@@ -2488,7 +2488,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
                 CTxDestination ownerDest;
                 if (!ExtractDestination(tx.vout[1].scriptPubKey, ownerDest)) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - owner destination invalid");
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - owner destination invalid");
                 }
                 asset.strOwner = EncodeDestination(ownerDest);
 
@@ -2499,12 +2499,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 } else if (tx.vout[0].scriptPubKey.size() && tx.vout[0].scriptPubKey[0] == OP_RETURN) {
                     asset.strController = "OP_RETURN";
                 } else {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid ChromaAsset creation - controller destination invalid");
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - controller destination invalid");
                 }
 
-                // Update latest ChromaAsset ID #
+                // Update latest CoordinateAsset ID #
                 if (!fJustCheck && !passettree->WriteLastAssetID(asset.nID)) {
-                    return error("%s: Failed to update last ChromaAsset ID #!\n", __func__);
+                    return error("%s: Failed to update last CoordinateAsset ID #!\n", __func__);
                 }
 
             } else {
@@ -2518,7 +2518,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             nNewAssetID = asset.nID;
         }
 
-        if(tx.nVersion == TRANSACTION_CHROMAASSET_TRANSFER_VERSION) {
+        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             removeMempoolAsset(tx);
         }
         CTxUndo undoDummy;
@@ -2605,8 +2605,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     // Write asset objects to db
     if (vAsset.size()) {
-        if (!passettree->WriteChromaAssets(vAsset))
-            return state.Error("Failed to write ChromaAsset index!");
+        if (!passettree->WriteCoordinateAssets(vAsset))
+            return state.Error("Failed to write CoordinateAsset index!");
     }
 
     resetDeposit(pindex->nHeight);
@@ -4201,11 +4201,11 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         bool ret = CheckBlock(*block, state, GetConsensus());
         if (ret) {
 
-            // federation check block
-            bool verifyFederationCheck = verifyFederation(m_active_chainstate->m_chainman,*block);
-            if (!verifyFederationCheck) {
+            // anduro check block
+            bool verifyAnduroCheck = verifyAnduro(m_active_chainstate->m_chainman,*block);
+            if (!verifyAnduroCheck) {
                 GetMainSignals().BlockChecked(*block, state);
-                return error("%s: AcceptBlock FAILED (%s)", __func__, "Federation witness failed");
+                return error("%s: AcceptBlock FAILED (%s)", __func__, "Anduro witness failed");
             }
 
             // Store to disk

@@ -50,10 +50,10 @@
 #include <memory>
 #include <optional>
 #include <typeinfo>
-#include <federation_deposit.h>
-#include <chroma/chroma_mempool_entry.h>
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_mempool_entry.h>
 #include <node/transaction.h>
-#include <federation_validator.h>
+#include <anduro_validator.h>
 
 using node::GetTransaction;
 using node::ReadBlockFromDisk;
@@ -4661,13 +4661,13 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         return;
     }
-    // receive request from other peer to get recent federation pre signed block information
+    // receive request from other peer to get recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREQUEST) {
         uint32_t currentHeight = 0;
         vRecv >> currentHeight;
         int incr = 0;
         while(incr<3) {
-            std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
+            std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
             if(pending_pegs.size()>0) {
             m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PREBLOCKSIGNREPONSE, pending_pegs));
             }
@@ -4675,9 +4675,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
-    // receive response from other peer for recent federation pre signed block information
+    // receive response from other peer for recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
-        std::vector<FederationTxOut> vData;
+        std::vector<AnduroTxOut> vData;
         vRecv >> vData;
         if(isSpecialTxoutValid(vData,m_chainman)) {
            includePreSignedSignature(vData);
@@ -5176,7 +5176,7 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
         int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
-        std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
         // Every 5 second node will check and request if no presigned block data exist
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());

@@ -1,4 +1,4 @@
-#include <rpc/marachainrpc.h>
+#include <rpc/coordinaterpc.h>
 #include <rpc/util.h>
 #include <rpc/server.h>
 #include <rpc/server.h>
@@ -6,9 +6,9 @@
 #include <key_io.h>
 #include <rpc/auxpow_miner.h>
 #include <core_io.h>
-#include <federation_deposit.h>
-#include <chroma/chroma_mempool_entry.h>
-#include <federation_validator.h>
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_mempool_entry.h>
+#include <anduro_validator.h>
 
 using node::NodeContext;
 
@@ -16,19 +16,19 @@ static RPCHelpMan createAuxBlock()
 {
     return RPCHelpMan{
         "createauxblock",
-        "The mining pool to request new marachain block header hashes",
+        "The mining pool to request new coordinate block header hashes",
         {
-            {"paytoaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "The marachain address that the mining pool wants to send the Babylon mining rewards to. Will be written to marachain coinbase transaction."},
+            {"paytoaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "The coordinate address that the mining pool wants to send the Babylon mining rewards to. Will be written to coordinate coinbase transaction."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "bits", "The target difficulty of marachain. The larger the bits, the higher the difficulty. Target hash in int = 2^256 / int(bits)."},
-                {RPCResult::Type::NUM, "chainid", "marachain identity"},
+                {RPCResult::Type::STR, "bits", "The target difficulty of coordinate. The larger the bits, the higher the difficulty. Target hash in int = 2^256 / int(bits)."},
+                {RPCResult::Type::NUM, "chainid", "coordinate identity"},
                 {RPCResult::Type::NUM, "height", "Height of transactions for the block"},
                 {RPCResult::Type::NUM, "coinbasevalue", "Miner reward for the block"},
-                {RPCResult::Type::STR_HEX, "hash", "The header hash of the created marachain block"},
-                {RPCResult::Type::STR_HEX, "previousblockhash", "The previous hash of the created marachain block"},
+                {RPCResult::Type::STR_HEX, "hash", "The header hash of the created coordinate block"},
+                {RPCResult::Type::STR_HEX, "previousblockhash", "The previous hash of the created coordinate block"},
           
             },
         },
@@ -54,7 +54,7 @@ static RPCHelpMan submitAuxBlock()
         "submitauxblock",
         "The mining pool to submit the mined auxPoW",
         {
-            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The marachain bloch header hash that the submitted auxPoW is associated with."},
+            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The coordinate bloch header hash that the submitted auxPoW is associated with."},
             {"auxpow", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "It is the serialized string of the auxiliary proof of work."},
         },
         RPCResult{
@@ -78,20 +78,20 @@ static RPCHelpMan submitAuxBlock()
 
 
 
-static RPCHelpMan federationDepositAddress()
+static RPCHelpMan anduroDepositAddress()
 {
     return RPCHelpMan{
-        "federationdepositaddress",
-        "Federation current deposit address",
+        "andurodepositaddress",
+        "Anduro current deposit address",
         {},
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation deposit address"},
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns anduro deposit address"},
             },
         },
         RPCExamples{
-            HelpExampleCli("federationdepositaddress", "")
+            HelpExampleCli("andurodepositaddress", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
             return getDepositAddress();
@@ -100,20 +100,20 @@ static RPCHelpMan federationDepositAddress()
 
 }
 
-static RPCHelpMan federationWithdrawAddress()
+static RPCHelpMan anduroWithdrawAddress()
 {
     return RPCHelpMan{
-        "federationburnaddress",
-        "Federation current burn address",
+        "anduroburnaddress",
+        "Anduro current burn address",
         {},
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns federation burn address"},
+                {RPCResult::Type::STR, "result", /*optional=*/true, "Returns anduro burn address"},
             },
         },
         RPCExamples{
-            HelpExampleCli("federationburnaddress", "")
+            HelpExampleCli("anduroburnaddress", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
             return getBurnAddress();
@@ -152,9 +152,9 @@ static RPCHelpMan getPendingDeposit() {
                 UniValue result(UniValue::VOBJ);
                 result.pushKV("total", ValueFromAmount(listPendingDepositTotal(-1)));
                 UniValue deposits(UniValue::VARR);
-                std::vector<FederationTxOut> txList = listPendingDepositTransaction(-1);
+                std::vector<AnduroTxOut> txList = listPendingDepositTransaction(-1);
                 uint64_t index = 0;
-                for (const FederationTxOut& eout : txList) {
+                for (const AnduroTxOut& eout : txList) {
                     UniValue toutresult(UniValue::VOBJ);
                     toutresult.pushKV("index", index);
                     toutresult.pushKV("value", ValueFromAmount(eout.nValue));
@@ -172,7 +172,7 @@ static RPCHelpMan getPendingDeposit() {
 static RPCHelpMan listAllAssets() {
         return RPCHelpMan{
         "listallassets",
-        "get all chroma assets",
+        "get all coordinate assets",
         {
         },
         RPCResult{
@@ -207,9 +207,9 @@ static RPCHelpMan listAllAssets() {
 
                 UniValue result(UniValue::VOBJ);
                 UniValue assets(UniValue::VARR);
-                std::vector<ChromaAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
+                std::vector<CoordinateAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
             ;
-                for (const ChromaAsset& asset_item : assetList) {
+                for (const CoordinateAsset& asset_item : assetList) {
                     UniValue obj(UniValue::VOBJ);
                     obj.pushKV("id", (uint64_t)asset_item.nID);
                     obj.pushKV("assettype", asset_item.assetType);
@@ -232,7 +232,7 @@ static RPCHelpMan listAllAssets() {
 static RPCHelpMan listMempoolAssets() {
         return RPCHelpMan{
         "listmempoolassets",
-        "get all chroma assets from mempool",
+        "get all coordinate assets from mempool",
         {
         },
         RPCResult{
@@ -262,9 +262,9 @@ static RPCHelpMan listMempoolAssets() {
 
                 UniValue result(UniValue::VOBJ);
                 UniValue assets(UniValue::VARR);
-                std::vector<ChromaMempoolEntry> assetList = getMempoolAssets();
+                std::vector<CoordinateMempoolEntry> assetList = getMempoolAssets();
             ;
-                for (const ChromaMempoolEntry& assetItem : assetList) {
+                for (const CoordinateMempoolEntry& assetItem : assetList) {
                     UniValue obj(UniValue::VOBJ);
                     obj.pushKV("assetId", (uint32_t)assetItem.assetID);
                     obj.pushKV("txid", assetItem.txid.ToString());
@@ -298,13 +298,13 @@ static std::vector<RPCArg> CreateTxDoc()
 void RegisterMarachainRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
-        {"marachain", &createAuxBlock},
-        {"marachain", &submitAuxBlock},
-        {"marachain", &getPendingDeposit},
-        {"marachain", &federationDepositAddress},
-        {"marachain", &federationWithdrawAddress},
-        {"marachain", &listAllAssets},
-        {"marachain", &listMempoolAssets}
+        {"coordinate", &createAuxBlock},
+        {"coordinate", &submitAuxBlock},
+        {"coordinate", &getPendingDeposit},
+        {"coordinate", &anduroDepositAddress},
+        {"coordinate", &anduroWithdrawAddress},
+        {"coordinate", &listAllAssets},
+        {"coordinate", &listMempoolAssets}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

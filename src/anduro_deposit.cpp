@@ -9,14 +9,14 @@
 #include <node/blockstorage.h>
 #include <rpc/util.h>
 #include <rpc/client.h>
-#include <federation_deposit.h>
-#include <federation_validator.h>
+#include <anduro_deposit.h>
+#include <anduro_validator.h>
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
 // temporary storage for including presigned signature on next block
-std::vector<FederationTxOut> tDeposits;
-// check blocks are fully synced to active federation presign validation
+std::vector<AnduroTxOut> tDeposits;
+// check blocks are fully synced to active anduro presign validation
 bool isValidationActivate = false;
 // temporary storage for deposit address
 std::string depositAddress = "";
@@ -24,14 +24,14 @@ std::string depositAddress = "";
 std::string burnAddress = "";
 
 /**
- * Include presigned signature from federation.
+ * Include presigned signature from anduro.
  */
-void includePreSignedSignature(std::vector<FederationTxOut> txOuts) {
+void includePreSignedSignature(std::vector<AnduroTxOut> txOuts) {
    if (txOuts.size() == 0) {
       return;
    }
    if(!isSignatureAlreadyExist(txOuts[0])) {
-      for (const FederationTxOut& tx : txOuts) {
+      for (const AnduroTxOut& tx : txOuts) {
             tDeposits.push_back(tx);
             depositAddress = tx.depositAddress;
             burnAddress = tx.burnAddress;
@@ -39,16 +39,16 @@ void includePreSignedSignature(std::vector<FederationTxOut> txOuts) {
    }
 }
 
-bool isSignatureAlreadyExist(FederationTxOut txOut) {
+bool isSignatureAlreadyExist(AnduroTxOut txOut) {
    bool isExist = false;
-   std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(txOut.block_height);
+   std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(txOut.block_height);
    if(pending_deposits.size() > 0) {
       isExist = true;
    }
    return isExist;
 }
 
-bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman) {
+bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& chainman) {
 
    if(txOuts.size()==0) {
       return false;
@@ -59,7 +59,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    if(txOuts[0].block_height <= blockindex) {
       blockindex = blockindex - 1;
    }
-   // get block to find the eligible federation keys to be signed on presigned block
+   // get block to find the eligible anduro keys to be signed on presigned block
    CBlock block;
    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
@@ -68,7 +68,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
    UniValue messages(UniValue::VARR);
    int tIndex = 1;
    // preparing message for signature verification
-   for (const FederationTxOut& txOut : txOuts) {
+   for (const AnduroTxOut& txOut : txOuts) {
 
       CTxDestination address;
       ExtractDestination(txOut.scriptPubKey, address);
@@ -84,7 +84,7 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
       messages.push_back(message);
    }
    // check signature is valid
-   bool isValid = validateFederationSignature(txOuts[0].witness,messages.write(),block.currentKeys);
+   bool isValid = validateAnduroSignature(txOuts[0].witness,messages.write(),block.currentKeys);
 
    if (isValid) {
       return true;
@@ -96,13 +96,13 @@ bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager&
 /**
  * This function list all presigned pegin details for upcoming blocks by height
  */
-std::vector<FederationTxOut> listPendingDepositTransaction(uint32_t block_height) {
+std::vector<AnduroTxOut> listPendingDepositTransaction(uint32_t block_height) {
     if(block_height == -1) {
         return tDeposits;
     }
 
-    std::vector<FederationTxOut> tDepositsNew;
-    for (const FederationTxOut& tx_out : tDeposits) {
+    std::vector<AnduroTxOut> tDepositsNew;
+    for (const AnduroTxOut& tx_out : tDeposits) {
         if(tx_out.block_height == block_height) {
             tDepositsNew.push_back(tx_out);
         }
@@ -115,11 +115,11 @@ std::vector<FederationTxOut> listPendingDepositTransaction(uint32_t block_height
  * This function find total pegin amount for particular block
  */
 CAmount listPendingDepositTotal(uint32_t block_height) {
-    std::vector<FederationTxOut> tDepositsNew;
+    std::vector<AnduroTxOut> tDepositsNew;
     if(block_height == -1) {
         tDepositsNew = tDeposits;
     } else {
-        for (const FederationTxOut& tx_out : tDeposits) {
+        for (const AnduroTxOut& tx_out : tDeposits) {
             if(tx_out.block_height == block_height) {
                 tDepositsNew.push_back(tx_out);
             }
@@ -127,7 +127,7 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
     }
 
     CAmount totalDeposit = CAmount(0);
-    for (const FederationTxOut& txOut: tDepositsNew) {
+    for (const AnduroTxOut& txOut: tDepositsNew) {
         totalDeposit = totalDeposit + CAmount(txOut.nValue);
     }
 
@@ -138,17 +138,17 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
  * Used to reset presigned signature for processed blocks
  */
 void resetDeposit(uint32_t block_height) {
-    std::vector<FederationTxOut> tDepositsNew;
+    std::vector<AnduroTxOut> tDepositsNew;
     bool hasDeposits = true;
     uint32_t currentHeight = block_height;
     while(hasDeposits) {
-        for (const FederationTxOut& tx_out : tDeposits) {
+        for (const AnduroTxOut& tx_out : tDeposits) {
             if(tx_out.block_height != block_height) {
                 tDepositsNew.push_back(tx_out);
             }
         }
         currentHeight = currentHeight - 1;
-        std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
+        std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
         if(pending_deposits.size() == 0) {
             hasDeposits = false;
         }
@@ -188,16 +188,16 @@ int32_t getNextIndex(ChainstateManager& chainman) {
 }
 
 /**
- * Check block are fully synced to start validating federation new presigned signature for upcoming blocks
+ * Check block are fully synced to start validating anduro new presigned signature for upcoming blocks
  */
-bool isFederationValidationActive() {
+bool isAnduroValidationActive() {
    return isValidationActivate;
 }
 
 /**
- * Validate the federation signature on confirmed blocks
+ * Validate the anduro signature on confirmed blocks
  */
-bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
+bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    return true;
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
@@ -206,19 +206,19 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
          isValidationActivate = true;
    }
 
-   if(!isFederationValidationActive()) {
+   if(!isAnduroValidationActive()) {
       return true;
    }
 
    // check coinbase should have three output
    //  0 - fee reward for merge mine
    //  1 - coinbase message
-   //  2 - signature by previous block federation current keys
+   //  2 - signature by previous block anduro current keys
    if(block.vtx[0]->vout.size() < 3) {
       return false;
    }
 
-   // check for current keys for federation
+   // check for current keys for anduro
    CBlock prevblock;
    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[active_chain.Height()]), Params().GetConsensus())) {
       return false;
@@ -236,17 +236,17 @@ bool verifyFederation(ChainstateManager& chainman, const CBlock& block) {
 
    const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
 
-   std::vector<FederationTxOut> tOuts;
+   std::vector<AnduroTxOut> tOuts;
    if(block.vtx[0]->vout.size() == 3) {
       const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-      FederationTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
+      AnduroTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
    } else {
-      // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with federation current keys
+      // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with anduro current keys
       for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {
          CTxOut pegTx = block.vtx[0]->vout[i];
-         FederationTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
+         AnduroTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);
       }
    }

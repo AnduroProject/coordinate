@@ -8,7 +8,7 @@
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
 
-bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int chromaOutputs)
+bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coordinateOutputs)
 {
     if (tx.vin.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vin-empty");
@@ -28,7 +28,7 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int chro
     {
         if (it->nValue < 0)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-negative");
-        if ((it->nValue > MAX_MONEY && (incr >= chromaOutputs)) || (it->nValue > MAX_ASSET_OUT_VALUE && incr < chromaOutputs))
+        if ((it->nValue > MAX_MONEY && (incr >= coordinateOutputs)) || (it->nValue > MAX_ASSET_OUT_VALUE && incr < coordinateOutputs))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-toolarge");
         nValueOut += it->nValue;
         if (!MoneyRange(nValueOut))

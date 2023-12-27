@@ -343,29 +343,29 @@ bool CBlockTreeDB::LoadBlockIndexGuts(const Consensus::Params& consensusParams, 
 }
 
 
-ChromaAssetDB::ChromaAssetDB(size_t nCacheSize, bool fMemory, bool fWipe)
+CoordinateAssetDB::CoordinateAssetDB(size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "assets",nCacheSize,fMemory,fWipe) { }
 
-bool ChromaAssetDB::WriteChromaAssets(const std::vector<ChromaAsset>& vAsset)
+bool CoordinateAssetDB::WriteCoordinateAssets(const std::vector<CoordinateAsset>& vAsset)
 {
     CDBBatch batch(*this);
-    for (const ChromaAsset& asset : vAsset) {
+    for (const CoordinateAsset& asset : vAsset) {
         std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, asset.nID);
         batch.Write(key, asset);
     }
     return WriteBatch(batch, true);
 }
 
-std::vector<ChromaAsset> ChromaAssetDB::GetAssets()
+std::vector<CoordinateAsset> CoordinateAssetDB::GetAssets()
 {
     std::unique_ptr<CDBIterator> pcursor(NewIterator());
     pcursor->Seek(std::make_pair(DB_ASSET, uint256()));
 
-    std::vector<ChromaAsset> vAsset;
+    std::vector<CoordinateAsset> vAsset;
 
     while (pcursor->Valid()) {
         std::pair<uint8_t, uint32_t> key;
-        ChromaAsset asset;
+        CoordinateAsset asset;
         if (pcursor->GetKey(key) && key.first == DB_ASSET) {
             if (pcursor->GetValue(asset))
                 vAsset.push_back(asset);
@@ -376,7 +376,7 @@ std::vector<ChromaAsset> ChromaAssetDB::GetAssets()
     return vAsset;
 }
 
-bool ChromaAssetDB::GetLastAssetID(uint32_t& nID)
+bool CoordinateAssetDB::GetLastAssetID(uint32_t& nID)
 {
     // Look up the last asset ID (in chronological order)
     if (!Read(DB_ASSET_LAST_ID, nID))
@@ -385,18 +385,18 @@ bool ChromaAssetDB::GetLastAssetID(uint32_t& nID)
     return true;
 }
 
-bool ChromaAssetDB::WriteLastAssetID(const uint32_t nID)
+bool CoordinateAssetDB::WriteLastAssetID(const uint32_t nID)
 {
     return Write(DB_ASSET_LAST_ID, nID);
 }
 
-bool ChromaAssetDB::RemoveAsset(const uint32_t nID)
+bool CoordinateAssetDB::RemoveAsset(const uint32_t nID)
 {
     std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, nID);
     return Erase(key);
 }
 
-bool ChromaAssetDB::GetAsset(const uint32_t nID, ChromaAsset& asset)
+bool CoordinateAssetDB::GetAsset(const uint32_t nID, CoordinateAsset& asset)
 {
     return Read(std::make_pair(DB_ASSET, nID), asset);
 }

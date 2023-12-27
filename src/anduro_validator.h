@@ -5,9 +5,9 @@
 #include <key_io.h>
 
 /**
- * This function check witness signature path available in authorized federation keys
- * @param[in] fullQuorum  authorized federation full path
- * @param[in] signaturePath  path signed by the federation for presigned block
+ * This function check witness signature path available in authorized anduro keys
+ * @param[in] fullQuorum  authorized anduro full path
+ * @param[in] signaturePath  path signed by the anduro for presigned block
  */
 bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string signaturePath);
 
@@ -21,6 +21,6 @@ uint256 prepareMessageHash(std::string message);
  * This function used to validate presigned signature
  * @param[in] witnessHex  block witness which hold signature path and signature
  * @param[in] message  sha256 presigned block message
- * @param[in] prevWitnessHex federation current keys
+ * @param[in] prevWitnessHex anduro current keys
 */
-bool validateFederationSignature(std::string witnessHex, std::string message, std::string prevWitnessHex);
+bool validateAnduroSignature(std::string witnessHex, std::string message, std::string prevWitnessHex);

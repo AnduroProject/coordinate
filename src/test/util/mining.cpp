@@ -14,7 +14,7 @@
 #include <util/check.h>
 #include <validation.h>
 #include <versionbits.h>
-#include <federation_deposit.h>
+#include <anduro_deposit.h>
 
 using node::BlockAssembler;
 using node::NodeContext;

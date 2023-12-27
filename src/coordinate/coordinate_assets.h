@@ -5,8 +5,8 @@
 
 static constexpr unsigned int MAX_ASSET_DATA_WEIGHT{1500000};
 
-template<typename Stream, typename ChromaType>
-inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateType>
+inline void UnserializeAsset(CoordinateType& assetData, Stream& s) {
     s >> assetData.nID;
     s >> assetData.assetType;
     s >> assetData.strTicker;
@@ -18,8 +18,8 @@ inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
     s >> assetData.strOwner;
 }
 
-template<typename Stream, typename ChromaType>
-inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateType>
+inline void SerializeAsset(const CoordinateType& assetData, Stream& s) {
     s << assetData.nID;
     s << assetData.assetType;
     s << assetData.strTicker;
@@ -31,7 +31,7 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
     s << assetData.strOwner;
 }
 
-struct ChromaAsset {
+struct CoordinateAsset {
 public:
     uint32_t nID;   /*!< Asset unique number */
     uint32_t assetType; /*!< Asset type - (e.g. 0 - tokens, 1 - nft, 1 - blob nft) */
@@ -54,11 +54,11 @@ public:
     }
 
     template <typename Stream>
-    ChromaAsset(deserialize_type, Stream& s) {
+    CoordinateAsset(deserialize_type, Stream& s) {
         Unserialize(s);
     }
 
-    ChromaAsset() {
+    CoordinateAsset() {
         SetNull();
     }
 

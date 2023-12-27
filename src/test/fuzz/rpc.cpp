@@ -15,7 +15,7 @@
 #include <rpc/request.h>
 #include <rpc/server.h>
 #include <rpc/util.h>
-#include <rpc/marachainrpc.h>
+#include <rpc/coordinaterpc.h>
 #include <span.h>
 #include <streams.h>
 #include <test/fuzz/FuzzedDataProvider.h>

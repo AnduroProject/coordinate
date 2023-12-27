@@ -88,11 +88,11 @@ CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), v
 
 CAmount CTransaction::GetValueOut() const
 {
-    bool fChromaAsset = nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
+    bool fCoordinateAsset = nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION;
 
-    // Skip the controller and genesis output of a ChromaAsset creation
+    // Skip the controller and genesis output of a CoordinateAsset creation
     std::vector<CTxOut>::const_iterator it;
-    if (fChromaAsset && vout.size() >= 2)
+    if (fCoordinateAsset && vout.size() >= 2)
         it = vout.begin() + 2;
     else
         it = vout.begin();

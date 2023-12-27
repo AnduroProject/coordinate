@@ -138,7 +138,8 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
         // 0: controller output
         // 1: genesis output
         // The rest are normal outputs
-        bool fNewAsset = tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
+        
+        bool fNewAsset = tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION;
         for (size_t i = 0; i < tx.vout.size(); ++i) {
             bool fAsset = fNewAsset && i < 2;
             bool fControl = fNewAsset && i == 0;

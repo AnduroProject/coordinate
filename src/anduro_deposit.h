@@ -20,9 +20,9 @@
 #include <util/message.h>
 
 /**
- *  This is call is used to receive or prepare federation presigned signature data along with federation deposit and withdrawal address
+ *  This is call is used to receive or prepare anduro presigned signature data along with anduro deposit and withdrawal address
  */
-class FederationTxOut
+class AnduroTxOut
 {
 public:
     CAmount nValue;  /*!< amount going to process as pegin in sidechain */
@@ -30,11 +30,11 @@ public:
     std::string witness;  /*!< presigned signature information  */
     int32_t block_height; /*!< block height where the presigned signature belong to */
     std::string currentKeys; /*!< next key going to be included in block header */
-    int32_t nextIndex; /*!< next derivation index going to be include in block header. This index is refer back by federation and identify the  current derivation path to be signed*/
+    int32_t nextIndex; /*!< next derivation index going to be include in block header. This index is refer back by anduro and identify the  current derivation path to be signed*/
     std::string depositAddress; /*!< hold current deposit address from bitcoin */
     std::string burnAddress; /*!< hold current withdrawal address from sidechain */
 
-    FederationTxOut()
+    AnduroTxOut()
     {
         SetNull();
     }
@@ -49,7 +49,7 @@ public:
      * @param[in] depositAddressIn  hold current deposit address from bitcoin
      * @param[in] burnAddressIn     hold current withdrawal address from sidechain
      */
-    FederationTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, int32_t block_heightIn, int32_t nextIndexIn, std::string currentKeysIn, std::string depositAddressIn, std::string burnAddressIn) {
+    AnduroTxOut(const CAmount& nValueIn, CScript scriptPubKeyIn, std::string witnessIn, int32_t block_heightIn, int32_t nextIndexIn, std::string currentKeysIn, std::string depositAddressIn, std::string burnAddressIn) {
         nValue = nValueIn;
         scriptPubKey = scriptPubKeyIn;
         witness = witnessIn;
@@ -60,7 +60,7 @@ public:
         burnAddress = burnAddressIn;
     }
 
-    SERIALIZE_METHODS(FederationTxOut, obj) {
+    SERIALIZE_METHODS(AnduroTxOut, obj) {
         READWRITE(obj.nValue, obj.scriptPubKey, obj.witness, obj.block_height, obj.currentKeys, obj.nextIndex, obj.depositAddress, obj.burnAddress);
     }
 
@@ -88,35 +88,35 @@ std::string getDepositAddress();
 std::string getBurnAddress();
 
 /**
- * This function include presigned signature from federation
+ * This function include presigned signature from anduro
  * @param[in] txOuts hold three block presigned signature.
  */
-void includePreSignedSignature(std::vector<FederationTxOut> txOuts);
+void includePreSignedSignature(std::vector<AnduroTxOut> txOuts);
 
 /**
- * This function check block are fully synced to start validating federation new presigned signature for upcoming blocks
+ * This function check block are fully synced to start validating anduro new presigned signature for upcoming blocks
  */
-bool isFederationValidationActive();
+bool isAnduroValidationActive();
 
 /**
- * validate the federation signature on confirmed blocks
- * @param[in] chainman  used to find previous blocks based on active chain state to find federation current keys
+ * validate the anduro signature on confirmed blocks
+ * @param[in] chainman  used to find previous blocks based on active chain state to find anduro current keys
  * @param[in] block  current block received from connectblock
  */
-bool verifyFederation(ChainstateManager& chainman, const CBlock& block);
+bool verifyAnduro(ChainstateManager& chainman, const CBlock& block);
 
 /**
  * This function check presigned signatures are valid
  * @param[in] txOuts  presigned signature for validation
  * @param[in] chainman  used to find next block number and active chain state
  */
-bool isSpecialTxoutValid(std::vector<FederationTxOut> txOuts, ChainstateManager& chainman);
+bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& chainman);
 
 /**
  * This function list all presigned pegin details for upcoming blocks by height
  * @param[in] block_height  block height to find pending pegin
  */
-std::vector<FederationTxOut> listPendingDepositTransaction(uint32_t block_height);
+std::vector<AnduroTxOut> listPendingDepositTransaction(uint32_t block_height);
 
 /**
  * This function find total pegin amount for particular block
@@ -128,7 +128,7 @@ CAmount listPendingDepositTotal(uint32_t block_height);
  * This function used to check whether presigned signature already exist when received signature through peer message
  * @param[in] txOut  presigned signature details
  */
-bool isSignatureAlreadyExist(FederationTxOut txOut);
+bool isSignatureAlreadyExist(AnduroTxOut txOut);
 
 /**
  * This function used to reset presigned signature for processed blocks

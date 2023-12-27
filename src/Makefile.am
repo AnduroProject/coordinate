@@ -122,9 +122,9 @@ BITCOIN_CORE_H = \
   addrman_impl.h \
   attributes.h \
   auxpow.h \
-  federation_deposit.h \
-  chroma_assets.h \
-  chroma_mempool_entry.h \
+  anduro_deposit.h \
+  coordinate_assets.h \
+  coordinate_mempool_entry.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -250,7 +250,7 @@ BITCOIN_CORE_H = \
   rpc/server.h \
   rpc/server_util.h \
   rpc/util.h \
-  rpc/marachainrpc.h \
+  rpc/coordinaterpc.h \
   scheduler.h \
   script/descriptor.h \
   script/keyorigin.h \
@@ -421,7 +421,7 @@ libbitcoin_node_a_SOURCES = \
   rpc/blockchain.cpp \
   rpc/fees.cpp \
   rpc/mempool.cpp \
-  rpc/marachainrpc.cpp \
+  rpc/coordinaterpc.cpp \
   rpc/mining.cpp \
   rpc/net.cpp \
   rpc/node.cpp \
@@ -644,10 +644,10 @@ libbitcoin_common_a_CPPFLAGS = $(AM_CPPFLAGS) $(BITCOIN_INCLUDES) $(BOOST_CPPFLA
 libbitcoin_common_a_CXXFLAGS = $(AM_CXXFLAGS) $(PIE_FLAGS)
 libbitcoin_common_a_SOURCES = \
   auxpow.cpp \
-  federation_deposit.cpp \
-  chroma/chroma_assets.cpp \
-  chroma/chroma_mempool_entry.cpp \
-  federation_validator.cpp \
+  anduro_deposit.cpp \
+  coordinate/coordinate_assets.cpp \
+  coordinate/coordinate_mempool_entry.cpp \
+  anduro_validator.cpp \
   base58.cpp \
   bech32.cpp \
   chainparams.cpp \
@@ -907,10 +907,10 @@ libbitcoinkernel_la_SOURCES = \
   kernel/bitcoinkernel.cpp \
   arith_uint256.cpp \
   auxpow.cpp \
-  federation_deposit.cpp \
-  chroma/chroma_assets.cpp \
-  chroma/chroma_mempool_entry.cpp \
-  federation_validator.cpp \
+  anduro_deposit.cpp \
+  coordinate/coordinate_assets.cpp \
+  coordinate/coordinate_mempool_entry.cpp \
+  anduro_validator.cpp \
   chain.cpp \
   chainparamsbase.cpp \
   chainparams.cpp \

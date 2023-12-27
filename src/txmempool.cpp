@@ -27,7 +27,7 @@
 #include <optional>
 #include <string_view>
 #include <utility>
-#include <chroma/chroma_mempool_entry.h>
+#include <coordinate/coordinate_mempool_entry.h>
 
 bool TestLockPointValidity(CChain& active_chain, const LockPoints& lp)
 {

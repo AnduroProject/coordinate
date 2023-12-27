@@ -14,7 +14,7 @@
 #include <util/system.h>
 #include <univalue.h>
 #include <rpc/util.h>
-#include <federation_deposit.h>
+#include <anduro_deposit.h>
 #include <assert.h>
 
 static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentKeys)

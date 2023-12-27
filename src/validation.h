@@ -485,7 +485,7 @@ protected:
 
 public:
 
-    std::unique_ptr<ChromaAssetDB> passettree;
+    std::unique_ptr<CoordinateAssetDB> passettree;
 
     bool isAssetPrune;
     //! Reference to a BlockManager instance which itself is shared across all
