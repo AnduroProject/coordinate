@@ -98,7 +98,7 @@ public:
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db);
 
 /** Access to the CoordinateAsset database (blocks/CoordinateAssets/) */
-class CoordinatessetDB : public CDBWrapper
+class CoordinateAssetDB : public CDBWrapper
 {
 public:
     CoordinateAssetDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
