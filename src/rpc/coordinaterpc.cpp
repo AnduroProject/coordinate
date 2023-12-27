@@ -125,7 +125,7 @@ static RPCHelpMan anduroWithdrawAddress()
 static RPCHelpMan getPendingDeposit() {
         return RPCHelpMan{
         "getpendingdeposit",
-        "get all pending depsoits",
+        "get all pending pegins and presign signature for next block",
         {
         },
         RPCResult{
@@ -295,7 +295,7 @@ static std::vector<RPCArg> CreateTxDoc()
     };
 }
 
-void RegisterMarachainRPCCommands(CRPCTable& t)
+void RegisterCoordinateRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"coordinate", &createAuxBlock},
