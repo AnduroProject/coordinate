@@ -83,7 +83,7 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
  * This is the function which remove all asset transaction based on txid
  * @param[in] tx  transaction, used to find asset ouputs
  */
-bool removeMempoolAsset(const CTransaction& tx);
+void removeMempoolAsset(const CTransaction& tx);
 /**
  * This is the function which include mempool asset
  * @param[in] tx  transaction, going to included in chroma mempool entry
