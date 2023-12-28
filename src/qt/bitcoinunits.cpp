@@ -31,7 +31,7 @@ QList<BitcoinUnit> BitcoinUnits::availableUnits()
 QString BitcoinUnits::longName(Unit unit)
 {
     switch (unit) {
-    case Unit::BTC: return QString("SideBTC");
+    case Unit::BTC: return QString("CBTC");
     case Unit::mBTC: return QString("mBTC");
     case Unit::uBTC: return QString::fromUtf8("µBTC (bits)");
     case Unit::SAT: return QString("Satoshi (sat)");
