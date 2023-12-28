@@ -66,12 +66,6 @@ public:
  */
 bool getMempoolAsset(uint256 txid, uint32_t voutIn, CoordinateMempoolEntry* assetMempoolObj);
 /**
- * This is the function which used to get mempool asset information by txid
- * @param[in] txid  mempool transaction id
- * @param[in] vout  mempool transaction vout
- */
-int findMempoolAssetByTxid(uint256 txid, int32_t voutIn);
-/**
  * This is the function which used to get asset total amount
  * @param[in] tx  transaction information to find what is the amount asset included
  * @param[in] m_active_chainstate  active chain state information
