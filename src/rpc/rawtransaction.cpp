@@ -40,7 +40,7 @@
 #include <util/vector.h>
 #include <validation.h>
 #include <validationinterface.h>
-
+#include <coordinate/coordinate_mempool_entry.h>
 #include <numeric>
 #include <stdint.h>
 
@@ -1873,6 +1873,58 @@ static RPCHelpMan analyzepsbt()
     };
 }
 
+static RPCHelpMan getAssetOutputCountForTx()
+{
+    return RPCHelpMan{
+        "getassetoutputcountfortx",
+        "Get Transanction asset output count",
+        {
+            {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction hash"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::NUM, "result", /*optional=*/true, "Returns asset output count"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getassetoutputcountfortx", "\"mytxid\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+            uint256 hash = ParseHashV(request.params[0], "parameter 1");
+            const CBlockIndex* blockindex = nullptr;
+            if (hash == chainman.GetParams().GenesisBlock().hashMerkleRoot) {
+                // Special exception for the genesis block coinbase transaction
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
+            }
+
+            uint256 hash_block;
+            const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, chainman.GetConsensus(), hash_block);
+            if (!tx) {
+                std::string errmsg;
+                if (blockindex) {
+                    const bool block_has_data = WITH_LOCK(::cs_main, return blockindex->nStatus & BLOCK_HAVE_DATA);
+                    if (!block_has_data) {
+                        throw JSONRPCError(RPC_MISC_ERROR, "Block not available");
+                    }
+                    errmsg = "No such transaction found in the provided block";
+                } else {
+                    errmsg = "No such mempool or blockchain transaction";
+                }
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, errmsg);
+            }
+
+            return getAssetOutputCount(*tx,chainman.ActiveChainstate());
+        }
+    };
+
+}
+
+
 void RegisterRawTransactionRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -1890,6 +1942,7 @@ void RegisterRawTransactionRPCCommands(CRPCTable& t)
         {"rawtransactions", &utxoupdatepsbt},
         {"rawtransactions", &joinpsbts},
         {"rawtransactions", &analyzepsbt},
+        {"coordinate", &getAssetOutputCountForTx}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
