@@ -18,13 +18,6 @@ bool getMempoolAsset(uint256 txid, uint32_t voutIn, CoordinateMempoolEntry* asse
 }
 
 /**
- * This is the function which used to get mempool asset information by txid
- */
-int findMempoolAssetByTxid(uint256 txid, int32_t voutIn) {
-    
-}
-
-/**
  * This is the function which remove all asset transaction based on txid
  */
 void removeMempoolAsset(const CTransaction& tx) {

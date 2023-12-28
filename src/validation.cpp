@@ -2456,22 +2456,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             nIDLast = nIDLast + 1;
             // addtional mint for tokens
             if (tx.assetType == 0) {
-                LogPrintf("testing 1 \n");
                 if (tx.vin.size() == 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input spciefied");
                 }
-                LogPrintf("testing 2 \n");
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
                 Coin coin;
                 // check first input is asset controller
                 bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
                 if(fBitAssetControl) {
-                   LogPrintf("testing 3 %i\n",nAssetID);
                    nIDLast = nAssetID;
                    bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
                 }
-                LogPrintf("testing 4 \n");
             }
 
 
@@ -2509,7 +2505,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
             } else {
                 asset.nSupply =  asset.nSupply + tx.vout[1].nValue;
-                LogPrintf("testing 5 %i \n", asset.nSupply);
             }
 
             vAsset.push_back(asset);
@@ -2529,8 +2524,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-
-        LogPrintf("testing 5 %i \n", nNewAssetID);
 
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID);
     }
