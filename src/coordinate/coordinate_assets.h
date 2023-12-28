@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <uint256.h>
 #include <serialize.h>
