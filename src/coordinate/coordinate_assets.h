@@ -2,8 +2,6 @@
 #include <uint256.h>
 #include <serialize.h>
 
-static constexpr unsigned int MAX_ASSET_DATA_WEIGHT{1500000};
-
 template<typename Stream, typename CoordinateType>
 inline void UnserializeAsset(CoordinateType& assetData, Stream& s) {
     s >> assetData.nID;
