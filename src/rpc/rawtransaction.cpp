@@ -40,7 +40,7 @@
 #include <util/vector.h>
 #include <validation.h>
 #include <validationinterface.h>
-
+#include <coordinate/coordinate_mempool_entry.h>
 #include <numeric>
 #include <stdint.h>
 
@@ -163,15 +163,6 @@ static std::vector<RPCArg> CreateTxDoc()
                 },
             },
          RPCArgOptions{.skip_type_check = true}},
-        {"asset", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
-            {
-                {"version", RPCArg::Type::NUM, RPCArg::Default{2}, "Transaction version"},
-                {"assettype", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Type"},
-                {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Headline"},
-                {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Ticker"},
-                {"payload", RPCArg::Type::STR, RPCArg::Optional::NO, "Asset Payload"},
-            },
-        },
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
         {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Marks this transaction as BIP125-replaceable.\n"
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
@@ -365,27 +356,10 @@ static RPCHelpMan createrawtransaction()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
     std::optional<bool> rbf;
-    if (!request.params[4].isNull()) {
-        rbf = request.params[4].get_bool();
+    if (!request.params[3].isNull()) {
+        rbf = request.params[3].get_bool();
     }
-    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[4], rbf);
-    if (!request.params[2].isNull()) {
-        const UniValue& assetParams = request.params[2].get_obj();
-        RPCTypeCheckObj(assetParams,
-        {
-            {"version", UniValueType(UniValue::VNUM)},
-            {"assettype", UniValueType(UniValue::VNUM)},
-            {"headline", UniValueType(UniValue::VSTR)},
-            {"ticker", UniValueType(UniValue::VSTR)},
-            {"payload", UniValueType(UniValue::VSTR)},
-        });
-        rawTx.nVersion = find_value(assetParams,"version").getInt<int>();
-        rawTx.assetType = find_value(assetParams,"assettype").getInt<int>();
-        rawTx.headline = find_value(assetParams,"headline").get_str();
-        rawTx.ticker = find_value(assetParams,"ticker").get_str();
-        rawTx.payload = uint256S(find_value(assetParams,"payload").get_str());
-    }
-
+    CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[3], rbf);
     return EncodeHexTx(CTransaction(rawTx));
 },
     };
@@ -1899,6 +1873,58 @@ static RPCHelpMan analyzepsbt()
     };
 }
 
+static RPCHelpMan getAssetOutputCountForTx()
+{
+    return RPCHelpMan{
+        "getassetoutputcountfortx",
+        "Get Transanction asset output count",
+        {
+            {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction hash"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::NUM, "result", /*optional=*/true, "Returns asset output count"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getassetoutputcountfortx", "\"mytxid\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+            uint256 hash = ParseHashV(request.params[0], "parameter 1");
+            const CBlockIndex* blockindex = nullptr;
+            if (hash == chainman.GetParams().GenesisBlock().hashMerkleRoot) {
+                // Special exception for the genesis block coinbase transaction
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
+            }
+
+            uint256 hash_block;
+            const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, chainman.GetConsensus(), hash_block);
+            if (!tx) {
+                std::string errmsg;
+                if (blockindex) {
+                    const bool block_has_data = WITH_LOCK(::cs_main, return blockindex->nStatus & BLOCK_HAVE_DATA);
+                    if (!block_has_data) {
+                        throw JSONRPCError(RPC_MISC_ERROR, "Block not available");
+                    }
+                    errmsg = "No such transaction found in the provided block";
+                } else {
+                    errmsg = "No such mempool or blockchain transaction";
+                }
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, errmsg);
+            }
+
+            return getAssetOutputCount(*tx,chainman.ActiveChainstate());
+        }
+    };
+
+}
+
+
 void RegisterRawTransactionRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -1916,6 +1942,7 @@ void RegisterRawTransactionRPCCommands(CRPCTable& t)
         {"rawtransactions", &utxoupdatepsbt},
         {"rawtransactions", &joinpsbts},
         {"rawtransactions", &analyzepsbt},
+        {"coordinate", &getAssetOutputCountForTx}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

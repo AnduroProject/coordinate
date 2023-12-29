@@ -3,7 +3,7 @@
 
     LABEL maintainer="michael.casey@mara.com"
     LABEL version="0.1"
-    LABEL description="Docker file for mara federation"
+    LABEL description="Docker file for anduro"
 
     ARG DEBIAN_FRONTEND=noninteractive
 
@@ -27,13 +27,13 @@
 
 
     #Setup base directory
-    RUN mkdir -p /opt/marachain
-    WORKDIR /opt/marachain
+    RUN mkdir -p /opt/coordinate
+    WORKDIR /opt/coordinate
 
     COPY . ./
 
     #Configure sidechain node
-    WORKDIR /opt/marachain
+    WORKDIR /opt/coordinate
     RUN ./autogen.sh \
      && ./configure --without-gui \
      && make

@@ -23,8 +23,9 @@
 #include <util/moneystr.h>
 #include <util/time.h>
 #include <utility>
-#include <federation_deposit.h>
-#include <federation_validator.h>
+#include <anduro_deposit.h>
+#include <anduro_validator.h>
+#include <coordinate/coordinate_mempool_entry.h>
 using kernel::DumpMempool;
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
@@ -45,7 +46,7 @@ static RPCHelpMan sendrawtransaction()
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
              "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
                  "/kvB.\nSet to 0 to accept any fee rate.\n"},
-            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pre signed block signature details from federation",
+            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pre signed block signature details from anduro",
               {
                 {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
                     {
@@ -57,19 +58,18 @@ static RPCHelpMan sendrawtransaction()
                                     {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
                                     {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Pegin witness which hold leaf and signature for particular pegin"},
                                     {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
-                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation deposit address"},
-                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The federation burn address"},
+                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro deposit address"},
+                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro burn address"},
                                 },
                             },
                         },
                     },
                     {"currentkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
-                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from federation"},
+                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from anduro"},
                     }
                 }
               }
             },
-            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex string of the asset data"},
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
@@ -90,8 +90,8 @@ static RPCHelpMan sendrawtransaction()
                 ChainstateManager& chainman = EnsureAnyChainman(request.context);
                 const UniValue& main_params = request.params[2].get_array();
                 if(main_params.size() > 0) {
-                    std::vector<FederationTxOut> tOuts;
-                    std::vector<FederationTxOut> mainOuts;
+                    std::vector<AnduroTxOut> tOuts;
+                    std::vector<AnduroTxOut> mainOuts;
                     for (unsigned int idx = 0; idx < main_params.size(); idx++) {
                         const UniValue& fedParams = main_params[idx].get_obj();
                         RPCTypeCheckObj(fedParams,
@@ -115,14 +115,14 @@ static RPCHelpMan sendrawtransaction()
                             });
                             const CTxDestination coinbaseScript = DecodeDestination( find_value(o, "address").get_str());
                             const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                            FederationTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
+                            AnduroTxOut out(AmountFromValue(find_value(o, "amount")), scriptPubKey, find_value(o, "witness").get_str(), find_value(o, "block_height").getInt<int32_t>(),find_value(fedParams, "nextindex").getInt<int32_t>(),find_value(fedParams, "currentkeys").get_str(),find_value(o, "deposit_address").get_str(),find_value(o, "burn_address").get_str());
 
                             tOuts.push_back(out);
                         }
                         if(!isSpecialTxoutValid(tOuts,chainman)) {
                             throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
                         }
-                        for (const FederationTxOut& txOut : tOuts) {
+                        for (const AnduroTxOut& txOut : tOuts) {
                             mainOuts.push_back(txOut);
                         }
                         tOuts.clear();
@@ -147,21 +147,7 @@ static RPCHelpMan sendrawtransaction()
             AssertLockNotHeld(cs_main);
             NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTransaction& ptx = *tx;  
-
-            if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[3].isNull() && ptx.payload.ToString().compare("") == 0) {
-                throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
-            }
-
-            if(!request.params[3].isNull()) {
-                ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                ChromaAssetData assetData;
-                assetData.nID = -1;
-                assetData.txid = ptx.GetHash();
-                assetData.dataHex = request.params[3].get_str();
-                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-                
-            }
-
+            
             const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true);
             if (TransactionError::OK != err) {
                 throw JSONRPCTransactionError(err, err_string);

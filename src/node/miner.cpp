@@ -23,7 +23,7 @@
 #include <util/moneystr.h>
 #include <util/system.h>
 #include <validation.h>
-#include <federation_deposit.h>
+#include <anduro_deposit.h>
 
 #include <algorithm>
 #include <utility>
@@ -163,7 +163,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
     int resize = 1;
     // get next block presigned data
-    std::vector<FederationTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
+    std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
 
     // prevent to get block template if not presigned signature available for next block
     if(pending_deposits.size() == 0) {
@@ -174,7 +174,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     // increase transaction out size based on available pegin 
     if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
         int tIndex = 1;
-        for (const FederationTxOut& tx_out : pending_deposits) {
+        for (const AnduroTxOut& tx_out : pending_deposits) {
             if (tx_out.nValue > 0) {
                 resize = resize + 1;
                 tIndex = tIndex + 1;
@@ -189,12 +189,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
 
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
-        // if no new pegin included, then existing federation key added in next block 
+        // if no new pegin included, then existing anduro key added in next block 
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
         pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
     } else {
-        // if new pegin included, then existing federation key replaced in next block 
-        FederationTxOut& tx_out = pending_deposits[0];
+        // if new pegin included, then existing anduro key replaced in next block 
+        AnduroTxOut& tx_out = pending_deposits[0];
         pblock->currentKeys = tx_out.currentKeys;
         pblock->nextIndex = tx_out.nextIndex;
     }
@@ -214,13 +214,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     } else {
         // include new pegin in transaction output
-        for (const FederationTxOut& tx_out : pending_deposits) {
+        for (const AnduroTxOut& tx_out : pending_deposits) {
             coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
             coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
             oIncr = oIncr + 1;
         }
     }
-     // including federation signature information
+     // including anduro signature information
     std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
     CTxOut out(0, CScript() << OP_RETURN << data);
     coinbaseTx.vout[oIncr] = out;

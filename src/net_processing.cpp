@@ -50,8 +50,12 @@
 #include <memory>
 #include <optional>
 #include <typeinfo>
-#include <federation_deposit.h>
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_mempool_entry.h>
+#include <node/transaction.h>
+#include <anduro_validator.h>
 
+using node::GetTransaction;
 using node::ReadBlockFromDisk;
 using node::ReadRawBlockFromDisk;
 
@@ -4657,13 +4661,13 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
         return;
     }
-    // receive request from other peer to get recent federation pre signed block information
+    // receive request from other peer to get recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREQUEST) {
         uint32_t currentHeight = 0;
         vRecv >> currentHeight;
         int incr = 0;
         while(incr<3) {
-            std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
+            std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
             if(pending_pegs.size()>0) {
             m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PREBLOCKSIGNREPONSE, pending_pegs));
             }
@@ -4671,40 +4675,13 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
     }
 
-    // receive response from other peer for recent federation pre signed block information
+    // receive response from other peer for recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
-        std::vector<FederationTxOut> vData;
+        std::vector<AnduroTxOut> vData;
         vRecv >> vData;
         if(isSpecialTxoutValid(vData,m_chainman)) {
            includePreSignedSignature(vData);
         }
-    }
-
-    // receive request from other peer to get recent asset information based on asset id
-    if (msg_type == NetMsgType::ASSETDATAREQUEST) {
-        uint32_t requestedAssetDataId = 0;
-        uint32_t lastAssetDataId = 0;
-
-        vRecv >> requestedAssetDataId;
-        m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
-        if(requestedAssetDataId <= lastAssetDataId) {
-            ChromaAsset asset;
-            if(m_chainman.ActiveChainstate().passettree->GetAsset(requestedAssetDataId, asset)) {
-                ChromaAssetData assetData;
-                bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
-                if(!assetData.txid.IsNull() && assetData.nID > 0) {
-                    m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::ASSETDATAREPONSE, assetData));
-                }
-            }
-        }
-    }
-
-    // receive response from other peer for recent asset information based on asset id
-    if (msg_type == NetMsgType::ASSETDATAREPONSE) {
-        ChromaAssetData assetData;
-        vRecv >> assetData;
-        m_chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(assetData.nID);
     }
 
     if (msg_type == NetMsgType::PONG) {
@@ -5199,34 +5176,11 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
         int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
-        std::vector<FederationTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
         // Every 5 second node will check and request if no presigned block data exist
         if (pending_pegs.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
-        }
-
-        if(!m_chainman.ActiveChainstate().isAssetPrune) {
-           // Every 5 second node will check and request asset data is not fully synced
-            uint32_t lastAssetId = 0;
-            uint32_t lastAssetDataId = 0;
-            m_chainman.ActiveChainstate().passettree->GetLastAssetID(lastAssetId);
-            m_chainman.ActiveChainstate().passettree->GetLastAssetTempID(lastAssetDataId);
-
-            if(lastAssetId > lastAssetDataId) {
-                ChromaAsset asset;
-                bool is_asset = m_chainman.ActiveChainstate().passettree->GetAsset(lastAssetDataId + 1,asset);
-                if(is_asset) {
-                    ChromaAssetData assetData;
-                    bool is_asset_data = m_chainman.ActiveChainstate().passettree->GetAssetData(asset.txid, assetData);
-                    if(!assetData.txid.IsNull()) {
-                        m_chainman.ActiveChainstate().passettree->WriteLastAssetTempID(lastAssetDataId + 1);
-                    } else {
-                        const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
-                        m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::ASSETDATAREQUEST, lastAssetDataId + 1));
-                    }
-                }
-            }
         }
     }
 }

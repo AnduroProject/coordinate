@@ -20,10 +20,10 @@ CacheSizes CalculateCacheSizes(const ArgsManager& args, size_t n_indexes)
     sizes.tx_index = std::min(nTotalCache / 8, args.GetBoolArg("-txindex", DEFAULT_TXINDEX) ? nMaxTxIndexCache << 20 : 0);
     nTotalCache -= sizes.tx_index;
 
-    int64_t nChromaAssetDBCache = nTotalCache / 8;
-    if (nChromaAssetDBCache > (1 << 21))
-        nChromaAssetDBCache = (1 << 21);
-    nTotalCache -= nChromaAssetDBCache;
+    int64_t nCoordinateAssetDBCache = nTotalCache / 8;
+    if (nCoordinateAssetDBCache > (1 << 21))
+        nCoordinateAssetDBCache = (1 << 21);
+    nTotalCache -= nCoordinateAssetDBCache;
 
 
 

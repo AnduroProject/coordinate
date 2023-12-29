@@ -2,8 +2,8 @@
 #include <uint256.h>
 #include <serialize.h>
 
-template<typename Stream, typename ChromaType>
-inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateType>
+inline void UnserializeAsset(CoordinateType& assetData, Stream& s) {
     s >> assetData.nID;
     s >> assetData.assetType;
     s >> assetData.strTicker;
@@ -15,8 +15,8 @@ inline void UnserializeAsset(ChromaType& assetData, Stream& s) {
     s >> assetData.strOwner;
 }
 
-template<typename Stream, typename ChromaType>
-inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
+template<typename Stream, typename CoordinateType>
+inline void SerializeAsset(const CoordinateType& assetData, Stream& s) {
     s << assetData.nID;
     s << assetData.assetType;
     s << assetData.strTicker;
@@ -28,7 +28,7 @@ inline void SerializeAsset(const ChromaType& assetData, Stream& s) {
     s << assetData.strOwner;
 }
 
-struct ChromaAsset {
+struct CoordinateAsset {
 public:
     uint32_t nID;   /*!< Asset unique number */
     uint32_t assetType; /*!< Asset type - (e.g. 0 - tokens, 1 - nft, 1 - blob nft) */
@@ -51,11 +51,11 @@ public:
     }
 
     template <typename Stream>
-    ChromaAsset(deserialize_type, Stream& s) {
+    CoordinateAsset(deserialize_type, Stream& s) {
         Unserialize(s);
     }
 
-    ChromaAsset() {
+    CoordinateAsset() {
         SetNull();
     }
 
@@ -70,56 +70,6 @@ public:
         nSupply= 0;
         strController="";
         strOwner="";
-    }
-};
-
-/**
- * Asset data registry structure
-*/
-template<typename Stream, typename ChromaDataType>
-inline void UnserializeAssetData(ChromaDataType& assetData, Stream& s) {
-    s >> assetData.nID;
-    s >> assetData.txid;
-    s >> assetData.dataHex;
-}
-
-template<typename Stream, typename ChromaDataType>
-inline void SerializeAssetData(const ChromaDataType& assetData, Stream& s) {
-    s << assetData.nID;
-    s << assetData.txid;
-    s << assetData.dataHex;
-}
-
-struct ChromaAssetData {
-public:
-    uint32_t nID; /*!< Asset unique number */
-    uint256 txid;  /*!< Asset gensis id when the asset is newly minted or additionaly minted */
-    std::string dataHex; /*!< Asset data field hold asset image data or url with additional asset attributes  */
-
-    template <typename Stream>
-    inline void Serialize(Stream& s) const {
-        SerializeAssetData(*this, s);
-    }
-
-    template <typename Stream>
-    inline void Unserialize(Stream& s) {
-        UnserializeAssetData(*this, s);
-    }
-
-    template <typename Stream>
-    ChromaAssetData(deserialize_type, Stream& s) {
-        Unserialize(s);
-    }
-
-    ChromaAssetData() {
-        SetNull();
-    }
-
-    void SetNull()
-    {
-        nID = 0;
-        txid.SetNull();
-        dataHex="";
     }
 };
 

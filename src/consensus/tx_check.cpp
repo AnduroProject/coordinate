@@ -8,38 +8,33 @@
 #include <primitives/transaction.h>
 #include <consensus/validation.h>
 
-bool CheckTransaction(const CTransaction& tx, TxValidationState& state)
+bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coordinateOutputs)
 {
-    bool fBitAsset = tx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION;
-    // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vin-empty");
     if (tx.vout.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-empty");
 
-    if(!fBitAsset) {
-      // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
-      if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
-         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
-    }
-
-    std::vector<CTxOut>::const_iterator it;
-    if (fBitAsset && tx.vout.size() > 2)
-        it = tx.vout.begin() + 2;
-    else
-        it = tx.vout.begin();
+    // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
+    if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
+    
+    std::vector<CTxOut>::const_iterator it = tx.vout.begin();
 
     // Check for negative or overflow output values (see CVE-2010-5139)
     CAmount nValueOut = 0;
+    int incr = 0;
     for (; it != tx.vout.end(); it++)
     {
         if (it->nValue < 0)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-negative");
-        if (it->nValue > MAX_MONEY)
+        if ((it->nValue > MAX_MONEY && (incr >= coordinateOutputs)) || (it->nValue > MAX_ASSET_OUT_VALUE && incr < coordinateOutputs))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-toolarge");
         nValueOut += it->nValue;
         if (!MoneyRange(nValueOut))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-txouttotal-toolarge");
+
+        incr++;
     }
 
     // Check for duplicate inputs (see CVE-2018-17144)

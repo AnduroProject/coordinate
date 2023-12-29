@@ -43,7 +43,7 @@ unsigned int GetNextWorkRequired(const CBlockIndex* pindexLast, const CBlockHead
     }
 
     /* Adapt the retargeting interval after merge-mining start
-       according to the changed marachain rules.  */
+       according to the changed coordinate rules.  */
     int nBlocksBack = params.DifficultyAdjustmentInterval() - 1;
     if (pindexLast->nHeight >= params.nAuxpowStartHeight
         && (pindexLast->nHeight + 1 > params.DifficultyAdjustmentInterval()))
