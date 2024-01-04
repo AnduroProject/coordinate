@@ -30,7 +30,9 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coor
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-negative");
         if ((it->nValue > MAX_MONEY && (incr >= coordinateOutputs)) || (it->nValue > MAX_ASSET_OUT_VALUE && incr < coordinateOutputs))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-toolarge");
-        nValueOut += it->nValue;
+        if ((it->nValue > MAX_MONEY && (incr >= coordinateOutputs))) {
+            nValueOut += it->nValue;
+        }
         if (!MoneyRange(nValueOut))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-txouttotal-toolarge");
 
