@@ -8,7 +8,7 @@
 *.pdb
 src/bitcoin
 src/coordinated
-src/bitcoin-cli
+src/coordinate-cli
 src/bitcoin-gui
 src/bitcoin-node
 src/bitcoin-tx

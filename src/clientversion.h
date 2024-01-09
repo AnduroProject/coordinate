@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_CLIENTVERSION_H
-#define BITCOIN_CLIENTVERSION_H
+#ifndef COORDINATE_CLIENTVERSION_H
+#define COORDINATE_CLIENTVERSION_H
 
 #include <util/macros.h>
 
@@ -48,4 +48,4 @@ std::string LicenseInfo();
 
 #endif // WINDRES_PREPROC
 
-#endif // BITCOIN_CLIENTVERSION_H
+#endif // COORDINATE_CLIENTVERSION_H

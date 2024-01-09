@@ -231,21 +231,21 @@ Changes to Wallet or GUI related settings can be found in the GUI or Wallet sect
 Tools and Utilities
 -------------------
 
-- A new `bitcoin-cli -netinfo` command provides a network peer connections
+- A new `coordinate-cli -netinfo` command provides a network peer connections
   dashboard that displays data from the `getpeerinfo` and `getnetworkinfo` RPCs
   in a human-readable format. An optional integer argument from `0` to `4` may
   be passed to see increasing levels of detail. (#19643)
 
-- A new `bitcoin-cli -generate` command, equivalent to RPC `generatenewaddress`
+- A new `coordinate-cli -generate` command, equivalent to RPC `generatenewaddress`
   followed by `generatetoaddress`, can generate blocks for command line testing
   purposes. This is a client-side version of the former `generate` RPC. See the
   help for details. (#19133)
 
-- The `bitcoin-cli -getinfo` command now displays the wallet name and balance for
+- The `coordinate-cli -getinfo` command now displays the wallet name and balance for
   each of the loaded wallets when more than one is loaded (e.g. in multiwallet
   mode) and a wallet is not specified with `-rpcwallet`. (#18594)
 
-- The `connections` field of `bitcoin-cli -getinfo` is now expanded to return a JSON
+- The `connections` field of `coordinate-cli -getinfo` is now expanded to return a JSON
   object with `in`, `out` and `total` numbers of peer connections. It previously
   returned a single integer value for the total number of peer connections. (#19405)
 
@@ -333,7 +333,7 @@ Bitcoin Core will now just log warnings instead of creating new wallets with
 new keys and addresses like previous releases did.
 
 New wallets can be created through the GUI (which has a more prominent create
-wallet option), through the `bitcoin-cli createwallet` or `bitcoin-wallet
+wallet option), through the `coordinate-cli createwallet` or `bitcoin-wallet
 create` commands, or the `createwallet` RPC. (#15454, #20186)
 
 ### Experimental Descriptor Wallets
@@ -734,7 +734,7 @@ Tests
 - #19282 Rephrase generatetoaddress help, and use `PACKAGE_NAME` (luke-jr)
 - #16377 don't automatically append inputs in walletcreatefundedpsbt (Sjors)
 - #19200 Remove deprecated getaddressinfo fields (jonatack)
-- #19133 rpc, cli, test: add bitcoin-cli -generate command (jonatack)
+- #19133 rpc, cli, test: add coordinate-cli -generate command (jonatack)
 - #19469 Deprecate banscore field in getpeerinfo (jonatack)
 - #16525 Dump transaction version as an unsigned integer in RPC/TxToUniv (TheBlueMatt)
 - #19555 Deduplicate WriteHDKeypath() used in decodepsbt (theStack)
@@ -759,7 +759,7 @@ Tests
 - #19725 Add connection type to getpeerinfo, improve logs (amitiuttarwar)
 - #19969 Send RPC bug fix and touch-ups (Sjors)
 - #18309 zmq: Add support to listen on multiple interfaces (n-thumann)
-- #20055 Set HTTP Content-Type in bitcoin-cli (laanwj)
+- #20055 Set HTTP Content-Type in coordinate-cli (laanwj)
 - #19956 Improve invalid vout value rpc error message (n1rna)
 - #20101 Change no wallet loaded message to be clearer (achow101)
 - #19998 Add `via_tor` to `getpeerinfo` output (hebasto)
@@ -907,7 +907,7 @@ Tests
 - #18628 Add various low-level p2p tests (MarcoFalke)
 - #18615 Avoid accessing free'd memory in `validation_chainstatemanager_tests` (MarcoFalke)
 - #18571 fuzz: Disable debug log file (MarcoFalke)
-- #18653 add coverage for bitcoin-cli -rpcwait (jonatack)
+- #18653 add coverage for coordinate-cli -rpcwait (jonatack)
 - #18660 Verify findCommonAncestor always initializes outputs (ryanofsky)
 - #17669 Have coins simulation test also use CCoinsViewDB (jamesob)
 - #18662 Replace gArgs with local argsman in bench (MarcoFalke)

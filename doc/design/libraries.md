@@ -2,7 +2,7 @@
 
 | Name                     | Description |
 |--------------------------|-------------|
-| *libbitcoin_cli*         | RPC client functionality used by *bitcoin-cli* executable |
+| *libcoordinate_cli*         | RPC client functionality used by *coordinate-cli* executable |
 | *libbitcoin_common*      | Home for common functionality shared by different executables and libraries. Similar to *libbitcoin_util*, but higher-level (see [Dependencies](#dependencies)). |
 | *libbitcoin_consensus*   | Stable, backwards-compatible consensus functionality used by *libbitcoin_node* and *libbitcoin_wallet* and also exposed as a [shared library](../shared-libraries.md). |
 | *libbitcoinconsensus*    | Shared library build of static *libbitcoin_consensus* library |
@@ -39,7 +39,7 @@
 
 graph TD;
 
-bitcoin-cli[bitcoin-cli]-->libbitcoin_cli;
+coordinate-cli[coordinate-cli]-->libcoordinate_cli;
 
 coordinated[coordinated]-->libbitcoin_node;
 coordinated[coordinated]-->libbitcoin_wallet;
@@ -51,8 +51,8 @@ bitcoin-qt[bitcoin-qt]-->libbitcoin_wallet;
 bitcoin-wallet[bitcoin-wallet]-->libbitcoin_wallet;
 bitcoin-wallet[bitcoin-wallet]-->libbitcoin_wallet_tool;
 
-libbitcoin_cli-->libbitcoin_util;
-libbitcoin_cli-->libbitcoin_common;
+libcoordinate_cli-->libbitcoin_util;
+libcoordinate_cli-->libbitcoin_common;
 
 libbitcoin_common-->libbitcoin_consensus;
 libbitcoin_common-->libbitcoin_util;
@@ -75,7 +75,7 @@ libbitcoin_wallet_tool-->libbitcoin_wallet;
 libbitcoin_wallet_tool-->libbitcoin_util;
 
 classDef bold stroke-width:2px, font-weight:bold, font-size: smaller;
-class bitcoin-qt,coordinated,bitcoin-cli,bitcoin-wallet bold
+class bitcoin-qt,coordinated,coordinate-cli,bitcoin-wallet bold
 ```
 </td></tr><tr><td>
 

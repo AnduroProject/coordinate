@@ -270,7 +270,7 @@ tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
 
 ```shell
 ./src/coordinated -daemon      # Starts the bitcoin daemon.
-./src/bitcoin-cli --help    # Outputs a list of command-line options.
-./src/bitcoin-cli help      # Outputs a list of RPC commands when the daemon is running.
-./src/qt/bitcoin-qt -server # Starts the bitcoin-qt server mode, allows bitcoin-cli control
+./src/coordinate-cli --help    # Outputs a list of command-line options.
+./src/coordinate-cli help      # Outputs a list of RPC commands when the daemon is running.
+./src/qt/bitcoin-qt -server # Starts the bitcoin-qt server mode, allows coordinate-cli control
 ```

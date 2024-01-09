@@ -11,7 +11,7 @@
 class ArgsManager;
 
 /**
- * CBaseChainParams defines the base parameters (shared between bitcoin-cli and coordinated)
+ * CBaseChainParams defines the base parameters (shared between coordinate-cli and coordinated)
  * of a given instance of the Bitcoin system.
  */
 class CBaseChainParams

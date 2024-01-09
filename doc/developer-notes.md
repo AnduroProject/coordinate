@@ -424,8 +424,8 @@ configure with `-DDEBUG_LOCKCONTENTION` added to your CPPFLAGS,
 i.e. `CPPFLAGS="-DDEBUG_LOCKCONTENTION"`, then build and run coordinated.
 
 You can then use the `-debug=lock` configuration option at coordinated startup or
-`bitcoin-cli logging '["lock"]'` at runtime to turn on lock contention logging.
-It can be toggled off again with `bitcoin-cli logging [] '["lock"]'`.
+`coordinate-cli logging '["lock"]'` at runtime to turn on lock contention logging.
+It can be toggled off again with `coordinate-cli logging [] '["lock"]'`.
 
 ### Assertions and Checks
 
@@ -1328,7 +1328,7 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 - Try not to overload methods on argument type. E.g. don't make `getblock(true)` and `getblock("hash")`
   do different things.
 
-  - *Rationale*: This is impossible to use with `bitcoin-cli`, and can be surprising to users.
+  - *Rationale*: This is impossible to use with `coordinate-cli`, and can be surprising to users.
 
   - *Exception*: Some RPC calls can take both an `int` and `bool`, most notably when a bool was switched
     to a multi-value, or due to other historical reasons. **Always** have false map to 0 and
@@ -1340,7 +1340,7 @@ A few guidelines for introducing and reviewing new RPC interfaces:
 
 - Add every non-string RPC argument `(method, idx, name)` to the table `vRPCConvertParams` in `rpc/client.cpp`.
 
-  - *Rationale*: `bitcoin-cli` and the GUI debug console use this table to determine how to
+  - *Rationale*: `coordinate-cli` and the GUI debug console use this table to determine how to
     convert a plaintext command line to JSON. If the types don't match, the method can be unusable
     from there.
 
