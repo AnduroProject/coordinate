@@ -19,7 +19,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes for older versions), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
-or `coordinated`/`bitcoin-qt` (on Linux).
+or `coordinated`/`coordinate-qt` (on Linux).
 
 Upgrading directly from a version of Bitcoin Core that has reached its EOL is
 possible, but might take some time if the datadir needs to be migrated.  Old
@@ -641,7 +641,7 @@ Build system changes
 - #16408 Prune X packages (dongcarl)
 - #16386 disable unused Qt features (fanquake)
 - #16424 Treat -Wswitch as error when --enable-werror (MarcoFalke)
-- #16441 remove qt libjpeg check from bitcoin_qt.m4 (fanquake)
+- #16441 remove qt libjpeg check from coordinate_qt.m4 (fanquake)
 - #16434 Specify AM_CPPFLAGS for ZMQ (domob1812)
 - #16534 add Qt Creator Makefile.am.user to .gitignore (Bushstar)
 - #16573 disable building libsecp256k1 benchmarks (fanquake)

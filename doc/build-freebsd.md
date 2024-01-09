@@ -25,7 +25,7 @@ git clone https://github.com/bitcoin/bitcoin.git
 ### 3. Install Optional Dependencies
 
 #### Wallet Dependencies
-It is not necessary to build wallet functionality to run either `coordinated` or `bitcoin-qt`.
+It is not necessary to build wallet functionality to run either `coordinated` or `coordinate-qt`.
 
 ###### Descriptor Wallet Support
 

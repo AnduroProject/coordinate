@@ -32,7 +32,7 @@ LIBBITCOIN_CONSENSUS=libbitcoin_consensus.a
 LIBCOORDINATE_CLI=libcoordinate_cli.a
 LIBBITCOIN_UTIL=libbitcoin_util.a
 LIBBITCOIN_CRYPTO_BASE=crypto/libbitcoin_crypto_base.la
-LIBBITCOINQT=qt/libbitcoinqt.a
+LIBCOORDINATEQT=qt/libcoordinateqt.a
 LIBSECP256K1=secp256k1/libsecp256k1.la
 
 if ENABLE_ZMQ

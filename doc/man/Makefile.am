@@ -5,7 +5,7 @@ if BUILD_COORDINATED
 endif
 
 if ENABLE_QT
-  dist_man1_MANS+=bitcoin-qt.1
+  dist_man1_MANS+=coordinate-qt.1
 endif
 
 if BUILD_COORDINATE_CLI

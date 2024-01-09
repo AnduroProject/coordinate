@@ -22,7 +22,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
-or `coordinated`/`bitcoin-qt` (on Linux).
+or `coordinated`/`coordinate-qt` (on Linux).
 
 Upgrading directly from a version of Bitcoin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
@@ -524,7 +524,7 @@ Build system
 - #17730 Remove Qt networking features (fanquake)
 - #17738 Remove linking librt for backwards compatibility (fanquake)
 - #17740 Remove configure checks for win libraries we don't link against (fanquake)
-- #17741 Included `test_bitcoin-qt` in msvc build (sipsorcery)
+- #17741 Included `test_coordinate-qt` in msvc build (sipsorcery)
 - #17756 Remove `WINDOWS_BITS` from build system (fanquake)
 - #17769 Set `AC_PREREQ` to 2.69 (fanquake)
 - #17880 Add -Wdate-time to Werror flags (fanquake)
@@ -772,7 +772,7 @@ Build system
 - #17370 Update doc/bips.md with recent changes in master (MarcoFalke)
 - #17393 Added regtest config for linearize script (gr0kchain)
 - #17411 Add some better examples for scripted diff (laanwj)
-- #17503 Remove bitness from bitcoin-qt help message and manpage (laanwj)
+- #17503 Remove bitness from coordinate-qt help message and manpage (laanwj)
 - #17539 Update and improve Developer Notes (hebasto)
 - #17561 Changed MiniUPnPc link to https in dependencies.md (sandakersmann)
 - #17596 Change doxygen URL to doxygen.bitcoincore.org (laanwj)

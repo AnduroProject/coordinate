@@ -76,7 +76,7 @@ Obviously, it is important to build and run the tests at appropriate times -- bu
 
 ```sh
 make src/coordinated src/coordinate-cli
-make src/qt/bitcoin-qt
+make src/qt/coordinate-qt
 make -C src bitcoin_bench
 ```
 
