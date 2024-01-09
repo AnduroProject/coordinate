@@ -9,7 +9,7 @@ This tutorial uses [jq](https://github.com/stedolan/jq) JSON processor to proces
 Before starting this tutorial, start the bitcoin node on the signet network.
 
 ```bash
-./src/bitcoind -signet -daemon
+./src/coordinated -signet -daemon
 ```
 
 This tutorial also uses the default WPKH derivation path to get the xpubs and does not conform to [BIP 45](https://github.com/bitcoin/bips/blob/master/bip-0045.mediawiki) or [BIP 87](https://github.com/bitcoin/bips/blob/master/bip-0087.mediawiki).

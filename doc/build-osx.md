@@ -2,7 +2,7 @@
 
 **Updated for MacOS [11.2](https://www.apple.com/macos/big-sur/)**
 
-This guide describes how to build bitcoind, command-line utilities, and GUI on macOS
+This guide describes how to build coordinated, command-line utilities, and GUI on macOS
 
 ## Preparation
 
@@ -65,7 +65,7 @@ git clone https://github.com/bitcoin/bitcoin.git
 
 #### Wallet Dependencies
 
-It is not necessary to build wallet functionality to run `bitcoind` or  `bitcoin-qt`.
+It is not necessary to build wallet functionality to run `coordinated` or  `bitcoin-qt`.
 
 ###### Descriptor Wallet Support
 
@@ -238,10 +238,10 @@ make deploy
 
 ## Running Bitcoin Core
 
-Bitcoin Core should now be available at `./src/bitcoind`.
+Bitcoin Core should now be available at `./src/coordinated`.
 If you compiled support for the GUI, it should be available at `./src/qt/bitcoin-qt`.
 
-The first time you run `bitcoind` or `bitcoin-qt`, it will start downloading the blockchain.
+The first time you run `coordinated` or `bitcoin-qt`, it will start downloading the blockchain.
 This process could take many hours, or even days on slower than average systems.
 
 By default, blockchain and wallet data files will be stored in:
@@ -269,7 +269,7 @@ tail -f $HOME/Library/Application\ Support/Bitcoin/debug.log
 ## Other commands:
 
 ```shell
-./src/bitcoind -daemon      # Starts the bitcoin daemon.
+./src/coordinated -daemon      # Starts the bitcoin daemon.
 ./src/bitcoin-cli --help    # Outputs a list of command-line options.
 ./src/bitcoin-cli help      # Outputs a list of RPC commands when the daemon is running.
 ./src/qt/bitcoin-qt -server # Starts the bitcoin-qt server mode, allows bitcoin-cli control

@@ -1,7 +1,7 @@
 # It is not recommended to modify this file in-place, because it will
 # be overwritten during package upgrades. If you want to add further
 # options or overwrite existing ones then use
-# $ systemctl edit bitcoind.service
+# $ systemctl edit coordinated.service
 # See "man systemd.service" for details.
 
 # Note that almost all daemon options could be specified in
@@ -18,10 +18,10 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/bitcoind -daemonwait \
-                            -pid=/run/bitcoind/bitcoind.pid \
+ExecStart=/usr/bin/coordinated -daemonwait \
+                            -pid=/run/coordinated/coordinated.pid \
                             -conf=/etc/bitcoin/bitcoin.conf \
-                            -datadir=/var/lib/bitcoind
+                            -datadir=/var/lib/coordinated
 
 # Make sure the config directory is readable by the service user
 PermissionsStartOnly=true
@@ -31,7 +31,7 @@ ExecStartPre=/bin/chgrp bitcoin /etc/bitcoin
 ####################
 
 Type=forking
-PIDFile=/run/bitcoind/bitcoind.pid
+PIDFile=/run/coordinated/coordinated.pid
 Restart=on-failure
 TimeoutStartSec=infinity
 TimeoutStopSec=600
@@ -43,16 +43,16 @@ TimeoutStopSec=600
 User=bitcoin
 Group=bitcoin
 
-# /run/bitcoind
-RuntimeDirectory=bitcoind
+# /run/coordinated
+RuntimeDirectory=coordinated
 RuntimeDirectoryMode=0710
 
 # /etc/bitcoin
 ConfigurationDirectory=bitcoin
 ConfigurationDirectoryMode=0710
 
-# /var/lib/bitcoind
-StateDirectory=bitcoind
+# /var/lib/coordinated
+StateDirectory=coordinated
 StateDirectoryMode=0710
 
 # Hardening measures

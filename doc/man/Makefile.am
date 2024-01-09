@@ -1,7 +1,7 @@
 dist_man1_MANS=
 
-if BUILD_BITCOIND
-  dist_man1_MANS+=bitcoind.1
+if BUILD_COORDINATED
+  dist_man1_MANS+=coordinated.1
 endif
 
 if ENABLE_QT

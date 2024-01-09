@@ -270,7 +270,7 @@ cat "$VERSION"/*/all.SHA256SUMS.asc > SHA256SUMS.asc
 
       - Install the new Bitcoin Core release
 
-      - Run bitcoind on regtest
+      - Run coordinated on regtest
 
       - Clone the [bitcoincore.org repository](https://github.com/bitcoin-core/bitcoincore.org)
 

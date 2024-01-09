@@ -38,6 +38,6 @@
      && ./configure --without-gui \
      && make
 
-    ENTRYPOINT ["./src/bitcoind"]
+    ENTRYPOINT ["./src/coordinated"]
 
     CMD []

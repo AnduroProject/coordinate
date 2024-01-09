@@ -42,7 +42,7 @@ test_bitcoin --log_level=all --run_test=getarg_tests
 
 `log_level` controls the verbosity of the test framework, which logs when a
 test case is entered, for example. `test_bitcoin` also accepts the command
-line arguments accepted by `bitcoind`. Use `--` to separate both types of
+line arguments accepted by `coordinated`. Use `--` to separate both types of
 arguments:
 
 ```bash

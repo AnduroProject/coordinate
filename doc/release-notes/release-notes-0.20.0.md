@@ -22,7 +22,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on Mac)
-or `bitcoind`/`bitcoin-qt` (on Linux).
+or `coordinated`/`bitcoin-qt` (on Linux).
 
 Upgrading directly from a version of Bitcoin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
@@ -165,7 +165,7 @@ New settings
   Numbers (ASNs) and then limiting the number of connections made to any
   single ASN.  See [issue #16599](https://github.com/bitcoin/bitcoin/issues/16599),
   [PR #16702](https://github.com/bitcoin/bitcoin/pull/16702), and the
-  `bitcoind help` for more information.  This option is experimental and
+  `coordinated help` for more information.  This option is experimental and
   subject to removal or breaking changes in future releases, so the
   legacy /16 prefix mapping of IP addresses remains the default.  (#16702)
 
@@ -817,7 +817,7 @@ Build system
 ### Miscellaneous
 - #15600 lockedpool: When possible, use madvise to avoid including sensitive information in core dumps (luke-jr)
 - #15934 Merge settings one place instead of five places (ryanofsky)
-- #16115 On bitcoind startup, write config args to debug.log (LarryRuane)
+- #16115 On coordinated startup, write config args to debug.log (LarryRuane)
 - #16117 util: Replace boost sleep with std sleep (MarcoFalke)
 - #16161 util: Fix compilation errors in support/lockedpool.cpp (jkczyz)
 - #16802 scripts: In linearize, search for next position of magic bytes rather than fail (takinbo)

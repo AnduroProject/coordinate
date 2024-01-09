@@ -7,7 +7,7 @@
 *.exe
 *.pdb
 src/bitcoin
-src/bitcoind
+src/coordinated
 src/bitcoin-cli
 src/bitcoin-gui
 src/bitcoin-node
