@@ -25,7 +25,7 @@ How to Upgrade
 If you are running an older version, shut it down. Wait until it has completely
 shut down (which might take a few minutes in some cases), then run the
 installer (on Windows) or just copy over `/Applications/Bitcoin-Qt` (on macOS)
-or `bitcoind`/`bitcoin-qt` (on Linux).
+or `coordinated`/`coordinate-qt` (on Linux).
 
 Upgrading directly from a version of Bitcoin Core that has reached its EOL is
 possible, but it might take some time if the data directory needs to be migrated. Old
@@ -247,7 +247,7 @@ GUI changes
 - Configuration changes made in the bitcoin GUI (such as the pruning setting,
 proxy settings, UPNP preferences) are now saved to `<datadir>/settings.json`
 file rather than to the Qt settings backend (windows registry or unix desktop
-config files), so these settings will now apply to bitcoind, instead of being
+config files), so these settings will now apply to coordinated, instead of being
 ignored. (#15936, gui#602)
 
 - Also, the interaction between GUI settings and `bitcoin.conf` settings is

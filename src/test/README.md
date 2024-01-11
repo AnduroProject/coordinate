@@ -26,7 +26,7 @@ To add more unit tests, add `BOOST_AUTO_TEST_CASE` functions to the existing
 .cpp files in the `test/` directory or add new .cpp files that
 implement new `BOOST_AUTO_TEST_SUITE` sections.
 
-To run the GUI unit tests manually, launch `src/qt/test/test_bitcoin-qt`
+To run the GUI unit tests manually, launch `src/qt/test/test_coordinate-qt`
 
 To add more GUI unit tests, add them to the `src/qt/test/` directory and
 the `src/qt/test/test_main.cpp` file.
@@ -42,7 +42,7 @@ test_bitcoin --log_level=all --run_test=getarg_tests
 
 `log_level` controls the verbosity of the test framework, which logs when a
 test case is entered, for example. `test_bitcoin` also accepts the command
-line arguments accepted by `bitcoind`. Use `--` to separate both types of
+line arguments accepted by `coordinated`. Use `--` to separate both types of
 arguments:
 
 ```bash
