@@ -60,7 +60,7 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
 
     // Check that there is at least one input.
     if (coinbaseTx->vout.size() <= 2)
-        return error("Aux POW coinbase has no outputsa");
+        return error("Aux POW coinbase has no outputs");
 
     
 
