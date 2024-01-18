@@ -59,10 +59,12 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
         return error("Aux POW merkle root incorrect");
 
     // Check that there is at least one input.
-    if (coinbaseTx->vin.empty())
-        return error("Aux POW coinbase has no inputs");
+    if (coinbaseTx->vout.size() <= 2)
+        return error("Aux POW coinbase has no outputs");
 
-    const CScript script = coinbaseTx->vin[0].scriptSig;
+    
+
+    const CScript script = coinbaseTx->vout[2].scriptPubKey;
 
     // Check that the same work is not submitted twice to our chain.
     //
