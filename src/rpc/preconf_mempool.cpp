@@ -17,8 +17,8 @@
 #include <util/moneystr.h>
 #include <util/time.h>
 #include <utility>
-#include <federation_deposit.h>
-#include <federation_validator.h>
+#include <anduro_deposit.h>
+#include <anduro_validator.h>
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
 using node::NodeContext;
@@ -72,18 +72,8 @@ static RPCHelpMan sendpreconftransaction()
             NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTransaction& ptx = *tx;  
 
-            if(ptx.nVersion == TRANSACTION_CHROMAASSET_CREATE_VERSION && !request.params[2].isNull() && ptx.payload.ToString().compare("") == 0) {
+            if(ptx.nVersion != TRANSACTION_PRECONF_VERSION) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
-            }
-
-            if(!request.params[2].isNull()) {
-                ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                ChromaAssetData assetData;
-                assetData.nID = 0;
-                assetData.txid = ptx.GetHash();
-                assetData.dataHex = request.params[2].get_str();
-                chainman.ActiveChainstate().passettree->WriteChromaAssetData(assetData);
-                
             }
 
             const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true, true);
