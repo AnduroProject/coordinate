@@ -2,8 +2,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_QT_WALLETFRAME_H
-#define BITCOIN_QT_WALLETFRAME_H
+#ifndef COORDINATE_QT_WALLETFRAME_H
+#define COORDINATE_QT_WALLETFRAME_H
 
 #include <QFrame>
 #include <QMap>
@@ -99,4 +99,4 @@ public Q_SLOTS:
     void usedReceivingAddresses();
 };
 
-#endif // BITCOIN_QT_WALLETFRAME_H
+#endif // COORDINATE_QT_WALLETFRAME_H

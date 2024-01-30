@@ -33,7 +33,7 @@ public:
     virtual unsigned NameExpirationDepth(unsigned nHeight) const = 0;
 
     /* Return minimum locked amount in a name.  */
-    virtual CAmount MinMaraChainAmount(unsigned nHeight) const = 0;
+    virtual CAmount MinCoordinateAmount(unsigned nHeight) const = 0;
 
 };
 
@@ -55,7 +55,7 @@ public:
         return 36000;
     }
 
-    CAmount MinMaraChainAmount(unsigned nHeight) const override
+    CAmount MinCoordinateAmount(unsigned nHeight) const override
     {
         if (nHeight < 212500)
             return 0;
@@ -69,7 +69,7 @@ class TestNetConsensus : public MainNetConsensus
 {
 public:
 
-    CAmount MinMaraChainAmount(unsigned) const override
+    CAmount MinCoordinateAmount(unsigned) const override
     {
         return COIN / 100;
     }

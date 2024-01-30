@@ -259,7 +259,7 @@ epilogue:
                 chainstate->ForceFlushStateToDisk();
                 chainstate->ResetCoinsViews();
                 chainstate->ResetAssetCache();
-                chainstate->ResetFederationCache();
+                chainstate->ResetAnduroCache();
             }
         }
     }

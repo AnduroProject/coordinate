@@ -258,7 +258,7 @@ task:
   name: '[ASan + LSan + UBSan + integer, no depends, USDT] [jammy]'
   << : *GLOBAL_TASK_TEMPLATE
   # We can't use a 'container' for the USDT interface tests as the CirrusCI
-  # containers don't have privileges to hook into bitcoind. CirrusCI uses
+  # containers don't have privileges to hook into coordinated. CirrusCI uses
   # Google Compute Engine instances: https://cirrus-ci.org/guide/custom-vms/
   # Images can be found here: https://cloud.google.com/compute/docs/images/os-details
   compute_engine_instance:
