@@ -629,7 +629,19 @@ private:
     {
         AssertLockHeld(::cs_main);
         AssertLockHeld(m_pool.cs);
-        CAmount mempoolRejectFee = m_pool.GetMinFee().GetFee(package_size);
+       
+        CAmount mempoolRejectFee;
+        if(m_pool.is_preconf) {
+            int pindex = m_active_chainstate.m_chainman.ActiveChain().Height();
+            CBlock block;
+            if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
+                return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
+            }
+            mempoolRejectFee = m_pool.GetMinFee().GetPreConfFee(package_size, block.preconfMinFee);
+        } else {
+           mempoolRejectFee = m_pool.GetMinFee().GetFee(package_size);
+        }
+
         if (mempoolRejectFee > 0 && package_fee < mempoolRejectFee) {
             return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool min fee not met", strprintf("%d < %d", package_fee, mempoolRejectFee));
         }
@@ -674,9 +686,23 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     int coordinateOutputs = 0; 
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        if (tx.vout.size() < 2) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
+        }
+       if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction payload missing");
+        }
         coordinateOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
+    } else if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+        if (tx.vout.size() <= 1) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
+        }
+    }
+
+    if(m_pool.is_preconf && tx.nVersion != TRANSACTION_PRECONF_VERSION || !m_pool.is_preconf && tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+        return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction version not supported");
     }
 
     uint32_t nIDLast = 0;
@@ -724,13 +750,24 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         // wtxid) already exists in the mempool.
         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-same-nonwitness-data-in-mempool");
     }
+    
+    // check the transaction inputs already spent in preconf transaction
+    if(!m_pool.is_preconf) {
+        CTxMemPool& preconf_pool{m_active_chainstate.GetPreConfMempool() };
+        for (const CTxIn &txin : tx.vin) {
+            const CTransaction* ptxConflicting = preconf_pool.GetConflictTx(txin.prevout);
+            if (ptxConflicting) {
+               return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "transaction already exist in preconf pool");
+            }
+        }
+    } 
 
     // Check for conflicts with in-memory transactions
     for (const CTxIn &txin : tx.vin)
     {
         const CTransaction* ptxConflicting = m_pool.GetConflictTx(txin.prevout);
         if (ptxConflicting) {
-            if (!args.m_allow_replacement) {
+            if (!args.m_allow_replacement || m_pool.is_preconf) {
                 // Transaction conflicts with a mempool tx, but we're not allowing replacements.
                 return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bip125-replacement-disallowed");
             }
@@ -761,26 +798,26 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     const CCoinsViewCache& coins_cache = m_active_chainstate.CoinsTip();
     // do all inputs exist?
 
-        for (const CTxIn& txin : tx.vin) {
-            if (!coins_cache.HaveCoinInCache(txin.prevout)) {
-                coins_to_uncache.push_back(txin.prevout);
-            }
-
-            // Note: this call may add txin.prevout to the coins cache
-            // (coins_cache.cacheCoins) by way of FetchCoin(). It should be removed
-            // later (via coins_to_uncache) if this tx turns out to be invalid.
-            if (!m_view.HaveCoin(txin.prevout)) {
-                // Are inputs missing because we already have the tx?
-                for (size_t out = 0; out < tx.vout.size(); out++) {
-                    // Optimistically just do efficient check of cache for outputs
-                    if (coins_cache.HaveCoinInCache(COutPoint(hash, out))) {
-                        return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-known");
-                    }
-                }
-                // Otherwise assume this might be an orphan tx for which we just haven't seen parents yet
-                return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
-            }
+    for (const CTxIn& txin : tx.vin) {
+        if (!coins_cache.HaveCoinInCache(txin.prevout)) {
+            coins_to_uncache.push_back(txin.prevout);
         }
+
+        // Note: this call may add txin.prevout to the coins cache
+        // (coins_cache.cacheCoins) by way of FetchCoin(). It should be removed
+        // later (via coins_to_uncache) if this tx turns out to be invalid.
+        if (!m_view.HaveCoin(txin.prevout)) {
+            // Are inputs missing because we already have the tx?
+            for (size_t out = 0; out < tx.vout.size(); out++) {
+                // Optimistically just do efficient check of cache for outputs
+                if (coins_cache.HaveCoinInCache(COutPoint(hash, out))) {
+                    return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-known");
+                }
+            }
+            // Otherwise assume this might be an orphan tx for which we just haven't seen parents yet
+            return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
+        }
+    }
 
 
 
@@ -1504,6 +1541,7 @@ MempoolAcceptResult AcceptToMemoryPool(Chainstate& active_chainstate, const CTra
    
 
     CTxMemPool& pool{is_preconf ? *active_chainstate.GetPreConfMempool() : *active_chainstate.GetMempool()};
+
 
     std::vector<COutPoint> coins_to_uncache;
     auto args = MemPoolAccept::ATMPArgs::SingleAccept(chainparams, accept_time, bypass_limits, coins_to_uncache, test_accept);
@@ -2524,6 +2562,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             removeMempoolAsset(tx);
         }
+
+        if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+            if (tx.vout.size() <= 1) {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction atleast have 2 output");
+            }
+        }
+
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
@@ -3085,6 +3130,10 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     if (m_mempool) {
         m_mempool->removeForBlock(blockConnecting.vtx, pindexNew->nHeight);
         disconnectpool.removeForBlock(blockConnecting.vtx);
+    }
+
+    if(m_preconf_mempool) {
+        m_preconf_mempool->removeForBlock(blockConnecting.preconfTx, pindexNew->nHeight);
     }
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);

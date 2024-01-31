@@ -26,7 +26,8 @@ public:
     std::shared_ptr<CAuxPow> auxpow;
     std::string currentKeys;
     int32_t nextIndex;
-
+    CAmount preconfMinFee;
+    CAmount preconfFee;
     CBlockHeader()
     {
         SetNull();
@@ -67,8 +68,12 @@ public:
 class CBlock : public CBlockHeader
 {
 public:
-    // network and disk
+
     std::vector<CTransactionRef> vtx;
+
+    std::vector<CTransactionRef> preconfTx;
+
+    std::vector<CTransactionRef> invalidTx;
 
     // memory only
     mutable bool fChecked;

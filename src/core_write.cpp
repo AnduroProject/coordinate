@@ -261,6 +261,10 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
                 if(i > 1) {
                     amt_total_out += txout.nValue;
                 }
+            } else if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+                 if(i > 0) {
+                    amt_total_out += txout.nValue;
+                 }
             } else {
                 amt_total_out += txout.nValue;
             }

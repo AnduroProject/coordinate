@@ -224,6 +224,7 @@ struct Params {
     bool fStrictChainId;
     int nLegacyBlocksBefore; // -1 for "always allow"
     std::string currentKeys;
+    std::string preconfMinFee;
 
     /** Consensus rule interface.  */
     std::unique_ptr<ConsensusRules> rules;

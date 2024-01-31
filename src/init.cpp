@@ -1502,6 +1502,8 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     for (bool fLoaded = false; !fLoaded && !ShutdownRequested();) {
         node.mempool = std::make_unique<CTxMemPool>(mempool_opts);
         mempool_opts.is_preconf = true;
+        mempool_opts.limits.ancestor_count = 0;
+        mempool_opts.limits.descendant_count = 0;
         node.preconfmempool = std::make_unique<CTxMemPool>(mempool_opts);
 
         node.chainman = std::make_unique<ChainstateManager>(chainman_opts);
