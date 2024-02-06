@@ -58,6 +58,7 @@ public:
      * returned fee will always be rounded up to the nearest satoshi.
      */
     CAmount GetFee(uint32_t num_bytes) const;
+    CAmount GetPreConfFee(uint32_t num_bytes, const CAmount& preconfMinFee) const;
 
     /**
      * Return the fee in satoshis for a vsize of 1000 vbytes

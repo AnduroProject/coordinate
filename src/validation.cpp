@@ -65,6 +65,7 @@
 #include <utility>
 #include <anduro_deposit.h>
 #include <coordinate/coordinate_mempool_entry.h>
+#include <coordinate/coordinate_preconf.h>
 #include <anduro_validator.h>
 
 using kernel::CCoinsStats;
@@ -633,11 +634,8 @@ private:
         CAmount mempoolRejectFee;
         if(m_pool.is_preconf) {
             int pindex = m_active_chainstate.m_chainman.ActiveChain().Height();
-            CBlock block;
-            if (!ReadBlockFromDisk(block, pindex, Params().GetConsensus())) {
-                return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
-            }
-            mempoolRejectFee = m_pool.GetMinFee().GetPreConfFee(package_size, block.preconfMinFee);
+            const CAmount& preconfMinFee = getPreConfMinFee();
+            mempoolRejectFee = m_pool.GetMinFee().GetPreConfFee(package_size, preconfMinFee);
         } else {
            mempoolRejectFee = m_pool.GetMinFee().GetFee(package_size);
         }
@@ -753,14 +751,18 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     
     // check the transaction inputs already spent in preconf transaction
     if(!m_pool.is_preconf) {
-        CTxMemPool& preconf_pool{m_active_chainstate.GetPreConfMempool() };
+        CTxMemPool& preconf_pool{*m_active_chainstate.GetPreConfMempool()};
         for (const CTxIn &txin : tx.vin) {
             const CTransaction* ptxConflicting = preconf_pool.GetConflictTx(txin.prevout);
             if (ptxConflicting) {
                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "transaction already exist in preconf pool");
             }
         }
-    } 
+    } else {
+        if(getPreConfMinFee() > tx.vout[0].nValue) {
+            return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "fee quoted was every low compared with reserve");
+        }
+    }
 
     // Check for conflicts with in-memory transactions
     for (const CTxIn &txin : tx.vin)
@@ -888,9 +890,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // No individual transactions are allowed below the min relay feerate and mempool min feerate except from
     // disconnected blocks and transactions in a package. Package transactions will be checked using
     // package feerate later.
-
-            if (!bypass_limits && !args.m_package_feerates && !CheckFeeRate(ws.m_vsize, ws.m_modified_fees, state)) return false;
-
+    if (!bypass_limits && !args.m_package_feerates && !CheckFeeRate(ws.m_vsize, ws.m_modified_fees, state)) return false;
 
 
     ws.m_iters_conflicting = m_pool.GetIterSet(ws.m_conflicts);
@@ -1650,7 +1650,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // disable block subsidy. only fee will be given as reward
-    // return 0;
+    return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2361,16 +2361,21 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CBlockIndex* pindexBIP34height = pindex->pprev->GetAncestor(params.GetConsensus().BIP34Height);
     //Only continue to enforce if we're below BIP34 activation height or the block hash at that height doesn't correspond.
     fEnforceBIP30 = fEnforceBIP30 && (!pindexBIP34height || !(pindexBIP34height->GetBlockHash() == params.GetConsensus().BIP34Hash));
-
+    std::vector<uint256> invalidTxs;
+    for (const auto& tx : block.invalidTx) {
+        invalidTxs.push_back(tx->GetHash());
+    }
     // TODO: Remove BIP30 checking from block height 1,983,702 on, once we have a
     // consensus change that ensures coinbases at those heights cannot
     // duplicate earlier coinbases.
     if (fEnforceBIP30 || pindex->nHeight >= BIP34_IMPLIES_BIP30_LIMIT) {
         for (const auto& tx : block.vtx) {
-            for (size_t o = 0; o < tx->vout.size(); o++) {
-                if (view.HaveCoin(COutPoint(tx->GetHash(), o))) {
-                    LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
-                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
+            if(std::find(invalidTxs.begin(), invalidTxs.end(), tx->GetHash()) != invalidTxs.end()) {
+                for (size_t o = 0; o < tx->vout.size(); o++) {
+                    if (view.HaveCoin(COutPoint(tx->GetHash(), o))) {
+                        LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
+                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
+                    }
                 }
             }
         }
@@ -2402,19 +2407,29 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
+    std::vector<CTransactionRef> allTx = block.preconfTx;
+    allTx.insert(std::end(allTx), std::begin(block.vtx), std::end(block.vtx));
+
     std::vector<int> prevheights;
     CAmount nFees = 0;
+    CAmount nFederationFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
+    blockundo.vtxundo.reserve((allTx.size() + invalidTxs.size())  - 1);
     std::vector<CoordinateAsset> vAsset;
-    for (unsigned int i = 0; i < block.vtx.size(); i++)
+    for (unsigned int i = 0; i < allTx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
+        if(std::find(invalidTxs.begin(), invalidTxs.end(), tx.GetHash()) != invalidTxs.end()) {
+            continue;
+        }
+
         nInputs += tx.vin.size();
 
-        if (!tx.IsCoinBase()) {
+        if (!tx.IsCoinBase())
+        {
+
             // checking payload is correct for asset transaction
             if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
                 if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
@@ -2426,10 +2441,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 LogPrintf("Invalid transaction standard \n");
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
             }
-        }
-
-        if (!tx.IsCoinBase())
-        {
             CAmount txfee = 0;
             TxValidationState tx_state;
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
@@ -2438,9 +2449,23 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                             tx_state.GetRejectReason(), tx_state.GetDebugMessage());
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
             }
-            nFees += txfee;
+
+            if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+                size_t size(GetVirtualTransactionSize(tx, GetTransactionSigOpCost(tx, view, flags), ::nBytesPerSigOp));
+                CAmount preconfMinerFee = std::ceil((txfee - (block.preconfFee * size)) * 0.85);
+                nFees += preconfMinerFee;
+                nFederationFees += txfee-preconfMinerFee;
+            } else {
+                nFees += txfee;
+            }
+
             if (!MoneyRange(nFees)) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
+            }
+
+            if (!MoneyRange(nFederationFees)) {
+                LogPrintf("ERROR: %s: accumulated federation fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
             }
 
@@ -2597,6 +2622,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
     }
 
+    if(nFederationFees > 0 && block.vtx[0]->vout.size()>1) {
+        CAmount totalAmount = block.vtx[0]->vout[1].nValue;
+        if (totalAmount > nFederationFees) {
+          LogPrintf("ERROR: ConnectBlock(): preconf transaction pays too much for federation(actual=%d vs limit=%d)\n", totalAmount, blockReward);
+           return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+        }
+    }
+
     const CTransaction &dtx = *(block.vtx[0]);
 
     if (!control.Wait()) {
@@ -2656,6 +2689,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
     resetDeposit(pindex->nHeight);
+
+    removePreConfWitness(m_chainman,block.preconfMinFee);
 
     return true;
 }

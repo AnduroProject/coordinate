@@ -19,9 +19,13 @@
 #include <utility>
 #include <anduro_deposit.h>
 #include <anduro_validator.h>
+#include <coordinate/coordinate_preconf.h>
+#include <node/blockstorage.h>
 
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
 using node::NodeContext;
+using node::BlockManager;
+using node::ReadBlockFromDisk;
 
 
 static RPCHelpMan sendpreconftransaction()
@@ -87,13 +91,141 @@ static RPCHelpMan sendpreconftransaction()
     };
 }
 
+static RPCHelpMan sendpreconfsignatures()
+{
+    return RPCHelpMan{"sendpreconfsignatures",
+        "\nSubmit a pre conf transaction signatures from federation \n",
+        {
+            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::NO, "pre signed preconf signature details from anduro",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
+                    {
+                        {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
+                        {"utc_time", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction time anduro see it from their node"},
+                        {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
+                        {"position", RPCArg::Type::NUM, RPCArg::Optional::NO, "The anduro position to sign the transaction"},
+                        {"witness", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The anduro signature"},
+                    },
+                }
+              }
+            },
+        },
+        RPCResult{
+            RPCResult::Type::BOOL, "", "the result for preconf signature submission"
+        },
+        RPCExamples{
+            "\nSend the signature for preconf transaction\n"
+            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"utc_time\\\":0,\\\"block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            const UniValue& req_params = request.params[0].get_array();
+            if(req_params.size() > 0) {
+                std::vector<CoordinatePreConfSig> preconf;
+                for (unsigned int idx = 0; idx < req_params.size(); idx++) {
+                    const UniValue& fedParams = req_params[idx].get_obj();
+                    RPCTypeCheckObj(fedParams,
+                    {
+                        {"txid", UniValueType(UniValue::VSTR)},
+                        {"utc_time", UniValueType(UniValue::VNUM)},
+                        {"block_height", UniValueType(UniValue::VNUM)},
+                        {"position", UniValueType(UniValue::VNUM)},
+                        {"witness", UniValueType(UniValue::VSTR)},
+                    });
+                    CoordinatePreConfSig preconfObj;
+                    preconfObj.txid =  ParseHashO(fedParams, "txid");
+                    preconfObj.utcTime =  find_value(fedParams, "utc_time").getInt<int64_t>();
+                    preconfObj.blockHeight =  find_value(fedParams, "block_height").getInt<int32_t>();
+                    preconfObj.anduroPos =  find_value(fedParams, "position").getInt<int32_t>();
+                    preconfObj.witness =  find_value(fedParams, "witness").get_str();
+                    preconf.push_back(preconfObj);
+                }
+                return includePreConfSigWitness(preconf, chainman);
+            }
+            return false;
+        },
+    };
+}
 
+static RPCHelpMan getpreconffee()
+{
+    return RPCHelpMan{"getpreconffee",
+        "\nGet current preconfirmation fee \n",
+        {
+        },
+        RPCResult{
+            RPCResult::Type::NUM, "", "current preconf minimum fee"
+        },
+        RPCExamples{
+            "\nGet current transaciton fee\n"
+            + HelpExampleCli("sendpreconfsignatures", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            
+            CChain& active_chain = chainman.ActiveChain();
+            int blockindex = active_chain.Height();
+            CBlock block;
+            if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+                LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+                return 0;
+            }
 
+            return block.preconfMinFee;
+        },
+    };
+}
+
+static RPCHelpMan getpreconfvotes()
+{
+    return RPCHelpMan{"getpreconfvotes",
+        "\nGet current getpreconf votes list \n",
+        {
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::ARR, "votes", "",
+                {
+                     {RPCResult::Type::OBJ, "", "",
+                        {
+                            {RPCResult::Type::STR, "txid", "preconf transaction txid"},
+                            {RPCResult::Type::NUM, "votes", "total votes by anduro"},
+                        }
+                     }
+                }},
+            },
+        },
+        RPCExamples{
+            "\nGet current transaciton fee\n"
+            + HelpExampleCli("sendpreconfsignatures", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            UniValue result(UniValue::VOBJ);
+            UniValue votes(UniValue::VARR);
+            std::vector<CoordinatePreConfVotes> coordinatePreConfVotes = getPreConfVotes();
+            for (const CoordinatePreConfVotes& coordinatePreConfVote : coordinatePreConfVotes) {
+                UniValue voteItem(UniValue::VOBJ);
+                voteItem.pushKV("txid", coordinatePreConfVote.txid.ToString());
+                voteItem.pushKV("votes", coordinatePreConfVote.votes);
+                votes.push_back(voteItem);
+            }
+            result.pushKV("votes", votes);
+            return result;
+        },
+    };
+}
 
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"preconf", &sendpreconftransaction},
+        {"preconf", &sendpreconfsignatures},
+        {"preconf", &getpreconffee},
+        {"preconf", &getpreconfvotes},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

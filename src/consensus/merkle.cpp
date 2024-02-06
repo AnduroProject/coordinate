@@ -65,6 +65,8 @@ uint256 ComputeMerkleRoot(std::vector<uint256> hashes, bool* mutated) {
 uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
+
+    
     std::vector<uint256> txLeaves;
     std::vector<uint256> preconfTxLeaves;
     std::vector<uint256> invalidTxeaves;
@@ -85,7 +87,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     leaves[1] = ComputeMerkleRoot(std::move(txLeaves), mutated);
 
     // invalid transaciton merkle root preparation
-    invalidTxeaves.resize(block.invalidTx.size());
+    invalidTxeaves.resize(block.invalidTx.size() + 1);
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
         invalidTxeaves[s] = block.invalidTx[s]->GetHash();
     }

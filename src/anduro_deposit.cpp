@@ -22,7 +22,6 @@ bool isValidationActivate = false;
 std::string depositAddress = "";
 // temporary storage for withdraw address
 std::string burnAddress = "";
-
 /**
  * Include presigned signature from anduro.
  */

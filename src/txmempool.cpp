@@ -632,14 +632,6 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
         removeConflicts(*tx);
         ClearPrioritisation(tx->GetHash());
     }
-    
-    if(is_preconf) {
-        for (const CTxMemPoolEntry& e : mapTx) {
-            if(e.GetHeight() + 3 < nBlockHeight) {
-                stage.insert(e);
-            }
-        }
-    }
 
     lastRollingFeeUpdate = GetTime();
     blockSinceLastRollingFeeBump = true;
