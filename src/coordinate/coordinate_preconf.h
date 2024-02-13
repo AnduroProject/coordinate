@@ -181,7 +181,7 @@ void removePreConfSigWitness(ChainstateManager& chainman);
 /**
  * This is the function which used to get unbroadcasted preconfirmation signatures
  */
-bool getUnBroadcastedPreConfSig(std::vector<CoordinatePreConfSig> preconfList) ;
+std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig();
 
 /**
  * This is the function which used to get all preconfirmation signatures
@@ -217,6 +217,14 @@ std::vector<CoordinatePreConfSig> getPreConfSig();
  * This is the function which used to get all preconfirmation votes
  */
 std::vector<CoordinatePreConfVotes> getPreConfVotes();
+
+/**
+ * This function prepare federation output for preconf
+ * @param[in] txid preconf transaction id
+ * @param[in] blockHeight  block height 
+ * @param[out] preconfVoteObj  preconf vout object
+ */
+bool getPreConfVote(uint256 txid, int32_t blockHeight, CoordinatePreConfVotes* preconfVoteObj);
 
 /**
  * This function prepare federation output for preconf

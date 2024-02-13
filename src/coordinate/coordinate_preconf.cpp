@@ -22,6 +22,8 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     CBlock block;
     if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        CoordinatePreConfBlock result;
+        return result;
     }
 
     std::vector<unsigned char> wData(ParseHex(block.currentKeys));
@@ -29,7 +31,8 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     UniValue witnessVal(UniValue::VOBJ);
     if (!witnessVal.read(prevWitnessHexStr)) {
         LogPrintf("invalid witness params \n");
-        return false;
+        CoordinatePreConfBlock result;
+        return result;
     }
 
     std::vector<std::string> allKeysArray;
@@ -38,9 +41,9 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
     std::vector<CoordinatePreConfVotes> preconfVoteList = getSortedPreConf(thresold);
 
-    CTxMemPool& preconf_pool{active_chain.GetPreConfMempool()};
+    CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
 
-    CAmount finalFee = blockFee(preconf_pool, preconfVoteList);
+    CAmount finalFee = nextBlockFee(preconf_pool, preconfVoteList);
     
     return prepareRefunds(preconf_pool,preconfVoteList,finalFee);
 }
@@ -71,14 +74,14 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, std::vector<Coor
     CoordinatePreConfBlock result;
     result.txids = txids;
     result.refunds = txouts;
-    result.fee = txouts;
+    result.fee = finalFee;
     return result;
 }
 
 bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, ChainstateManager& chainman) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
-    CTxMemPool& preconf_pool{active_chain.GetPreConfMempool()};
+    CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
     LOCK(preconf_pool.cs);
     int blockindex = active_chain.Height();
 
@@ -97,7 +100,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     int32_t anduroPos = preconf[0].anduroPos;
     uint256 txid =  preconf[0].txid;
     auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                [blockindex] (const CoordinatePreConfSig& d) { 
+                [blockindex,anduroPos,txid] (const CoordinatePreConfSig& d) { 
                     return d.blockHeight > blockindex && d.anduroPos == anduroPos && d.txid == txid;
                 });
 
@@ -136,7 +139,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         CoordinatePreConfVotes preconfVoteObj;
-        bool is_vote_exist = getPreConfVotes(preconfItem.txid, preconfItem.blockHeight, &preconfVoteObj);
+        bool is_vote_exist = getPreConfVote(preconfItem.txid, preconfItem.blockHeight, &preconfVoteObj);
         if(is_vote_exist) {
             preconfVoteObj.votes = preconfVoteObj.votes + 1;
         } else {
@@ -153,12 +156,12 @@ void removePreConfWitness(ChainstateManager& chainman, CAmount minFee) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = active_chain.Height();
-    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
+    auto sigit = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
                     [blockindex] (const CoordinatePreConfSig& d) { 
                         return d.blockHeight < blockindex;
                     });
-    if (it != coordinatePreConfSig.end()) {
-        int indexToRemove = it - coordinatePreConfSig.begin() ;
+    if (sigit != coordinatePreConfSig.end()) {
+        int indexToRemove = sigit - coordinatePreConfSig.begin() ;
         coordinatePreConfSig.erase(coordinatePreConfSig.begin() + indexToRemove);
     }
 
@@ -175,15 +178,15 @@ void removePreConfWitness(ChainstateManager& chainman, CAmount minFee) {
 /**
  * This is the function which used to get unbroadcasted preconfirmation signatures
  */
-bool getUnBroadcastedPreConfSig(std::vector<CoordinatePreConfSig> preconfList) {
-    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                       [] (const CoordinatePreConfSig& d) { 
-                          return d.isBroadcasted == false; 
-                       });
-    if (it == coordinatePreConfSig.end()) return false;
+std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig() {
+    std::vector<CoordinatePreConfSig> sigData;
+    for (CoordinatePreConfSig coordinatePreConfSigItem : coordinatePreConfSig) {
+        if(!coordinatePreConfSigItem.isBroadcasted) {
+            sigData.push_back(coordinatePreConfSigItem);
+        } 
+    }
 
-    *preconfList = std::move(*it);
-    return preconfList->size()==0 ? false : true;
+    return sigData;
 }
 
 /**
@@ -192,7 +195,7 @@ bool getUnBroadcastedPreConfSig(std::vector<CoordinatePreConfSig> preconfList) {
 std::vector<CoordinatePreConfVotes> getSortedPreConf(int thresold) {
     std::vector<CoordinatePreConfVotes> votes;
     for (CoordinatePreConfVotes coordinatePreConfVotesItem : coordinatePreConfVotes) {
-        if(d.votes >= thresold) {
+        if(coordinatePreConfVotesItem.votes >= thresold) {
             votes.push_back(coordinatePreConfVotesItem);
         }
     }
@@ -233,7 +236,7 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
 /**
  * This is the function which used to get preconf vote information
  */
-bool getPreConfVotes(uint256 txid, int32_t blockHeight, CoordinatePreConfVotes* preconfVoteObj) {
+bool getPreConfVote(uint256 txid, int32_t blockHeight, CoordinatePreConfVotes* preconfVoteObj) {
     auto it = std::find_if(coordinatePreConfVotes.begin(), coordinatePreConfVotes.end(), 
                        [txid,blockHeight] (const CoordinatePreConfVotes& d) { 
                           return d.txid == txid && d.blockHeight== blockHeight; 
@@ -261,8 +264,10 @@ CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = active_chain.Height();
     CBlock block;
+    CTxOut federationOut;
     if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        return federationOut;
     }
 
     std::vector<unsigned char> wData(ParseHex(block.currentKeys));
@@ -270,12 +275,11 @@ CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee
     UniValue witnessVal(UniValue::VOBJ);
     if (!witnessVal.read(prevWitnessHexStr)) {
         LogPrintf("invalid witness params \n");
-        return false;
+        return federationOut;
     }
     const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
     const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
 
-    CTxOut federationOut;
     federationOut.nValue = federationFee;
     federationOut.scriptPubKey = scriptPubKey;
 

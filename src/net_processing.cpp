@@ -5291,9 +5291,8 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
     }
     if (current_time - peer.m_last_pre_conf_req_timestamp > PRE_CONF_CHECK_TIME) {
         peer.m_last_pre_conf_req_timestamp = current_time;
-        std::vector<CoordinatePreConfSig> preconfList;
-        bool is_preconf_available = getUnBroadcastedPreConfSig(preconfList);
-        if(is_preconf_available) {
+        std::vector<CoordinatePreConfSig> preconfList = getUnBroadcastedPreConfSig();
+        if(preconfList.size() > 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PRECONFSIGNATUREPUSH, preconfList));
             for (CoordinatePreConfSig& coordinatePreConfSigItem : preconfList) {
