@@ -19,7 +19,7 @@ bool validatePreConfSignature(std::string signature, std::string messageIn, std:
 
     std::vector<std::string> allKeysArray;
     std::string redeemPath;
-    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "allkeys").get_array();
+    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "all_keys").get_array();
     for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
         if(i == anduroPos) {
            redeemPath = allKeysArrayRequest[i].get_str();
@@ -28,7 +28,7 @@ bool validatePreConfSignature(std::string signature, std::string messageIn, std:
     }
 
     uint256 message = prepareMessageHash(messageIn);
-    if(!XOnlyPubKey(ParseHex(redeemPath)).VerifySchnorr(message,ParseHex(signature))) {
+    if(!XOnlyPubKey(CPubKey(ParseHex(redeemPath))).VerifySchnorr(message,ParseHex(signature))) {
        return false;
     }
 }
@@ -36,13 +36,6 @@ bool validatePreConfSignature(std::string signature, std::string messageIn, std:
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-    std::vector<unsigned char> sData(ParseHex(signatureHex));
-    const std::string signatureHexStr(sData.begin(), sData.end());
-    UniValue val(UniValue::VOBJ);
-    if (!val.read(signatureHexStr)) {
-        LogPrintf("invalid signature params \n");
-        return false;
-    }
 
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
@@ -53,25 +46,48 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     }
 
     std::vector<std::string> allKeysArray;
-    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "paths").get_array();
+    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "all_keys").get_array();
     for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
         allKeysArray.push_back(allKeysArrayRequest[i].get_str());
     }
 
-    std::string redeemPath =  find_value(val.get_obj(), "redeempath").get_str();
+    int thresold =  std::ceil(allKeysArray.size() * 0.6);
 
-    if(!getRedeemPathAvailable(allKeysArray,redeemPath)) {
+    std::vector<unsigned char> sData(ParseHex(signatureHex));
+    const std::string signatureHexStr(sData.begin(), sData.end());
+    UniValue allSignatures(UniValue::VARR);
+    if (!allSignatures.read(signatureHexStr)) {
+        LogPrintf("invalid signature params \n");
         return false;
     }
-    std::string signature =  find_value(val.get_obj(), "signature").get_str();
+     if(allSignatures.size() == 0) {
+        LogPrintf("invalid signature params \n");
+        return false;
+     }
 
-    uint256 message = prepareMessageHash(messageIn);
+    for (unsigned int idx = 0; idx < allSignatures.size(); idx++) {
+        const UniValue& o = allSignatures[idx].get_obj();
+        RPCTypeCheckObj(o,
+        {
+            {"redeempath", UniValueType(UniValue::VSTR)},
+            {"signature", UniValueType(UniValue::VSTR)},
+        });
+        std::string redeemPath =  find_value(o, "redeempath").get_str();
+        std::string signature =  find_value(o, "signature").get_str();
+        if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
+            uint256 message = prepareMessageHash(messageIn);
+            if(!XOnlyPubKey(CPubKey(ParseHex(redeemPath))).VerifySchnorr(message,ParseHex(signature))) {
+               return false;
+            }
+            thresold = thresold - 1;
+        }
 
-    if(!XOnlyPubKey(ParseHex(redeemPath)).VerifySchnorr(message,ParseHex(signature))) {
-       return false;
+        if(thresold == 0) {
+            break;
+        }
     }
 
-    return true;
+    return thresold == 0 ? true : false;
 }
 
 
