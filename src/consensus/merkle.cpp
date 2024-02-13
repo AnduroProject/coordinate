@@ -66,7 +66,6 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 {
     std::vector<uint256> leaves;
 
-    
     std::vector<uint256> txLeaves;
     std::vector<uint256> preconfTxLeaves;
     std::vector<uint256> invalidTxeaves;
@@ -75,7 +74,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     // preconf merkle root preparation
     preconfTxLeaves.resize(block.preconfTx.size());
     for (size_t s = 0; s < block.preconfTx.size(); s++) {
-        preconfTxLeaves[s] = block.preconfTx[s]->GetHash();
+        preconfTxLeaves[s] = block.preconfTx[s];
     }
     leaves[0] = ComputeMerkleRoot(std::move(preconfTxLeaves), mutated);
 
@@ -88,8 +87,9 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 
     // invalid transaciton merkle root preparation
     invalidTxeaves.resize(block.invalidTx.size() + 1);
+    invalidTxeaves[0] = block.reconsiliationBlock;
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
-        invalidTxeaves[s] = block.invalidTx[s]->GetHash();
+        invalidTxeaves[s+1] = block.invalidTx[s];
     }
     leaves[2] = ComputeMerkleRoot(std::move(invalidTxeaves), mutated);
 
@@ -107,7 +107,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     // preconf merkle root preparation
     preconfTxLeaves.resize(block.preconfTx.size());
     for (size_t s = 0; s < block.preconfTx.size(); s++) {
-        preconfTxLeaves[s] = block.preconfTx[s]->GetHash();
+        preconfTxLeaves[s] = block.preconfTx[s];
     }
     leaves[0] = ComputeMerkleRoot(std::move(preconfTxLeaves), mutated);
 
@@ -120,9 +120,10 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     leaves[1] = ComputeMerkleRoot(std::move(txLeaves), mutated);
 
     // invalid transaciton merkle root preparation
-    invalidTxeaves.resize(block.invalidTx.size());
+    invalidTxeaves.resize(block.invalidTx.size()+1);
+    invalidTxeaves[0] = block.reconsiliationBlock;
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
-        invalidTxeaves[s] = block.invalidTx[s]->GetHash();
+        invalidTxeaves[s+1] = block.invalidTx[s];
     }
     leaves[2] = ComputeMerkleRoot(std::move(invalidTxeaves), mutated);
 

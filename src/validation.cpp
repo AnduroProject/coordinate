@@ -2361,21 +2361,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CBlockIndex* pindexBIP34height = pindex->pprev->GetAncestor(params.GetConsensus().BIP34Height);
     //Only continue to enforce if we're below BIP34 activation height or the block hash at that height doesn't correspond.
     fEnforceBIP30 = fEnforceBIP30 && (!pindexBIP34height || !(pindexBIP34height->GetBlockHash() == params.GetConsensus().BIP34Hash));
-    std::vector<uint256> invalidTxs;
-    for (const auto& tx : block.invalidTx) {
-        invalidTxs.push_back(tx->GetHash());
-    }
+
     // TODO: Remove BIP30 checking from block height 1,983,702 on, once we have a
     // consensus change that ensures coinbases at those heights cannot
     // duplicate earlier coinbases.
     if (fEnforceBIP30 || pindex->nHeight >= BIP34_IMPLIES_BIP30_LIMIT) {
         for (const auto& tx : block.vtx) {
-            if(std::find(invalidTxs.begin(), invalidTxs.end(), tx->GetHash()) != invalidTxs.end()) {
-                for (size_t o = 0; o < tx->vout.size(); o++) {
-                    if (view.HaveCoin(COutPoint(tx->GetHash(), o))) {
-                        LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
-                        return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
-                    }
+            for (size_t o = 0; o < tx->vout.size(); o++) {
+                if (view.HaveCoin(COutPoint(tx->GetHash(), o))) {
+                    LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
                 }
             }
         }
@@ -2407,23 +2402,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
-    std::vector<CTransactionRef> allTx = block.preconfTx;
-    allTx.insert(std::end(allTx), std::begin(block.vtx), std::end(block.vtx));
-
     std::vector<int> prevheights;
     CAmount nFees = 0;
     CAmount nFederationFees = 0;
     int nInputs = 0;
     int64_t nSigOpsCost = 0;
-    blockundo.vtxundo.reserve((allTx.size() + invalidTxs.size())  - 1);
+    blockundo.vtxundo.reserve(block.vtx.size()  - 1);
     std::vector<CoordinateAsset> vAsset;
-    for (unsigned int i = 0; i < allTx.size(); i++)
+    for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
-
-        if(std::find(invalidTxs.begin(), invalidTxs.end(), tx.GetHash()) != invalidTxs.end()) {
-            continue;
-        }
 
         nInputs += tx.vin.size();
 
@@ -2450,15 +2438,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
             }
 
-            if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-                size_t size(GetVirtualTransactionSize(tx, GetTransactionSigOpCost(tx, view, flags), ::nBytesPerSigOp));
-                CAmount preconfMinerFee = std::ceil((txfee - (block.preconfFee * size)) * 0.85);
-                nFees += preconfMinerFee;
-                nFederationFees += txfee-preconfMinerFee;
-            } else {
-                nFees += txfee;
-            }
-
+            nFees += txfee;
+            
             if (!MoneyRange(nFees)) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
@@ -3167,9 +3148,6 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
         disconnectpool.removeForBlock(blockConnecting.vtx);
     }
 
-    if(m_preconf_mempool) {
-        m_preconf_mempool->removeForBlock(blockConnecting.preconfTx, pindexNew->nHeight);
-    }
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
     UpdateTip(pindexNew);

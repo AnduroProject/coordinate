@@ -150,23 +150,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->nTime = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
     m_lock_time_cutoff = pindexPrev->GetMedianTimePast();
 
-    CoordinatePreConfBlock preconfList = getNextPreConfSigList(m_chainstate.m_chainman);
-    CTxMemPool* preconf_pool{m_chainstate.m_chainman.ActiveChainstate().GetPreConfMempool()};
-
-    CAmount preConfMinerFee = 0;
-    CAmount preConfFederationFee = 0;
-    pblock->preconfFee = preconfList.fee;
-    for (const uint256& hash : preconfList.txids) {
-        CAmount transactionFee = 0;
-        TxMempoolInfo info = preconf_pool->info(GenTxid::Txid(hash));
-        CTransactionRef ptx = info.tx;
-        if(ptx) {
-            preConfMinerFee = preConfMinerFee + std::ceil((info.fee - (preconfList.fee * info.vsize)) * 0.85);
-            preConfFederationFee = preConfFederationFee + (info.fee - preConfMinerFee);
-            pblock->preconfTx.push_back(ptx);
-        }
-    }
-
     int nPackagesSelected = 0;
     int nDescendantsUpdated = 0;
     if (m_mempool) {
@@ -180,26 +163,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_weight = nBlockWeight;
     
     // increasing coinbase size for refunds
-    int resize = 1 + preconfList.refunds.size();
-    nBlockWeight = nBlockWeight + (preconfList.refunds.size() * 360);
-
-    if(preConfMinerFee>0) {
-        nFees = nFees + preConfMinerFee;
-    }
-
-    if(preConfFederationFee>0) {
-       resize = resize + 1;
-    }
-
-    std::vector<CTransactionRef> invalidTxs;
-    for (const CTransactionRef& tx : pblock->vtx) { 
-        if(!preconf_pool->HasNoInputsOf(*tx)) {
-             invalidTxs.push_back(tx);
-             TxMempoolInfo info = m_mempool->info(GenTxid::Txid(tx->GetHash()));
-             nFees = nFees - info.fee;
-        }
-    }
-    pblock->invalidTx = invalidTxs;
+    int resize = 1;
 
     // get next block presigned data
     std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
@@ -244,15 +208,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout.resize(resize);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-
-    if(preConfFederationFee>0) {
-        coinbaseTx.vout.push_back(getFederationOutForFee(m_chainstate.m_chainman,preConfFederationFee));
-    }
-
-    for (const CTxOut& tx_out : preconfList.refunds) {
-        coinbaseTx.vout.push_back(tx_out);
-    }
-
 
     int oIncr = 1;
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {

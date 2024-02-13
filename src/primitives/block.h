@@ -27,7 +27,6 @@ public:
     std::string currentKeys;
     int32_t nextIndex;
     CAmount preconfMinFee;
-    CAmount preconfFee;
     CBlockHeader()
     {
         SetNull();
@@ -71,9 +70,11 @@ public:
 
     std::vector<CTransactionRef> vtx;
 
-    std::vector<CTransactionRef> preconfTx;
+    std::vector<uint256> preconfTx;
 
-    std::vector<CTransactionRef> invalidTx;
+    std::vector<uint256> invalidTx;
+
+    uint256 reconsiliationBlock;
 
     // memory only
     mutable bool fChecked;
@@ -99,6 +100,9 @@ public:
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        invalidTx.clear();
+        preconfTx.clear();
+        reconsiliationBlock.SetNull();
         fChecked = false;
     }
 
