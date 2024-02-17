@@ -4,6 +4,7 @@
 #include <logging.h>
 #include <outputtype.h>
 #include <rpc/util.h>
+#include <util/message.h>
 
 /**
  * Validate presigned signature
@@ -25,7 +26,9 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     }
 
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
-
+    LogPrintf("thresold %i \n ", thresold);
+    LogPrintf("message in %s \n ", messageIn);
+    LogPrintf("message original in %s \n ", "[{\"address\":\"ccrt1pk95qppun8gzg7wvdfxtgmanng86aux6t6ahk32m4e76trxgyf83ssncnqm\",\"amount\":0,\"index\":1,\"height\":1}]");
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue allSignatures(UniValue::VARR);
@@ -47,12 +50,22 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
         });
         std::string redeemPath =  find_value(o, "redeempath").get_str();
         std::string signature =  find_value(o, "signature").get_str();
+
+
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
+            LogPrintf("redeempath in %s \n ", redeemPath);
+            LogPrintf("signature in %s \n ", signature);
             uint256 message = prepareMessageHash(messageIn);
-            if(!XOnlyPubKey(CPubKey(ParseHex(redeemPath))).VerifySchnorr(message,ParseHex(signature))) {
-               return false;
+            XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
+            LogPrintf("xpubkey in %s \n ", HexStr(xPubkey));
+            LogPrintf("message in %s \n ", message.ToString());
+            if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
+               LogPrintf("failed verfication \n");
+            } else {
+                LogPrintf("success verfication %s \n ", signature);
+                thresold = thresold - 1;
             }
-            thresold = thresold - 1;
+          
         }
 
         if(thresold == 0) {
