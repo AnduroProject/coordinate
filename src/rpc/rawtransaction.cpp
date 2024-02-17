@@ -168,11 +168,11 @@ static std::vector<RPCArg> CreateTxDoc()
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
         {"assetInfo", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "Additional parameters for asset creation",
             {
-                {"assetType", RPCArg::Type::NUM, RPCArg::Optional::NO, "The asset type"},
+                {"assettype", RPCArg::Type::NUM, RPCArg::Optional::NO, "The asset type"},
                 {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "The ticker symbol"},
                 {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "The headline"},
                 {"payload", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The payload"},
-                {"payloadData", RPCArg::Type::STR, RPCArg::Optional::NO, "The payload data"}
+                {"payloaddata", RPCArg::Type::STR, RPCArg::Optional::NO, "The payload data"}
             }
         }
     };
@@ -357,10 +357,10 @@ static RPCHelpMan createrawtransaction() {
                     RPCResult::Type::STR_HEX, "transaction", "hex string of the transaction"
                 },
                RPCExamples{
-            HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"address\\\":0.01}]\" {\"assetType\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloadData\":\"payloaddatavalue\"}")
-            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"data\\\":\\\"00010203\\\"}]\"{\"assetType\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloadData\":\"payloaddatavalue\"}")
-            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"address\\\":0.01}]\"{\"assetType\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloadData\":\"payloaddatavalue\"}")
-            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"data\\\":\\\"00010203\\\"}]\"{\"assetType\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloadData\":\"payloaddatavalue\"}")
+            HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"address\\\":0.01}]\" {\"assettype\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloaddata\":\"payloaddatavalue\"}")
+            + HelpExampleCli("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\" \"[{\\\"data\\\":\\\"00010203\\\"}]\"{\"assettype\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloaddata\":\"payloaddatavalue\"}")
+            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"address\\\":0.01}]\"{\"assettype\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloaddata\":\"payloaddatavalue\"}")
+            + HelpExampleRpc("createrawtransaction", "\"[{\\\"txid\\\":\\\"myid\\\",\\\"vout\\\":0}]\", \"[{\\\"data\\\":\\\"00010203\\\"}]\"{\"assettype\":assetvalue,\"ticker\":\"Tickervalue\",\"headline\":\"headervalue\",\"payload\":\"payloadvalue\",\"payloaddata\":\"payloaddatavalue\"}")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
             std::optional<bool> rbf;
@@ -374,11 +374,11 @@ static RPCHelpMan createrawtransaction() {
                 const UniValue& assetParams = request.params[4];
                 if (assetParams.isObject()) {
                     rawTx.nVersion = 10;
-                    rawTx.assetType = std::stoi(assetParams["assetType"].get_str());
+                    rawTx.assetType = assetParams["assettype"].getInt<int>();
                     rawTx.ticker = assetParams["ticker"].get_str();
                     rawTx.headline = assetParams["headline"].get_str();
                     rawTx.payload = uint256S(assetParams["payload"].get_str());
-                    rawTx.payloadData = assetParams["payloadData"].get_str();
+                    rawTx.payloadData = assetParams["payloaddata"].get_str();
                 }
             }
 
