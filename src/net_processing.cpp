@@ -530,7 +530,8 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex, !m_recent_confirmed_transactions_mutex, !m_most_recent_block_mutex, !m_headers_presync_mutex, g_msgproc_mutex);
     bool SendMessages(CNode* pto) override
         EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex, !m_recent_confirmed_transactions_mutex, !m_most_recent_block_mutex, g_msgproc_mutex);
-
+    void NewSignedBlockTimer(uint32_t nTime) override
+        EXCLUSIVE_LOCKS_REQUIRED(!m_peer_mutex, !m_recent_confirmed_transactions_mutex, !m_most_recent_block_mutex, g_msgproc_mutex);
     /** Implement PeerManager */
     void StartScheduledTasks(CScheduler& scheduler) override;
     void CheckForStaleTipAndEvictPeers() override;
@@ -5524,6 +5525,14 @@ bool PeerManagerImpl::SetupAddressRelay(const CNode& node, Peer& peer)
     }
 
     return true;
+}
+
+void PeerManagerImpl::NewSignedBlockTimer(uint32_t nTime)
+{
+    LogPrintf("testing preconf block 1 \n");
+    if(!m_chainman.ActiveChainstate().ConnectSignedBlock(nTime)) {
+        LogPrint(BCLog::NET, "new signed block creation failed \n");
+    }
 }
 
 bool PeerManagerImpl::SendMessages(CNode* pto)

@@ -131,3 +131,15 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     return ComputeMerkleRoot(std::move(leaves), mutated);
 }
 
+
+
+
+uint256 SignedBlockMerkleRoot(const SignedBlock& block, bool* mutated)
+{
+    std::vector<uint256> leaves;
+    leaves.resize(block.vtx.size());
+    for (size_t s = 0; s < block.vtx.size(); s++) {
+        leaves[s] = block.vtx[s]->GetHash();
+    }
+    return ComputeMerkleRoot(std::move(leaves), mutated);
+}

@@ -18,7 +18,7 @@
 #include <utility>
 #include <vector>
 #include <coordinate/coordinate_assets.h>
-
+#include <coordinate/signed_block.h>
 
 class CBlockFileInfo;
 class CBlockIndex;
@@ -111,4 +111,15 @@ public:
 };
 
 
+/** Access to the signed blocks database (blocks/signedblocks/) */
+class SignedBlocksDB : public CDBWrapper {
+public:
+    SignedBlocksDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
+    bool WriteSignedBlocks(const std::vector<SignedBlock>& block);
+    std::vector<SignedBlock> GetSignedBlocks();
+    bool GetLastSignedBlockID(uint64_t& nHeight);
+    bool WriteLastSignedBlockID(const uint64_t nHeight);
+    bool GetSignedBlock(const uint64_t nHeight, SignedBlock& block);
+    bool RemoveSignedBlock(const uint64_t nID);
+};
 #endif // BITCOIN_TXDB_H

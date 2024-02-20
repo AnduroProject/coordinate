@@ -219,6 +219,56 @@ static RPCHelpMan getpreconfvotes()
     };
 }
 
+static RPCHelpMan listAllSignedBlocks() {
+        return RPCHelpMan{
+        "listallsignedblocks",
+        "get all signed blocks",
+        {
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::ARR, "blocks", "",
+                {
+                     {RPCResult::Type::OBJ, "", "",
+                        {
+                            {RPCResult::Type::NUM, "height", "Signed block height"},
+                            {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
+                            {RPCResult::Type::NUM, "txcount", "Signed block transaction count"},
+                        }
+                     }
+                }},
+            },
+        },
+        RPCExamples{
+           HelpExampleCli("listallsignedblocks", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            const CTxMemPool& mempool = EnsureMemPool(node);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+                UniValue result(UniValue::VOBJ);
+                UniValue assets(UniValue::VARR);
+                std::vector<SignedBlock> blockList = chainman.ActiveChainstate().psignedblocktree->GetSignedBlocks();
+            ;
+                int incr = 0;
+                for (const SignedBlock& block_item : blockList) {
+                    UniValue obj(UniValue::VOBJ);
+                    obj.pushKV("height", (uint64_t)block_item.nHeight + incr);
+                    obj.pushKV("assettype", block_item.GetHash().ToString());
+                    obj.pushKV("txcount", block_item.vtx.size());
+                    assets.push_back(obj);
+                    incr = incr + 1;
+                }
+                result.pushKV("blocks", assets);
+                return result;
+        }
+    };
+
+}
+
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -226,6 +276,7 @@ void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
         {"preconf", &sendpreconfsignatures},
         {"preconf", &getpreconffee},
         {"preconf", &getpreconfvotes},
+        {"preconf", &listAllSignedBlocks},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

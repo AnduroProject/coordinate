@@ -152,13 +152,12 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
 }
 
-void removePreConfWitness(ChainstateManager& chainman, CAmount minFee) {
+void removePreConfWitness(ChainstateManager& chainman, int32_t nHeight) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
-    int blockindex = active_chain.Height();
     auto sigit = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                    [blockindex] (const CoordinatePreConfSig& d) { 
-                        return d.blockHeight < blockindex;
+                    [nHeight] (const CoordinatePreConfSig& d) { 
+                        return d.blockHeight < nHeight;
                     });
     if (sigit != coordinatePreConfSig.end()) {
         int indexToRemove = sigit - coordinatePreConfSig.begin() ;
@@ -166,8 +165,8 @@ void removePreConfWitness(ChainstateManager& chainman, CAmount minFee) {
     }
 
     auto it = std::find_if(coordinatePreConfVotes.begin(), coordinatePreConfVotes.end(), 
-                    [blockindex] (const CoordinatePreConfVotes& d) { 
-                        return d.blockHeight < blockindex;
+                    [nHeight] (const CoordinatePreConfVotes& d) { 
+                        return d.blockHeight < nHeight;
                     });
     if (it != coordinatePreConfVotes.end()) {
         int indexToRemove = it - coordinatePreConfVotes.begin() ;

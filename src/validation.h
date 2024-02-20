@@ -491,6 +491,8 @@ public:
 
     std::unique_ptr<CoordinateAssetDB> passettree;
 
+    std::unique_ptr<SignedBlocksDB> psignedblocktree;
+
     bool isAssetPrune;
     //! Reference to a BlockManager instance which itself is shared across all
     //! Chainstate instances.
@@ -527,6 +529,10 @@ public:
     //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
     //! is verified).
     void InitAssetCache() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
+
+    //! Initialize the in-memory coins cache (to be done after the health of the on-disk database
+    //! is verified).
+    void InitSignedBlockCache() EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! @returns whether or not the CoinsViews object has been fully initialized and we can
     //!          safely flush this object to disk.
@@ -598,6 +604,8 @@ public:
     void ResetCoinsViews() { m_coins_views.reset(); }
 
     void ResetAssetCache() { passettree.reset(); }
+
+    void ResetSignedBlockCache() { psignedblocktree.reset(); }
 
     //! The cache size of the on-disk coins view.
     size_t m_coinsdb_cache_size_bytes{0};
@@ -694,6 +702,8 @@ public:
         EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
     bool ConnectBlock(const CBlock& block, BlockValidationState& state, CBlockIndex* pindex,
                       CCoinsViewCache& view, bool fJustCheck = false) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
+
+    bool ConnectSignedBlock(uint32_t nTime) EXCLUSIVE_LOCKS_REQUIRED(cs_main);
 
     // Apply the effects of a block disconnection on the UTXO set.
     bool DisconnectTip(BlockValidationState& state, DisconnectedBlockTransactions* disconnectpool) EXCLUSIVE_LOCKS_REQUIRED(cs_main, m_mempool->cs);

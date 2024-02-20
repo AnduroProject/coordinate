@@ -321,6 +321,7 @@ void Shutdown(NodeContext& node)
                 chainstate->ForceFlushStateToDisk();
                 chainstate->ResetCoinsViews();
                 chainstate->ResetAssetCache();
+                chainstate->ResetSignedBlockCache();
             }
         }
     }

@@ -70,6 +70,8 @@ static constexpr std::chrono::minutes DUMP_PEERS_INTERVAL{15};
 /** Number of DNS seeds to query when the number of connections is low. */
 static constexpr int DNSSEEDS_TO_QUERY_AT_ONCE = 3;
 
+static constexpr int SIGNED_BLOCK_INTERVAL = 60;
+
 /** How long to delay before querying DNS seeds
  *
  * If we have more than THRESHOLD entries in addrman, then it's likely
@@ -2007,7 +2009,7 @@ Mutex NetEventsInterface::g_msgproc_mutex;
 void CConnman::ThreadMessageHandler()
 {
     LOCK(NetEventsInterface::g_msgproc_mutex);
-
+    int lastSignedBlock = 0;
     SetSyscallSandboxPolicy(SyscallSandboxPolicy::MESSAGE_HANDLER);
     while (!flagInterruptMsgProc)
     {
@@ -2035,6 +2037,13 @@ void CConnman::ThreadMessageHandler()
                     return;
             }
         }
+
+        int delta = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        if(delta % SIGNED_BLOCK_INTERVAL == 0 && lastSignedBlock != delta) {
+            lastSignedBlock = delta;
+            m_msgproc->NewSignedBlockTimer(delta);
+        }
+
 
         WAIT_LOCK(mutexMsgProc, lock);
         if (!fMoreWork) {

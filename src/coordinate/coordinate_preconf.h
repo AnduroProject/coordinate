@@ -238,7 +238,7 @@ CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee
  * @param[in] minFee next federation min fee for preconf transaction
  * @param[in] chainman  used to find previous blocks based on active chain state to valid preconf signatures
  */
-void removePreConfWitness(ChainstateManager& chainman, CAmount minFee);
+void removePreConfWitness(ChainstateManager& chainman, int32_t nHeight);
 
 /**
  * This function return preconf minimum fee
