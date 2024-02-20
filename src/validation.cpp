@@ -2664,15 +2664,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
 bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
     AssertLockHeld(cs_main);
-    LogPrintf("testing preconf block 2 \n");
     CCoinsViewCache view(&m_chainman.ActiveChainstate().CoinsTip());
-    LogPrintf("testing preconf block 21 \n");
     uint64_t nIDLast = 0;
     CoordinatePreConfBlock preconfList = getNextPreConfSigList(m_chainman);
 
     SignedBlock block, prevBlock;
     psignedblocktree->GetLastSignedBlockID(nIDLast);
-    LogPrintf("testing preconf block 3 \n");
     if(nIDLast > 0) {
         psignedblocktree->GetSignedBlock(nIDLast,prevBlock);
         block.hashPrevSignedBlock = prevBlock.GetHash();

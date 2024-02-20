@@ -5529,7 +5529,6 @@ bool PeerManagerImpl::SetupAddressRelay(const CNode& node, Peer& peer)
 
 void PeerManagerImpl::NewSignedBlockTimer(uint32_t nTime)
 {
-    LogPrintf("testing preconf block 1 \n");
     if(!m_chainman.ActiveChainstate().ConnectSignedBlock(nTime)) {
         LogPrint(BCLog::NET, "new signed block creation failed \n");
     }

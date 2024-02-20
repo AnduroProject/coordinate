@@ -178,6 +178,7 @@ static RPCHelpMan getpreconffee()
     };
 }
 
+
 static RPCHelpMan getpreconfvotes()
 {
     return RPCHelpMan{"getpreconfvotes",

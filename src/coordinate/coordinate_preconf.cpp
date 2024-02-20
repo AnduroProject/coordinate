@@ -36,7 +36,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     }
 
     std::vector<std::string> allKeysArray;
-    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "allkeys").get_array();
+    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "all_keys").get_array();
 
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
     std::vector<CoordinatePreConfVotes> preconfVoteList = getSortedPreConf(thresold);

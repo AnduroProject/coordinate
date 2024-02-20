@@ -969,6 +969,94 @@ static RPCHelpMan submitpackage()
     };
 }
 
+static RPCHelpMan getpreconfmempoolinfo()
+{
+    return RPCHelpMan{"getpreconfmempoolinfo",
+        "Returns details on the active state of the TX preconf memory pool.",
+        {},
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::BOOL, "loaded", "True if the mempool is fully loaded"},
+                {RPCResult::Type::NUM, "size", "Current tx count"},
+                {RPCResult::Type::NUM, "bytes", "Sum of all virtual transaction sizes as defined in BIP 141. Differs from actual serialized size because witness data is discounted"},
+                {RPCResult::Type::NUM, "usage", "Total memory usage for the mempool"},
+                {RPCResult::Type::STR_AMOUNT, "total_fee", "Total fees for the mempool in " + CURRENCY_UNIT + ", ignoring modified fees through prioritisetransaction"},
+                {RPCResult::Type::NUM, "maxmempool", "Maximum memory usage for the mempool"},
+                {RPCResult::Type::STR_AMOUNT, "mempoolminfee", "Minimum fee rate in " + CURRENCY_UNIT + "/kvB for tx to be accepted. Is the maximum of minrelaytxfee and minimum mempool fee"},
+                {RPCResult::Type::STR_AMOUNT, "minrelaytxfee", "Current minimum relay fee for transactions"},
+                {RPCResult::Type::NUM, "incrementalrelayfee", "minimum fee rate increment for mempool limiting or replacement in " + CURRENCY_UNIT + "/kvB"},
+                {RPCResult::Type::NUM, "unbroadcastcount", "Current number of transactions that haven't passed initial broadcast yet"},
+                {RPCResult::Type::BOOL, "fullrbf", "True if the mempool accepts RBF without replaceability signaling inspection"},
+            }},
+        RPCExamples{
+            HelpExampleCli("getpreconfmempoolinfo", "")
+            + HelpExampleRpc("getpreconfmempoolinfo", "")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            const CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
+            return MempoolInfoToJSON(preconf_pool);
+},
+    };
+}
+
+
+static RPCHelpMan getrawpreconfmempool()
+{
+    return RPCHelpMan{"getrawpreconfmempool",
+        "\nReturns all transaction ids in preconf memory pool as a json array of string transaction ids.\n"
+        "\nHint: use getmempoolentry to fetch a specific transaction from the mempool.\n",
+        {
+            {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "True for a json object, false for array of transaction ids"},
+            {"mempool_sequence", RPCArg::Type::BOOL, RPCArg::Default{false}, "If verbose=false, returns a json object with transaction list and mempool sequence number attached."},
+        },
+        {
+            RPCResult{"for verbose = false",
+                RPCResult::Type::ARR, "", "",
+                {
+                    {RPCResult::Type::STR_HEX, "", "The transaction id"},
+                }},
+            RPCResult{"for verbose = true",
+                RPCResult::Type::OBJ_DYN, "", "",
+                {
+                    {RPCResult::Type::OBJ, "transactionid", "", MempoolEntryDescription()},
+                }},
+            RPCResult{"for verbose = false and mempool_sequence = true",
+                RPCResult::Type::OBJ, "", "",
+                {
+                    {RPCResult::Type::ARR, "txids", "",
+                    {
+                        {RPCResult::Type::STR_HEX, "", "The transaction id"},
+                    }},
+                    {RPCResult::Type::NUM, "mempool_sequence", "The mempool sequence value."},
+                }},
+        },
+        RPCExamples{
+            HelpExampleCli("getrawpreconfmempool", "true")
+            + HelpExampleRpc("getrawpreconfmempool", "true")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    bool fVerbose = false;
+    if (!request.params[0].isNull())
+        fVerbose = request.params[0].get_bool();
+
+    bool include_mempool_sequence = false;
+    if (!request.params[1].isNull()) {
+        include_mempool_sequence = request.params[1].get_bool();
+    }
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    const CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
+    return MempoolToJSON(preconf_pool, fVerbose, include_mempool_sequence);
+},
+    };
+}
+
+
+
+
 void RegisterMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -982,6 +1070,8 @@ void RegisterMempoolRPCCommands(CRPCTable& t)
         {"blockchain", &getrawmempool},
         {"blockchain", &savemempool},
         {"hidden", &submitpackage},
+        {"preconf", &getpreconfmempoolinfo},
+        {"preconf", &getrawpreconfmempool},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
