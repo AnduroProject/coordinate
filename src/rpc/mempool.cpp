@@ -996,6 +996,7 @@ static RPCHelpMan getpreconfmempoolinfo()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
 {
             ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            LOCK(cs_main);
             const CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
             return MempoolInfoToJSON(preconf_pool);
 },
@@ -1048,6 +1049,7 @@ static RPCHelpMan getrawpreconfmempool()
         include_mempool_sequence = request.params[1].get_bool();
     }
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    LOCK(cs_main);
     const CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
     return MempoolToJSON(preconf_pool, fVerbose, include_mempool_sequence);
 },

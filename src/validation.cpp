@@ -2755,9 +2755,12 @@ bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
     signedCoinbaseTx.vin.resize(1);
     signedCoinbaseTx.vin[0].prevout.SetNull();
     signedCoinbaseTx.vout.resize(1);
-    std::vector<unsigned char> data = ParseHex("TODO: federation finalization");
+
+    // TODO: federation finalization
+    std::vector<unsigned char> data = ParseHex(std::to_string(nTime));
     signedCoinbaseTx.vout[0].scriptPubKey = CScript() << OP_RETURN << data;
     signedCoinbaseTx.vout[0].nValue = 0;
+    
     block.vtx[0] = MakeTransactionRef(std::move(signedCoinbaseTx));
     block.hashMerkleRoot = SignedBlockMerkleRoot(block);
     

@@ -178,7 +178,6 @@ static RPCHelpMan getpreconffee()
     };
 }
 
-
 static RPCHelpMan getpreconfvotes()
 {
     return RPCHelpMan{"getpreconfvotes",
@@ -220,53 +219,88 @@ static RPCHelpMan getpreconfvotes()
     };
 }
 
-static RPCHelpMan listAllSignedBlocks() {
+static RPCHelpMan getsignedblock() {
         return RPCHelpMan{
-        "listallsignedblocks",
-        "get all signed blocks",
+        "getsignedblock",
+        "get signed block detail",
         {
+            {"height", RPCArg::Type::STR, RPCArg::Optional::NO, "The height index"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::ARR, "blocks", "",
                 {
-                     {RPCResult::Type::OBJ, "", "",
-                        {
-                            {RPCResult::Type::NUM, "height", "Signed block height"},
-                            {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
-                            {RPCResult::Type::NUM, "txcount", "Signed block transaction count"},
-                        }
-                     }
-                }},
+                    {RPCResult::Type::NUM, "fee", "Signed block fee"},
+                    {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
+                    {RPCResult::Type::NUM, "height", "Signed block height"},
+                    {RPCResult::Type::NUM, "time", "Signed block time"},
+                    {RPCResult::Type::NUM, "time", "Signed block time"},
+                    {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
+                    {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
+                    {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
+                    {RPCResult::Type::ARR, "tx", "The transaction ids",
+                    {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
+                }
             },
         },
         RPCExamples{
-           HelpExampleCli("listallsignedblocks", "")
+           HelpExampleCli("getsignedblock", "1000")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            NodeContext& node = EnsureAnyNodeContext(request.context);
-            const CTxMemPool& mempool = EnsureMemPool(node);
-            ChainstateManager& chainman = EnsureChainman(node);
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            LOCK(cs_main);
+            uint64_t nHeight = 0;
+            ParseUInt64(request.params[0].get_str(),&nHeight);
 
-                UniValue result(UniValue::VOBJ);
-                UniValue assets(UniValue::VARR);
-                std::vector<SignedBlock> blockList = chainman.ActiveChainstate().psignedblocktree->GetSignedBlocks();
-            ;
-                for (const SignedBlock& block_item : blockList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("height", (uint64_t)block_item.nHeight);
-                    obj.pushKV("assettype", block_item.GetHash().ToString());
-                    obj.pushKV("txcount", block_item.vtx.size());
-                    assets.push_back(obj);
-                }
-                result.pushKV("blocks", assets);
-                return result;
+            UniValue result(UniValue::VOBJ);
+            SignedBlock block;
+            chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(nHeight,block);
+
+            if (block.nHeight == 0)
+               throw JSONRPCError(RPC_INVALID_PARAMETER, "Signed Block height out of range");
+            
+            UniValue txs(UniValue::VARR);
+            for (const CTransactionRef& tx : block.vtx) {
+                txs.push_back(tx->GetHash().ToString());
+            }
+            result.pushKV("fee", block.currentFee);
+            result.pushKV("blockindex", (uint64_t)block.blockIndex);
+            result.pushKV("height", (uint64_t)block.nHeight);
+            result.pushKV("time", block.nTime);
+            result.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
+            result.pushKV("merkleroot", block.hashMerkleRoot.ToString());
+            result.pushKV("hash", block.GetHash().ToString());
+            result.pushKV("tx", txs);
+            return result;
         }
     };
 
 }
+
+static RPCHelpMan getsignedblockcount()
+{
+    return RPCHelpMan{"getsignedblockcount",
+                "\nReturns the height of the signed block count\n"
+                "The genesis block has height 1.\n",
+                {},
+                RPCResult{
+                    RPCResult::Type::NUM, "", "The current signed block count"},
+                RPCExamples{
+                    HelpExampleCli("getsignedblockcount", "")
+            + HelpExampleRpc("getsignedblockcount", "")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    ChainstateManager& chainman = EnsureAnyChainman(request.context);
+    LOCK(cs_main);
+    uint64_t nHeight = 0;
+    chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nHeight);
+    return nHeight;
+},
+    };
+}
+
 
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
@@ -275,7 +309,8 @@ void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
         {"preconf", &sendpreconfsignatures},
         {"preconf", &getpreconffee},
         {"preconf", &getpreconfvotes},
-        {"preconf", &listAllSignedBlocks},
+        {"preconf", &getsignedblock},
+        {"preconf", &getsignedblockcount}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
