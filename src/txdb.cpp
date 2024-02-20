@@ -414,6 +414,7 @@ bool SignedBlocksDB::WriteSignedBlocks(const std::vector<SignedBlock>& vBlock)
     CDBBatch batch(*this);
     for (const SignedBlock& block : vBlock) {
         std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, block.nHeight);
+        LogPrintf("saved block height %i \n", block.nHeight);
         batch.Write(key, block);
     }
     return WriteBatch(batch, true);

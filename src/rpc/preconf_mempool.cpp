@@ -253,14 +253,12 @@ static RPCHelpMan listAllSignedBlocks() {
                 UniValue assets(UniValue::VARR);
                 std::vector<SignedBlock> blockList = chainman.ActiveChainstate().psignedblocktree->GetSignedBlocks();
             ;
-                int incr = 0;
                 for (const SignedBlock& block_item : blockList) {
                     UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("height", (uint64_t)block_item.nHeight + incr);
+                    obj.pushKV("height", (uint64_t)block_item.nHeight);
                     obj.pushKV("assettype", block_item.GetHash().ToString());
                     obj.pushKV("txcount", block_item.vtx.size());
                     assets.push_back(obj);
-                    incr = incr + 1;
                 }
                 result.pushKV("blocks", assets);
                 return result;

@@ -2668,9 +2668,8 @@ bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
     CCoinsViewCache view(&m_chainman.ActiveChainstate().CoinsTip());
     LogPrintf("testing preconf block 21 \n");
     uint64_t nIDLast = 0;
-    // CoordinatePreConfBlock preconfList = getNextPreConfSigList(m_chainman);
-    CoordinatePreConfBlock preconfList;
-    LogPrintf("testing preconf block 22 \n");
+    CoordinatePreConfBlock preconfList = getNextPreConfSigList(m_chainman);
+
     SignedBlock block, prevBlock;
     psignedblocktree->GetLastSignedBlockID(nIDLast);
     LogPrintf("testing preconf block 3 \n");
@@ -2679,7 +2678,6 @@ bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
         block.hashPrevSignedBlock = prevBlock.GetHash();
     }
 
-    LogPrintf("testing preconf block 4 \n");
     CAmount nFees = 0;
     uint64_t nHeight = nIDLast + 1;
     block.nHeight = nHeight;
@@ -2692,7 +2690,7 @@ bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
     std::vector<CTransactionRef> preconfTxs;
     unsigned int i = 0;
-    LogPrintf("testing preconf block 5 \n");
+
     for (const uint256& hash : preconfList.txids) {
         TxMempoolInfo info = m_preconf_mempool->info(GenTxid::Txid(hash));
         CTransactionRef ptx = info.tx;
@@ -2768,7 +2766,6 @@ bool Chainstate::ConnectSignedBlock(uint32_t nTime) {
     
     std::vector<SignedBlock> signedBlocks;
     signedBlocks.push_back(block);
-
     if (!psignedblocktree->WriteSignedBlocks(signedBlocks)) {
         LogPrintf("Transaction not exist in preconf mempool \n");
         return false;

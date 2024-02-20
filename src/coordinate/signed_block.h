@@ -21,11 +21,12 @@ class SignedBlock {
          SetNull();
         }
 
-        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.hashPrevSignedBlock, obj.blockIndex, obj.currentFee, obj.hashMerkleRoot, obj.vtx); }
+        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx); }
 
         void SetNull()
         {
             nVersion = 0;
+            nHeight = 0;
             nTime = 0;
             blockIndex= 0;
             hashPrevSignedBlock.SetNull();
