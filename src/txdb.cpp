@@ -39,6 +39,7 @@ static constexpr uint8_t DB_ASSET_DATA{'J'};
 static constexpr uint8_t DB_ASSET_DATA_LAST_ID{'K'};
 
 static constexpr uint8_t DB_SIGNED_BLOCK{'P'};
+static constexpr uint8_t DB_SIGNED_BLOCK_TX{'U'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
 
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
@@ -414,8 +415,20 @@ bool SignedBlocksDB::WriteSignedBlocks(const std::vector<SignedBlock>& vBlock)
     CDBBatch batch(*this);
     for (const SignedBlock& block : vBlock) {
         std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, block.nHeight);
+        CDBBatch txBatch(*this);
+        int incr = 0;
+        for (const CTransactionRef& tx : block.vtx) {
+            std::pair<uint8_t, uint256> txindexKey = std::make_pair(DB_SIGNED_BLOCK_TX, tx->GetHash());
+            SignedTxindex txindex;
+            txindex.pos = incr;
+            txindex.nHeight = block.nHeight;
+            txBatch.Write(txindexKey, txindex);
+            incr = incr + 1;
+        }
+        WriteBatch(txBatch, true);
         batch.Write(key, block);
     }
+    
     return WriteBatch(batch, true);
 }
 
@@ -463,3 +476,7 @@ bool SignedBlocksDB::GetSignedBlock(const uint64_t nHeight, SignedBlock& block)
     return Read(std::make_pair(DB_SIGNED_BLOCK, nHeight), block);
 }
 
+bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
+{
+    return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
+}
