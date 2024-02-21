@@ -17,7 +17,7 @@
 #include <anduro_deposit.h>
 #include <assert.h>
 
-static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentKeys, const CAmount& preconfMinFee)
+static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesisOutputScript, uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentKeys)
 {
     CMutableTransaction txNew;
     txNew.nVersion = 1;
@@ -29,7 +29,6 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
 
 
     CBlock genesis;
-    genesis.preconfMinFee = preconfMinFee;
     genesis.nTime    = nTime;
     genesis.nBits    = nBits;
     genesis.nNonce   = nNonce;
@@ -53,11 +52,11 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
  *     CTxOut(nValue=50.00000000, scriptPubKey=0x5F1DF16B2B704C8A578D0B)
  *   vMerkleTree: 4a5e1e
  */
-static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentKeys, const CAmount& preconfMinFee)
+static CBlock CreateGenesisBlock(uint32_t nTime, uint32_t nNonce, uint32_t nBits, int32_t nVersion, const CAmount& genesisReward, std::string currentKeys)
 {
     const char* pszTimestamp = "The Times 26/Jul/2023 Chancellor on brink of second bailout for banks";
     const CScript genesisOutputScript = CScript() << ParseHex("04678afdb0fe5548271967f1a67130b7105cd6a828e03909a67962e0ea1f61deb649f6bc3f4cef38c4f35504e51ec112de5c384df7ba0b8d578a4c702b6bf11d5f") << OP_CHECKSIG;
-    return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward, currentKeys, preconfMinFee);
+    return CreateGenesisBlock(pszTimestamp, genesisOutputScript, nTime, nNonce, nBits, nVersion, genesisReward, currentKeys);
 }
 
 /**
@@ -111,7 +110,6 @@ public:
         consensus.rules.reset(new Consensus::MainNetConsensus());
         // current address going to sign next block
         consensus.currentKeys = "7b22616c6c5f6b657973223a5b22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d2c2263757272656e745f61646472657373223a22636331706c6337366d346b34686376766d64347734676675613976776a706d7a7a706a68736d777937376d63733038663736786c6d7264716635716e3464227d0d0a";
-        consensus.preconfMinFee = CAmount(5000);
         /**
          * The message start string is designed to be unlikely to occur in normal data.
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
@@ -126,7 +124,7 @@ public:
         m_assumed_blockchain_size = 496;
         m_assumed_chain_state_size = 6;
 
-        genesis = CreateGenesisBlock(1690357405, 0xa21ea192u, 0X186DF311, 1, 50 * COIN, consensus.currentKeys, consensus.preconfMinFee); // by dev
+        genesis = CreateGenesisBlock(1690357405, 0xa21ea192u, 0X186DF311, 1, 50 * COIN, consensus.currentKeys); // by dev
         consensus.hashGenesisBlock = genesis.GetHash();
         // LogPrintf("gensiss %s",consensus.hashGenesisBlock );
         // assert(consensus.hashGenesisBlock == uint256S("0x000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f"));
@@ -248,7 +246,7 @@ public:
         consensus.rules.reset(new Consensus::TestNetConsensus());
         // current address going to sign next block
         consensus.currentKeys = "7b22616c6c5f6b657973223a5b22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d2c2263757272656e745f61646472657373223a22746331706c6337366d346b34686376766d64347734676675613976776a706d7a7a706a68736d777937376d63733038663736786c6d72647137673979646d227d";
-        consensus.preconfMinFee = CAmount(5000);
+
 
         pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
@@ -259,7 +257,7 @@ public:
         m_assumed_blockchain_size = 42;
         m_assumed_chain_state_size = 2;
 
-        genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * COIN, consensus.currentKeys, consensus.preconfMinFee);
+        genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 50 * COIN, consensus.currentKeys);
         consensus.hashGenesisBlock = genesis.GetHash();
         LogPrintf("Hash Value %s\n", consensus.hashGenesisBlock.ToString());
         // assert(consensus.hashGenesisBlock == uint256S("0x000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943"));
@@ -399,7 +397,6 @@ public:
         consensus.rules.reset(new Consensus::TestNetConsensus());
         // current address going to sign next block
         consensus.currentKeys = "7b22616c6c5f6b657973223a5b22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d2c2263757272656e745f61646472657373223a22746331706c6337366d346b34686376766d64347734676675613976776a706d7a7a706a68736d777937376d63733038663736786c6d72647137673979646d227d";
-        consensus.preconfMinFee = CAmount(5000);
 
         // message start is defined as the first 4 bytes of the sha256d of the block script
         HashWriter h{};
@@ -410,7 +407,7 @@ public:
         nDefaultPort = 38333;
         nPruneAfterHeight = 1000;
 
-        genesis = CreateGenesisBlock(1598918400, 52613770, 0x1e0377ae, 1, 50 * COIN, consensus.currentKeys, consensus.preconfMinFee);
+        genesis = CreateGenesisBlock(1598918400, 52613770, 0x1e0377ae, 1, 50 * COIN, consensus.currentKeys);
         consensus.hashGenesisBlock = genesis.GetHash();
         // assert(consensus.hashGenesisBlock == uint256S("0x00000008819873e925422c1ff0f99f7cc9bbb232af63a077a480a3633bee1ef6"));
         // assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));
@@ -480,7 +477,6 @@ public:
         consensus.rules.reset(new Consensus::RegTestConsensus());
         // current address going to sign next block
         consensus.currentKeys = "7b22616c6c5f6b657973223a5b22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d2c2263757272656e745f61646472657373223a226363727431706c6337366d346b34686376766d64347734676675613976776a706d7a7a706a68736d777937376d63733038663736786c6d7264717739766c6533227d";
-        consensus.preconfMinFee = CAmount(5000);
 
         pchMessageStart[0] = 0xf6;
         pchMessageStart[1] = 0xbe;
@@ -493,7 +489,7 @@ public:
 
         UpdateActivationParametersFromArgs(args);
 
-        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN, consensus.currentKeys, consensus.preconfMinFee);
+        genesis = CreateGenesisBlock(1296688602, 2, 0x207fffff, 1, 50 * COIN, consensus.currentKeys);
         consensus.hashGenesisBlock = genesis.GetHash();
         // assert(consensus.hashGenesisBlock == uint256S("0x0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"));
         // assert(genesis.hashMerkleRoot == uint256S("0x4a5e1e4baab89f3a32518a88c31bc87f618f76673e2cc77ab2127b7afdeda33b"));

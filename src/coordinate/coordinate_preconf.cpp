@@ -14,7 +14,7 @@ std::vector<CoordinatePreConfSig> coordinatePreConfSig;
 std::vector<CoordinatePreConfVotes> coordinatePreConfVotes;
 
 // temporary minfee
-CAmount preconfMinFee;
+CAmount preconfMinFee = 5;
 
 CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     CChain& active_chain = chainman.ActiveChain();
