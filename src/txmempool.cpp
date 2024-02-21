@@ -637,6 +637,35 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
     blockSinceLastRollingFeeBump = true;
 }
 
+
+void CTxMemPool::removeForPreconfBlock(const std::vector<CTransactionRef>& vtx)
+{
+    AssertLockHeld(cs);
+    std::vector<const CTxMemPoolEntry*> entries;
+    for (const auto& tx : vtx)
+    {
+        uint256 hash = tx->GetHash();
+
+        indexed_transaction_set::iterator i = mapTx.find(hash);
+        if (i != mapTx.end())
+            entries.push_back(&*i);
+    }
+    for (const auto& tx : vtx)
+    {
+        txiter it = mapTx.find(tx->GetHash());
+        if (it != mapTx.end()) {
+            setEntries stage;
+            stage.insert(it);
+            RemoveStaged(stage, true, MemPoolRemovalReason::BLOCK);
+        }
+        removeConflicts(*tx);
+        ClearPrioritisation(tx->GetHash());
+    }
+    lastRollingFeeUpdate = GetTime();
+    blockSinceLastRollingFeeBump = true;
+}
+
+
 void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendheight) const
 {
     if (m_check_ratio == 0) return;

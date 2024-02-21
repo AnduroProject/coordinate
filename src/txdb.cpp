@@ -38,6 +38,10 @@ static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 static constexpr uint8_t DB_ASSET_DATA{'J'};
 static constexpr uint8_t DB_ASSET_DATA_LAST_ID{'K'};
 
+static constexpr uint8_t DB_SIGNED_BLOCK{'P'};
+static constexpr uint8_t DB_SIGNED_BLOCK_TX{'U'};
+static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
+
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
 {
     CBlockLocator ignored{};
@@ -401,3 +405,78 @@ bool CoordinateAssetDB::GetAsset(const uint32_t nID, CoordinateAsset& asset)
     return Read(std::make_pair(DB_ASSET, nID), asset);
 }
 
+
+
+SignedBlocksDB::SignedBlocksDB(size_t nCacheSize, bool fMemory, bool fWipe)
+    : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "signedblocks",nCacheSize, fMemory, fWipe) { }
+
+bool SignedBlocksDB::WriteSignedBlocks(const std::vector<SignedBlock>& vBlock)
+{
+    CDBBatch batch(*this);
+    for (const SignedBlock& block : vBlock) {
+        std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, block.nHeight);
+        CDBBatch txBatch(*this);
+        int incr = 0;
+        for (const CTransactionRef& tx : block.vtx) {
+            std::pair<uint8_t, uint256> txindexKey = std::make_pair(DB_SIGNED_BLOCK_TX, tx->GetHash());
+            SignedTxindex txindex;
+            txindex.pos = incr;
+            txindex.nHeight = block.nHeight;
+            txBatch.Write(txindexKey, txindex);
+            incr = incr + 1;
+        }
+        WriteBatch(txBatch, true);
+        batch.Write(key, block);
+    }
+    
+    return WriteBatch(batch, true);
+}
+
+std::vector<SignedBlock> SignedBlocksDB::GetSignedBlocks()
+{
+    std::unique_ptr<CDBIterator> pcursor(NewIterator());
+    pcursor->Seek(std::make_pair(DB_SIGNED_BLOCK, uint256()));
+
+    std::vector<SignedBlock> vBlock;
+
+    while (pcursor->Valid()) {
+        std::pair<uint8_t, uint64_t> key;
+        SignedBlock block;
+        if (pcursor->GetKey(key) && key.first == DB_SIGNED_BLOCK) {
+            if (pcursor->GetValue(block))
+                vBlock.push_back(block);
+        }
+
+        pcursor->Next();
+    }
+    return vBlock;
+}
+
+bool SignedBlocksDB::GetLastSignedBlockID(uint64_t& nHeight)
+{
+    if (!Read(DB_SIGNED_BLOCK_LAST_ID, nHeight))
+        return false;
+
+    return true;
+}
+
+bool SignedBlocksDB::WriteLastSignedBlockID(const uint64_t nHeight)
+{
+    return Write(DB_SIGNED_BLOCK_LAST_ID, nHeight);
+}
+
+bool SignedBlocksDB::RemoveSignedBlock(const uint64_t nHeight)
+{
+    std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, nHeight);
+    return Erase(key);
+}
+
+bool SignedBlocksDB::GetSignedBlock(const uint64_t nHeight, SignedBlock& block)
+{
+    return Read(std::make_pair(DB_SIGNED_BLOCK, nHeight), block);
+}
+
+bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
+{
+    return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
+}

@@ -654,6 +654,9 @@ public:
     virtual bool SendMessages(CNode* pnode) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex) = 0;
 
 
+
+    virtual void NewSignedBlockTimer(uint32_t nTime) EXCLUSIVE_LOCKS_REQUIRED(g_msgproc_mutex) = 0;
+
 protected:
     /**
      * Protected destructor so that instances can only be deleted by derived classes.
