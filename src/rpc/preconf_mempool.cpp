@@ -163,17 +163,7 @@ static RPCHelpMan getpreconffee()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            
-            CChain& active_chain = chainman.ActiveChain();
-            int blockindex = active_chain.Height();
-            CBlock block;
-            if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-                LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
-                return 0;
-            }
-
-            return block.preconfMinFee;
+            return getPreConfMinFee();
         },
     };
 }
