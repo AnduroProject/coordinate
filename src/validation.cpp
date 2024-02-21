@@ -749,7 +749,16 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         // wtxid) already exists in the mempool.
         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-same-nonwitness-data-in-mempool");
     }
-    
+    // Remove transaction from mempool if same inputs spent in preconf transaction
+    if(m_pool.is_preconf) {
+        CTxMemPool& pool{*m_active_chainstate.GetMempool()};
+        for(const CTxIn &txin : tx.vin) {
+            const CTransaction* ptxConflicting = pool.GetConflictTx(txin.prevout);
+            if(ptxConflicting) {
+                pool.removeRecursive(*ptxConflicting, MemPoolRemovalReason::CONFLICT);
+            }
+        }
+     }
     // check the transaction inputs already spent in preconf transaction
     if(!m_pool.is_preconf) {
         CTxMemPool& preconf_pool{*m_active_chainstate.GetPreConfMempool()};
@@ -765,34 +774,36 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
+    
+
     // Check for conflicts with in-memory transactions
     for (const CTxIn &txin : tx.vin)
-    {
-        const CTransaction* ptxConflicting = m_pool.GetConflictTx(txin.prevout);
-        if (ptxConflicting) {
-            if (!args.m_allow_replacement || m_pool.is_preconf) {
-                // Transaction conflicts with a mempool tx, but we're not allowing replacements.
-                return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bip125-replacement-disallowed");
-            }
-            if (!ws.m_conflicts.count(ptxConflicting->GetHash()))
-            {
-                // Transactions that don't explicitly signal replaceability are
-                // *not* replaceable with the current logic, even if one of their
-                // unconfirmed ancestors signals replaceability. This diverges
-                // from BIP125's inherited signaling description (see CVE-2021-31876).
-                // Applications relying on first-seen mempool behavior should
-                // check all unconfirmed ancestors; otherwise an opt-in ancestor
-                // might be replaced, causing removal of this descendant.
-                //
-                // If replaceability signaling is ignored due to node setting,
-                // replacement is always allowed.
-                if (!m_pool.m_full_rbf && !SignalsOptInRBF(*ptxConflicting)) {
-                    return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "txn-mempool-conflict");
+       {
+            const CTransaction* ptxConflicting = m_pool.GetConflictTx(txin.prevout);
+            if (ptxConflicting) {
+                if (!args.m_allow_replacement || m_pool.is_preconf) {
+                    // Transaction conflicts with a mempool tx, but we're not allowing replacements.
+                    return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "bip125-replacement-disallowed");
                 }
+                if (!ws.m_conflicts.count(ptxConflicting->GetHash()))
+                {
+                    // Transactions that don't explicitly signal replaceability are
+                    // *not* replaceable with the current logic, even if one of their
+                    // unconfirmed ancestors signals replaceability. This diverges
+                    // from BIP125's inherited signaling description (see CVE-2021-31876).
+                    // Applications relying on first-seen mempool behavior should
+                    // check all unconfirmed ancestors; otherwise an opt-in ancestor
+                    // might be replaced, causing removal of this descendant.
+                    //
+                    // If replaceability signaling is ignored due to node setting,
+                    // replacement is always allowed.
+                    if (!m_pool.m_full_rbf && !SignalsOptInRBF(*ptxConflicting)) {
+                        return state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "txn-mempool-conflict");
+                    }
 
-                ws.m_conflicts.insert(ptxConflicting->GetHash());
+                  ws.m_conflicts.insert(ptxConflicting->GetHash());
+                }
             }
-        }
     }
 
     LockPoints lp;
