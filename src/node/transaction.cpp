@@ -80,7 +80,7 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
                 const MempoolAcceptResult result = node.chainman->ProcessTransaction(tx, /*test_accept=*/ true, is_preconf);
                 if (result.m_result_type != MempoolAcceptResult::ResultType::VALID) {
                     return HandleATMPError(result.m_state, err_string);
-                } else if (result.m_base_fees.value() > max_tx_fee) {
+                } else if (result.m_base_fees.value() > max_tx_fee && tx->nVersion != TRANSACTION_PRECONF_VERSION) {
                     return TransactionError::MAX_FEE_EXCEEDED;
                 }
             }
@@ -133,10 +133,12 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
 
 CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock)
 {
+
     if (mempool && !block_index) {
         CTransactionRef ptx = mempool->get(hash);
         if (ptx) return ptx;
     }
+
     if (g_txindex) {
         CTransactionRef tx;
         uint256 block_hash;
