@@ -83,25 +83,29 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     CChain& active_chain = chainman.ActiveChain();
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
     LOCK(preconf_pool.cs);
-    int blockindex = active_chain.Height();
+  
+
+    uint64_t signedBlockHeight = 0;
+    chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
 
     // check preconf data is empty
     if(preconf.size()==0) {
         return false;
     }
-    // check preconf sign block height is valid
-    if(preconf.size()>0) {
-        if(preconf[0].blockHeight <= blockindex) {
-           return false;
-        }
+    // check preconf sign block height is valid   
+    if(preconf[0].blockHeight <= signedBlockHeight) {
+        return false;
     }
+
+    int blockindex = preconf[0].minedBlockHeight;
+    
 
     // check list already exist array
     int32_t anduroPos = preconf[0].anduroPos;
     uint256 txid =  preconf[0].txid;
     auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                [blockindex,anduroPos,txid] (const CoordinatePreConfSig& d) { 
-                    return d.blockHeight > blockindex && d.anduroPos == anduroPos && d.txid == txid;
+                [signedBlockHeight,anduroPos,txid] (const CoordinatePreConfSig& d) { 
+                    return d.blockHeight > signedBlockHeight && d.anduroPos == anduroPos && d.txid == txid;
                 });
 
     if (it == coordinatePreConfSig.end()) {
@@ -136,7 +140,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     if(!validatePreConfSignature(preconf[0].witness,messages.write(),block.currentKeys,preconf[0].anduroPos)) {
        return false;
     }
-
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         CoordinatePreConfVotes preconfVoteObj;
         bool is_vote_exist = getPreConfVote(preconfItem.txid, preconfItem.blockHeight, &preconfVoteObj);

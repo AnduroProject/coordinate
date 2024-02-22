@@ -103,6 +103,7 @@ static RPCHelpMan sendpreconfsignatures()
                         {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
                         {"utc_time", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction time anduro see it from their node"},
                         {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
+                        {"mined_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the mined block height where the federation is refer to for sig validation"},
                         {"position", RPCArg::Type::NUM, RPCArg::Optional::NO, "The anduro position to sign the transaction"},
                         {"witness", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The anduro signature"},
                     },
@@ -130,6 +131,7 @@ static RPCHelpMan sendpreconfsignatures()
                         {"txid", UniValueType(UniValue::VSTR)},
                         {"utc_time", UniValueType(UniValue::VNUM)},
                         {"block_height", UniValueType(UniValue::VNUM)},
+                        {"mined_block_height", UniValueType(UniValue::VNUM)},
                         {"position", UniValueType(UniValue::VNUM)},
                         {"witness", UniValueType(UniValue::VSTR)},
                     });
@@ -137,6 +139,7 @@ static RPCHelpMan sendpreconfsignatures()
                     preconfObj.txid =  ParseHashO(fedParams, "txid");
                     preconfObj.utcTime =  find_value(fedParams, "utc_time").getInt<int64_t>();
                     preconfObj.blockHeight =  find_value(fedParams, "block_height").getInt<int32_t>();
+                    preconfObj.minedBlockHeight =  find_value(fedParams, "mined_block_height").getInt<int32_t>();
                     preconfObj.anduroPos =  find_value(fedParams, "position").getInt<int32_t>();
                     preconfObj.witness =  find_value(fedParams, "witness").get_str();
                     preconf.push_back(preconfObj);

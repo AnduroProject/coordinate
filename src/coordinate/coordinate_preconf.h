@@ -104,6 +104,7 @@ inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& assetData,
     s >> assetData.witness;
     s >> assetData.anduroPos;
     s >> assetData.blockHeight;
+    s >> assetData.minedBlockHeight;
     s >> assetData.isBroadcasted;
     s >> assetData.peerList;
 }
@@ -115,6 +116,7 @@ inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& assetD
     s << assetData.witness;
     s << assetData.anduroPos;
     s << assetData.blockHeight;
+    s << assetData.minedBlockHeight;
     s << assetData.isBroadcasted;
     s << assetData.peerList;
 }
@@ -124,6 +126,7 @@ public:
     uint256 txid; /*!< Preconf Mempool txid*/
     int64_t utcTime; /*!< Preconf Mempool Transaction federation utc time*/
     int32_t blockHeight; /*!< max block height where the preconf signature upto valid */
+    int32_t minedBlockHeight; /*!< federation public key reference */
     int32_t anduroPos;  /*!< federation  position in previous header */
     std::string witness; /*!< federation signature against the txid and utctime */
     std::vector<int64_t> peerList;
@@ -154,6 +157,7 @@ public:
         utcTime = -1;
         anduroPos = -1;
         blockHeight = -1;
+        minedBlockHeight = -1;
         txid.SetNull();
         witness = "";
         isBroadcasted = false;
