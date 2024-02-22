@@ -125,7 +125,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
        if(preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
             UniValue message(UniValue::VOBJ);
             message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
-            message.pushKV("time", coordinatePreConfSigItem.utcTime);
             message.pushKV("height", coordinatePreConfSigItem.blockHeight);
             messages.push_back(message);
        }

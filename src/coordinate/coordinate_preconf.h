@@ -99,7 +99,6 @@ public:
 
 template<typename Stream, typename CoordinatePreConfSigType>
 inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& assetData, Stream& s) {
-    s >> assetData.utcTime;
     s >> assetData.txid;
     s >> assetData.witness;
     s >> assetData.anduroPos;
@@ -111,7 +110,6 @@ inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& assetData,
 
 template<typename Stream, typename CoordinatePreConfSigType>
 inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& assetData, Stream& s) {
-    s << assetData.utcTime;
     s << assetData.txid;
     s << assetData.witness;
     s << assetData.anduroPos;
@@ -124,7 +122,6 @@ inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& assetD
 struct CoordinatePreConfSig {
 public:
     uint256 txid; /*!< Preconf Mempool txid*/
-    int64_t utcTime; /*!< Preconf Mempool Transaction federation utc time*/
     int32_t blockHeight; /*!< max block height where the preconf signature upto valid */
     int32_t minedBlockHeight; /*!< federation public key reference */
     int32_t anduroPos;  /*!< federation  position in previous header */
