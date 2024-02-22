@@ -116,7 +116,7 @@ static RPCHelpMan sendpreconfsignatures()
         },
         RPCExamples{
             "\nSend the signature for preconf transaction\n"
-            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"utc_time\\\":0,\\\"block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
+            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"utc_time\\\":0,\\\"block_height\\\":0,\\\"mined_block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
