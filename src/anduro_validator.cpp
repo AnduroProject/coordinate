@@ -36,6 +36,7 @@ bool validatePreConfSignature(std::string signature, std::string messageIn, std:
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
+
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
@@ -51,6 +52,8 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     }
 
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
+    LogPrintf("thresold %i \n ", thresold);
+   
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue allSignatures(UniValue::VARR);
@@ -72,20 +75,27 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
         });
         std::string redeemPath =  find_value(o, "redeempath").get_str();
         std::string signature =  find_value(o, "signature").get_str();
+
+
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
+
             uint256 message = prepareMessageHash(messageIn);
-            if(!XOnlyPubKey(CPubKey(ParseHex(redeemPath))).VerifySchnorr(message,ParseHex(signature))) {
-               return false;
+            XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
+            if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
+               LogPrintf("failed verfication \n");
+            } else {
+                LogPrintf("success verfication\n ");
+                thresold = thresold - 1;
             }
-            thresold = thresold - 1;
+          
         }
+
         if(thresold == 0) {
             break;
         }
     }
     return thresold == 0 ? true : false;
 }
-
 
 /**
  * Prepare sha256 hash for presigned block message

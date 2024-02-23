@@ -76,8 +76,8 @@ bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& cha
       UniValue message(UniValue::VOBJ);
       message.pushKV("address", addressStr);
       message.pushKV("amount", txOut.nValue);
-      message.pushKV("height", txOut.block_height);
       message.pushKV("index", tIndex);
+      message.pushKV("height", txOut.block_height);
 
       tIndex = tIndex + 1;
       messages.push_back(message);
