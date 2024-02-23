@@ -151,7 +151,6 @@ public:
     void SetNull()
     {
         peerList.empty();
-        utcTime = -1;
         anduroPos = -1;
         blockHeight = -1;
         minedBlockHeight = -1;
