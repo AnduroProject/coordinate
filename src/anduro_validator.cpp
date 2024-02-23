@@ -36,7 +36,6 @@ bool validatePreConfSignature(std::string signature, std::string messageIn, std:
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
@@ -52,7 +51,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     }
 
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
-
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue allSignatures(UniValue::VARR);
@@ -81,12 +79,10 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
             }
             thresold = thresold - 1;
         }
-
         if(thresold == 0) {
             break;
         }
     }
-
     return thresold == 0 ? true : false;
 }
 

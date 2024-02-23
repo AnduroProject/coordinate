@@ -16,7 +16,7 @@
 #include <univalue.h>
 #include <util/moneystr.h>
 #include <util/time.h>
-#include <utility>
+#include <utility> 
 #include <anduro_deposit.h>
 #include <anduro_validator.h>
 #include <coordinate/coordinate_preconf.h>
@@ -101,8 +101,8 @@ static RPCHelpMan sendpreconfsignatures()
                 {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
                     {
                         {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
-                        {"utc_time", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction time anduro see it from their node"},
                         {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
+                        {"mined_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the mined block height where the federation is refer to for sig validation"},
                         {"position", RPCArg::Type::NUM, RPCArg::Optional::NO, "The anduro position to sign the transaction"},
                         {"witness", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The anduro signature"},
                     },
@@ -115,7 +115,7 @@ static RPCHelpMan sendpreconfsignatures()
         },
         RPCExamples{
             "\nSend the signature for preconf transaction\n"
-            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\" : \\\"mytxid\\\",\\\"utc_time\\\":0,\\\"block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
+            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\":\\\"mytxid\\\",\\\"block_height\\\":0,\\\"mined_block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -128,15 +128,15 @@ static RPCHelpMan sendpreconfsignatures()
                     RPCTypeCheckObj(fedParams,
                     {
                         {"txid", UniValueType(UniValue::VSTR)},
-                        {"utc_time", UniValueType(UniValue::VNUM)},
                         {"block_height", UniValueType(UniValue::VNUM)},
+                        {"mined_block_height", UniValueType(UniValue::VNUM)},
                         {"position", UniValueType(UniValue::VNUM)},
                         {"witness", UniValueType(UniValue::VSTR)},
                     });
                     CoordinatePreConfSig preconfObj;
                     preconfObj.txid =  ParseHashO(fedParams, "txid");
-                    preconfObj.utcTime =  find_value(fedParams, "utc_time").getInt<int64_t>();
                     preconfObj.blockHeight =  find_value(fedParams, "block_height").getInt<int32_t>();
+                    preconfObj.minedBlockHeight =  find_value(fedParams, "mined_block_height").getInt<int32_t>();
                     preconfObj.anduroPos =  find_value(fedParams, "position").getInt<int32_t>();
                     preconfObj.witness =  find_value(fedParams, "witness").get_str();
                     preconf.push_back(preconfObj);
@@ -267,6 +267,87 @@ static RPCHelpMan getsignedblock() {
     };
 
 }
+static RPCHelpMan getsignedblocklist() {
+        return RPCHelpMan{
+        "getsignedblocklist" ,
+        "get signed block detail",
+        {
+            {"startingHeight", RPCArg::Type::STR, RPCArg::Optional::NO, "The starting height index"},
+            {"range", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The range of heights to retrieve signed block details"},
+        },
+
+        RPCResult{
+            RPCResult::Type::ARR, "", "",
+            {
+                {
+                    {RPCResult::Type::OBJ, "", "Signed block details",
+                    {
+                        {RPCResult::Type::NUM, "fee", "Signed block fee"},
+                        {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
+                        {RPCResult::Type::NUM, "height", "Signed block height"},
+                        {RPCResult::Type::NUM, "time", "Signed block time"},
+                        {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
+                        {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
+                        {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
+                        {RPCResult::Type::ARR, "tx", "The transaction ids",
+                            {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
+                    }},
+                },
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getsignedblocklist", "146 20"),
+
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            uint64_t startingHeight;
+            uint64_t range;
+            uint64_t nHeight = 0;
+            chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nHeight);
+            if(request.params[1].isNull()){
+                range = 10;
+            }
+            if (!ParseUInt64(request.params[0].get_str(), &startingHeight) || (request.params.size() > 1) && !ParseUInt64(request.params[1].get_str(), &range) || 
+              range == 0) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Height and range must be positive numbers");
+              }
+              if (range > 100) {
+                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Maximum range allowed is 100");
+              }
+             if (startingHeight + range > nHeight) {
+                  throw JSONRPCError(RPC_INVALID_PARAMETER, "Starting height and range exceed the block count.");
+               }
+
+            LOCK(cs_main);
+            UniValue result(UniValue::VARR);
+            for (uint64_t i = startingHeight + 1; i <= startingHeight + range; ++i) {
+                SignedBlock block;
+                chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(i, block);
+                
+                UniValue blockDetails(UniValue::VOBJ); 
+                UniValue txs(UniValue::VARR);
+                for (const CTransactionRef& tx : block.vtx) {
+                    txs.push_back(tx->GetHash().ToString());
+                }
+
+                blockDetails.pushKV("fee", block.currentFee);
+                blockDetails.pushKV("blockindex", (uint64_t)block.blockIndex);
+                blockDetails.pushKV("height", (uint64_t)block.nHeight);
+                blockDetails.pushKV("time", block.nTime);
+                blockDetails.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
+                blockDetails.pushKV("merkleroot", block.hashMerkleRoot.ToString());
+                blockDetails.pushKV("hash", block.GetHash().ToString());
+                blockDetails.pushKV("tx", txs);
+
+                result.push_back(blockDetails); 
+            }
+
+            return result;
+        }
+    };
+}
+
 
 static RPCHelpMan getsignedblockcount()
 {
@@ -300,7 +381,8 @@ void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
         {"preconf", &getpreconffee},
         {"preconf", &getpreconfvotes},
         {"preconf", &getsignedblock},
-        {"preconf", &getsignedblockcount}
+        {"preconf", &getsignedblockcount},
+        {"preconf", &getsignedblocklist},
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
