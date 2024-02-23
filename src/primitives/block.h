@@ -26,7 +26,6 @@ public:
     std::shared_ptr<CAuxPow> auxpow;
     std::string currentKeys;
     int32_t nextIndex;
-    CAmount preconfMinFee;
     CBlockHeader()
     {
         SetNull();

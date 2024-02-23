@@ -131,12 +131,16 @@ TransactionError BroadcastTransaction(NodeContext& node, const CTransactionRef t
     return TransactionError::OK;
 }
 
-CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock)
+CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMemPool* const mempool, const uint256& hash, const Consensus::Params& consensusParams, uint256& hashBlock, bool preconf)
 {
 
     if (mempool && !block_index) {
         CTransactionRef ptx = mempool->get(hash);
         if (ptx) return ptx;
+    }
+
+    if(preconf) {
+        return nullptr;
     }
 
     if (g_txindex) {
