@@ -6,33 +6,6 @@
 #include <rpc/util.h>
 
 /**
- * This function used to validate preconf signature
-*/
-bool validatePreConfSignature(std::string signature, std::string messageIn, std::string prevWitnessHex, int32_t anduroPos) {
-    std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
-    const std::string prevWitnessHexStr(wData.begin(), wData.end());
-    UniValue witnessVal(UniValue::VOBJ);
-    if (!witnessVal.read(prevWitnessHexStr)) {
-        LogPrintf("invalid witness params \n");
-        return false;
-    }
-
-    std::vector<std::string> allKeysArray;
-    std::string redeemPath;
-    const auto allKeysArrayRequest = find_value(witnessVal.get_obj(), "all_keys").get_array();
-    for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
-        if(i == anduroPos) {
-           redeemPath = allKeysArrayRequest[i].get_str();
-           break;
-        }
-    }
-
-    uint256 message = prepareMessageHash(messageIn);
-    if(!XOnlyPubKey(CPubKey(ParseHex(redeemPath))).VerifySchnorr(message,ParseHex(signature))) {
-       return false;
-    }
-}
-/**
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {

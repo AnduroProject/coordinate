@@ -183,6 +183,18 @@ void CZMQNotificationInterface::BlockConnected(const std::shared_ptr<const CBloc
     });
 }
 
+void CZMQNotificationInterface::SignedBlockConnected(const SignedBlock& pblock)
+{
+    for (const CTransactionRef& ptx : pblock.vtx) {
+        const CTransaction& tx = *ptx;
+        TryForEachAndRemoveFailed(notifiers, [&tx](CZMQAbstractNotifier* notifier) {
+            return notifier->NotifyTransaction(tx);
+        });
+        // only coinbase notification
+        break;
+    }
+}
+
 void CZMQNotificationInterface::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex* pindexDisconnected)
 {
     for (const CTransactionRef& ptx : pblock->vtx) {

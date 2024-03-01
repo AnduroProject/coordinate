@@ -9,7 +9,7 @@
 #include <kernel/cs_main.h>
 #include <primitives/transaction.h> // CTransaction(Ref)
 #include <sync.h>
-
+#include <coordinate/signed_block.h>
 #include <functional>
 #include <memory>
 
@@ -137,6 +137,8 @@ protected:
      * Called on a background thread.
      */
     virtual void BlockConnected(const std::shared_ptr<const CBlock> &block, const CBlockIndex *pindex) {}
+
+    virtual void SignedBlockConnected(const SignedBlock &block) {}
     /**
      * Notifies listeners of a block being disconnected
      *
@@ -200,6 +202,7 @@ public:
     void TransactionAddedToMempool(const CTransactionRef&, uint64_t mempool_sequence);
     void TransactionRemovedFromMempool(const CTransactionRef&, MemPoolRemovalReason, uint64_t mempool_sequence);
     void BlockConnected(const std::shared_ptr<const CBlock> &, const CBlockIndex *pindex);
+    void SignBlockConnected(const SignedBlock &);
     void BlockDisconnected(const std::shared_ptr<const CBlock> &, const CBlockIndex* pindex);
     void ChainStateFlushed(const CBlockLocator &);
     void BlockChecked(const CBlock&, const BlockValidationState&);
