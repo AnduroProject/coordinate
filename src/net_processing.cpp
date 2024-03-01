@@ -5529,7 +5529,20 @@ bool PeerManagerImpl::SetupAddressRelay(const CNode& node, Peer& peer)
 
 void PeerManagerImpl::NewSignedBlockTimer(uint32_t nTime)
 {
-    if(!m_chainman.ActiveChainstate().ConnectSignedBlock(nTime)) {
+    std::unique_ptr<SignedBlock> pblocktemplate(CreateNewSignedBlock(m_chainman,nTime));
+    if (!pblocktemplate.get()) {
+        LogPrint(BCLog::NET, "Couldn't create new signed block \n");
+        return;
+    }
+
+    const SignedBlock& block = *pblocktemplate.get();
+
+    if (!checkSignedBlock(block, m_chainman)) {
+        LogPrint(BCLog::NET, "signed block validity failed \n");
+        return;
+    }
+
+    if(!m_chainman.ActiveChainstate().ConnectSignedBlock(block)) {
         LogPrint(BCLog::NET, "new signed block creation failed \n");
     }
 }

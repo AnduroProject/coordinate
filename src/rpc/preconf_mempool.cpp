@@ -91,31 +91,32 @@ static RPCHelpMan sendpreconftransaction()
     };
 }
 
-static RPCHelpMan sendpreconfsignatures()
+static RPCHelpMan sendpreconflist()
 {
-    return RPCHelpMan{"sendpreconfsignatures",
-        "\nSubmit a pre conf transaction signatures from federation \n",
+    return RPCHelpMan{"sendpreconflist",
+        "\nSubmit a preconf block submission from anduro federation \n",
         {
-            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::NO, "pre signed preconf signature details from anduro",
+            {"block",RPCArg::Type::ARR, RPCArg::Optional::NO, "pre signed preconf signature details from anduro",
               {
                 {"", RPCArg::Type::OBJ, RPCArg::Optional::NO, "",
                     {
-                        {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
-                        {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
+                        {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
+                        {"signed_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
                         {"mined_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the mined block height where the federation is refer to for sig validation"},
-                        {"position", RPCArg::Type::NUM, RPCArg::Optional::NO, "The anduro position to sign the transaction"},
-                        {"witness", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The anduro signature"},
+                        {"reserve", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction reserve amount"},
+                        {"vsize", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction virtual size"},
                     },
                 }
               }
             },
+            {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "preconf witness for block"},
         },
         RPCResult{
-            RPCResult::Type::BOOL, "", "the result for preconf signature submission"
+            RPCResult::Type::BOOL, "", "the result for preconf block submission from anduro federation"
         },
         RPCExamples{
-            "\nSend the signature for preconf transaction\n"
-            + HelpExampleCli("sendpreconfsignatures", "\"[{\\\"txid\\\":\\\"mytxid\\\",\\\"block_height\\\":0,\\\"mined_block_height\\\":0,\\\"position\\\":0,\\\"witness\\\" : \\\"witness\\\"}]\"")
+            "\nSend the signature for preconf block\n"
+            + HelpExampleCli("sendpreconflist", "\"[{\\\"txid\\\":\\\"mytxid\\\",\\\"signed_block_height\\\":0,\\\"mined_block_height\\\":0,\\\"reserve\\\":0,\\\"vsize\\\":0}]\" \"witness\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
@@ -128,21 +129,26 @@ static RPCHelpMan sendpreconfsignatures()
                     RPCTypeCheckObj(fedParams,
                     {
                         {"txid", UniValueType(UniValue::VSTR)},
-                        {"block_height", UniValueType(UniValue::VNUM)},
+                        {"signed_block_height", UniValueType(UniValue::VNUM)},
                         {"mined_block_height", UniValueType(UniValue::VNUM)},
-                        {"position", UniValueType(UniValue::VNUM)},
-                        {"witness", UniValueType(UniValue::VSTR)},
+                        {"vsize", UniValueType(UniValue::VNUM)},
+                        {"reserve", UniValueType(UniValue::VNUM)},
                     });
+                    std::string receivedTx = find_value(fedParams, "txid").get_str();
                     CoordinatePreConfSig preconfObj;
-                    preconfObj.txid =  ParseHashO(fedParams, "txid");
-                    preconfObj.blockHeight =  find_value(fedParams, "block_height").getInt<int32_t>();
+                    if(receivedTx.compare("") != 0) {
+                        preconfObj.txid = uint256S(receivedTx);
+                    }
+                    preconfObj.blockHeight =  find_value(fedParams, "signed_block_height").getInt<int32_t>();
                     preconfObj.minedBlockHeight =  find_value(fedParams, "mined_block_height").getInt<int32_t>();
-                    preconfObj.anduroPos =  find_value(fedParams, "position").getInt<int32_t>();
-                    preconfObj.witness =  find_value(fedParams, "witness").get_str();
+                    preconfObj.vsize =  find_value(fedParams, "vsize").getInt<int32_t>();
+                    preconfObj.reserve =  find_value(fedParams, "reserve").getInt<int32_t>();
+                    preconfObj.witness =  request.params[1].get_str();
                     preconf.push_back(preconfObj);
                 }
                 return includePreConfSigWitness(preconf, chainman);
             }
+           
             return false;
         },
     };
@@ -168,42 +174,52 @@ static RPCHelpMan getpreconffee()
     };
 }
 
-static RPCHelpMan getpreconfvotes()
+static RPCHelpMan getpreconflist()
 {
-    return RPCHelpMan{"getpreconfvotes",
+    return RPCHelpMan{"getpreconflist",
         "\nGet current getpreconf votes list \n",
         {
+            {"height", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The height index"},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::ARR, "votes", "",
+                {RPCResult::Type::ARR, "block", "",
                 {
                      {RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::STR, "txid", "preconf transaction txid"},
-                            {RPCResult::Type::NUM, "votes", "total votes by anduro"},
+                            {RPCResult::Type::NUM, "mined_height", "mine block height"},
+                            {RPCResult::Type::NUM, "signed_height", "signed block height"},
                         }
                      }
                 }},
             },
         },
         RPCExamples{
-            "\nGet current transaciton fee\n"
-            + HelpExampleCli("sendpreconfsignatures", "")
+            "\nGet current preconf block in queue\n"
+            + HelpExampleCli("getpreconflist", "height")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            UniValue result(UniValue::VOBJ);
-            UniValue votes(UniValue::VARR);
-            std::vector<CoordinatePreConfVotes> coordinatePreConfVotes = getPreConfVotes();
-            for (const CoordinatePreConfVotes& coordinatePreConfVote : coordinatePreConfVotes) {
-                UniValue voteItem(UniValue::VOBJ);
-                voteItem.pushKV("txid", coordinatePreConfVote.txid.ToString());
-                voteItem.pushKV("votes", coordinatePreConfVote.votes);
-                votes.push_back(voteItem);
+            uint64_t nHeight = 0;
+            if(!request.params[0].isNull()) {
+                ParseUInt64(request.params[0].get_str(),&nHeight);
             }
-            result.pushKV("votes", votes);
+ 
+            UniValue result(UniValue::VOBJ);
+            UniValue block(UniValue::VARR);
+            std::vector<CoordinatePreConfSig> coordinatePreConfSigs = getPreConfSig();
+            for (const CoordinatePreConfSig& coordinatePreConfSig : coordinatePreConfSigs) {
+                if(coordinatePreConfSig.blockHeight == nHeight || nHeight == 0) {
+                    UniValue voteItem(UniValue::VOBJ);
+                    voteItem.pushKV("txid", coordinatePreConfSig.txid.ToString());
+                    voteItem.pushKV("mined_height", coordinatePreConfSig.blockHeight);
+                    voteItem.pushKV("signed_height", coordinatePreConfSig.minedBlockHeight);
+                    block.push_back(voteItem);
+                }
+            }
+            result.pushKV("block", block);
             return result;
         },
     };
@@ -267,6 +283,7 @@ static RPCHelpMan getsignedblock() {
     };
 
 }
+
 static RPCHelpMan getsignedblocklist() {
         return RPCHelpMan{
         "getsignedblocklist" ,
@@ -348,7 +365,6 @@ static RPCHelpMan getsignedblocklist() {
     };
 }
 
-
 static RPCHelpMan getsignedblockcount()
 {
     return RPCHelpMan{"getsignedblockcount",
@@ -372,14 +388,13 @@ static RPCHelpMan getsignedblockcount()
     };
 }
 
-
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"preconf", &sendpreconftransaction},
-        {"preconf", &sendpreconfsignatures},
+        {"preconf", &sendpreconflist},
         {"preconf", &getpreconffee},
-        {"preconf", &getpreconfvotes},
+        {"preconf", &getpreconflist},
         {"preconf", &getsignedblock},
         {"preconf", &getsignedblockcount},
         {"preconf", &getsignedblocklist},
