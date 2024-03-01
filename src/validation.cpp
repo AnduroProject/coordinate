@@ -891,8 +891,11 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
+    uint64_t signedBlockHeight = 0;
+    m_active_chainstate.psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
+
     entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(),
-            fSpendsCoinbase, nSigOpsCost, lp));
+            fSpendsCoinbase, nSigOpsCost, lp, signedBlockHeight + 3));
     ws.m_vsize = entry->GetTxSize();
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
@@ -2762,6 +2765,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     if(m_preconf_mempool) {
         LogPrintf("check signed block 5 \n");
         m_preconf_mempool->removeForPreconfBlock(block.vtx);
+        m_preconf_mempool->PreconfExpire(block.nHeight);
         LogPrintf("check signed block 6 \n");
     }
 

@@ -152,6 +152,15 @@ public:
     }
 };
 
+class CompareTxMemPoolEntryByExpiryHeight
+{
+public:
+    bool operator()(const CTxMemPoolEntry& a, const CTxMemPoolEntry& b) const
+    {
+        return a.GetExpiredHeight() < b.GetExpiredHeight();
+    }
+};
+
 /** \class CompareTxMemPoolEntryByAncestorScore
  *
  *  Sort an entry by min(score/size of entry's tx, score/size with all ancestors).
@@ -199,6 +208,7 @@ public:
 // Multi_index tag names
 struct descendant_score {};
 struct entry_time {};
+struct expiry_height {};
 struct ancestor_score {};
 struct index_by_wtxid {};
 
@@ -367,6 +377,14 @@ public:
                 boost::multi_index::identity<CTxMemPoolEntry>,
                 CompareTxMemPoolEntryByEntryTime
             >,
+
+            // sorted by entry time
+            boost::multi_index::ordered_non_unique<
+                boost::multi_index::tag<expiry_height>,
+                boost::multi_index::identity<CTxMemPoolEntry>,
+                CompareTxMemPoolEntryByExpiryHeight
+            >,
+
             // sorted by fee rate with ancestors
             boost::multi_index::ordered_non_unique<
                 boost::multi_index::tag<ancestor_score>,
@@ -627,6 +645,10 @@ public:
     /** Expire all transaction (and their dependencies) in the mempool older than time. Return the number of removed transactions. */
     int Expire(std::chrono::seconds time) EXCLUSIVE_LOCKS_REQUIRED(cs);
 
+
+
+    /** Expire all preconf transaction (and their dependencies) in the mempool older than time. Return the number of removed transactions. */
+    int PreconfExpire(uint64_t height) EXCLUSIVE_LOCKS_REQUIRED(cs);
     /**
      * Calculate the ancestor and descendant count for the given transaction.
      * The counts include the transaction itself.
