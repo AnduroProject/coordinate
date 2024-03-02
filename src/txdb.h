@@ -122,5 +122,6 @@ public:
     bool GetSignedBlock(const uint64_t nHeight, SignedBlock& block);
     bool RemoveSignedBlock(const uint64_t nID);
     bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
+    bool getSignedBlockHeightByHash(const uint256 txHash, uint64_t& nHeight);
 };
 #endif // BITCOIN_TXDB_H

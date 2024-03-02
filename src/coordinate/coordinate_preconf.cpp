@@ -272,26 +272,53 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     block->blockIndex = chainman.ActiveHeight();
     block->vtx.resize(preconfList.txids.size() + 1);
 
+
+
     unsigned int i = 1;
+    std::vector<CTxOut> coinBaseOuts;
+
+    std::vector<unsigned char> witnessData = ParseHex(preconfList.witness);
+    CTxOut witnessOut(0, CScript() << OP_RETURN << witnessData);
+    coinBaseOuts.push_back(witnessOut);
+
+    std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
+    CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
+    coinBaseOuts.push_back(witnessMerkleOut);
+
+    CAmount preConfMinerFee = 0;
+    CAmount preConfFederationFee = 0;
+
     for (const uint256& hash : preconfList.txids) {
         TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(hash));
+        if(!info.tx) {
+           LogPrintf("Signed block invalid tx \n");
+           return nullptr;
+        }
+        CAmount totalFee = preconfList.fee * info.vsize;
+        preconfMinFee = preconfMinFee + std::ceil(totalFee * 0.8);
+        preConfFederationFee = preConfFederationFee + std::ceil(totalFee * 0.2); 
+        CTxOut refund(info.fee - totalFee, info.tx->vout[0].scriptPubKey);
+        coinBaseOuts.push_back(refund);
         block->vtx[i] = info.tx;
         i = i + 1;
+    }
+
+    if(preConfMinerFee>0) {
+        std::vector<unsigned char> minerShare = ParseHex("Miner");
+        CTxOut minerShareOut(preConfMinerFee, CScript() << OP_RETURN << minerShare);
+        coinBaseOuts.push_back(minerShareOut);
+
+        std::vector<unsigned char> anduroShare = ParseHex("Anduro");
+        CTxOut anduroShareOut(preConfFederationFee, CScript() << OP_RETURN << anduroShare);
+        coinBaseOuts.push_back(anduroShareOut);
     }
 
     CMutableTransaction signedCoinbaseTx;
     signedCoinbaseTx.nVersion = TRANSACTION_PRECONF_VERSION;
     signedCoinbaseTx.vin.resize(1);
     signedCoinbaseTx.vin[0].prevout.SetNull();
-    signedCoinbaseTx.vout.resize(2);
-
-    std::vector<unsigned char> witnessData = ParseHex(preconfList.witness);
-    CTxOut witnessOut(0, CScript() << OP_RETURN << witnessData);
-    signedCoinbaseTx.vout[0] = witnessOut;
-
-    std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
-    CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
-    signedCoinbaseTx.vout[1] = witnessMerkleOut;
+    signedCoinbaseTx.vout.resize(coinBaseOuts.size());
+    signedCoinbaseTx.vout = coinBaseOuts;
     
     block->vtx[0] = MakeTransactionRef(std::move(signedCoinbaseTx));
 

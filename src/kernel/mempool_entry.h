@@ -102,7 +102,7 @@ public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, unsigned int entry_height,
                     bool spends_coinbase,
-                    int64_t sigops_cost, LockPoints lp, uint64_t expire_signed_height)
+                    int64_t sigops_cost, LockPoints lp, uint64_t expire_signed_height = 0)
         : tx{tx},
           nFee{fee},
           nTxWeight(GetTransactionWeight(*tx)),

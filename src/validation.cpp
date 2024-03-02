@@ -2685,9 +2685,8 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     BlockValidationState state;
     CBlockUndo blockundo;
     blockundo.vtxundo.reserve(block.vtx.size()-1);
-    
-    std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
+    std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         if(i == 0) {
             continue;
