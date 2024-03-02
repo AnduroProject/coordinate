@@ -51,13 +51,11 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
 }
 
 CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee, uint64_t signedBlockHeight) {
-    std::vector<CTxOut> txouts;
     std::vector<uint256> txids;
     CoordinatePreConfBlock result;
-    LogPrintf("prepareRefunds check 1 \n");
+    LogPrintf("prepareRefunds check 1 %i \n", finalFee);
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {    
         LogPrintf("prepareRefunds check 2 %i\n", signedBlockHeight); 
-        LogPrintf("prepareRefunds check 21 %i\n", coordinatePreConfSigtem.blockHeight ); 
         if(coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
         }
@@ -66,19 +64,12 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         if(coordinatePreConfSigtem.txid.IsNull()) {
           continue;
         }
-        TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(coordinatePreConfSigtem.txid));
-        CAmount refundAmount =  info.fee - (info.vsize * finalFee);
-        txouts.push_back(CTxOut(refundAmount,info.tx->vout[0].scriptPubKey));
-        
         txids.push_back(coordinatePreConfSigtem.txid);
 
     }
     LogPrintf("prepareRefunds check 4 \n"); 
-
     result.txids = txids;
-    result.refunds = txouts;
     result.fee = finalFee;
-
     return result;
 }
 
@@ -243,7 +234,7 @@ CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee
  */
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime) {
     LOCK(cs_main);
-
+   
     std::unique_ptr<SignedBlock> pblocktemplate;
     pblocktemplate.reset(new SignedBlock());
     SignedBlock *block = pblocktemplate.get();
@@ -256,13 +247,15 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         return nullptr;
     }
 
+    LogPrintf("CreateNewSignedBlock 1\n");
+
     SignedBlock prevBlock;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nIDLast);
     if(nIDLast > 0) {
         chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(nIDLast,prevBlock);
         block->hashPrevSignedBlock = prevBlock.GetHash();
     }
-    
+    LogPrintf("CreateNewSignedBlock 2\n");
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
 
     uint64_t nHeight = nIDLast + 1;
@@ -273,6 +266,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     block->vtx.resize(preconfList.txids.size() + 1);
 
 
+    LogPrintf("CreateNewSignedBlock 3\n");
 
     unsigned int i = 1;
     std::vector<CTxOut> coinBaseOuts;
@@ -281,13 +275,10 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut witnessOut(0, CScript() << OP_RETURN << witnessData);
     coinBaseOuts.push_back(witnessOut);
 
-    std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
-    CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
-    coinBaseOuts.push_back(witnessMerkleOut);
 
     CAmount preConfMinerFee = 0;
     CAmount preConfFederationFee = 0;
-
+    LogPrintf("CreateNewSignedBlock 4\n");
     for (const uint256& hash : preconfList.txids) {
         TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(hash));
         if(!info.tx) {
@@ -295,15 +286,21 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
            return nullptr;
         }
         CAmount totalFee = preconfList.fee * info.vsize;
-        preconfMinFee = preconfMinFee + std::ceil(totalFee * 0.8);
-        preConfFederationFee = preConfFederationFee + std::ceil(totalFee * 0.2); 
+        LogPrintf("pre conf total fee for tx %i \n", totalFee);
+        CAmount minerFee = std::ceil(totalFee * 0.8);
+        LogPrintf("pre conf miner fee for tx %i \n", minerFee);
+        preConfMinerFee = preConfMinerFee + minerFee;
+        preConfFederationFee = preConfFederationFee + (totalFee - minerFee); 
         CTxOut refund(info.fee - totalFee, info.tx->vout[0].scriptPubKey);
         coinBaseOuts.push_back(refund);
+
         block->vtx[i] = info.tx;
         i = i + 1;
     }
-
+    LogPrintf("CreateNewSignedBlock 5\n");
     if(preConfMinerFee>0) {
+        LogPrintf("pre conf miner fee %i \n", preConfMinerFee);
+        LogPrintf("pre conf fed fee %i \n", preConfFederationFee);
         std::vector<unsigned char> minerShare = ParseHex("Miner");
         CTxOut minerShareOut(preConfMinerFee, CScript() << OP_RETURN << minerShare);
         coinBaseOuts.push_back(minerShareOut);
@@ -313,16 +310,26 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         coinBaseOuts.push_back(anduroShareOut);
     }
 
+    std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
+    CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
+    coinBaseOuts.push_back(witnessMerkleOut);
+
+    LogPrintf("CreateNewSignedBlock 6\n");
     CMutableTransaction signedCoinbaseTx;
     signedCoinbaseTx.nVersion = TRANSACTION_PRECONF_VERSION;
     signedCoinbaseTx.vin.resize(1);
     signedCoinbaseTx.vin[0].prevout.SetNull();
     signedCoinbaseTx.vout.resize(coinBaseOuts.size());
-    signedCoinbaseTx.vout = coinBaseOuts;
+    for (size_t i = 0; i < coinBaseOuts.size(); i++)
+    {
+        signedCoinbaseTx.vout[i] = coinBaseOuts[i];
+    }
     
     block->vtx[0] = MakeTransactionRef(std::move(signedCoinbaseTx));
 
     block->hashMerkleRoot = SignedBlockMerkleRoot(*block);
+
+    LogPrintf("CreateNewSignedBlock 7\n");
 
     return std::move(pblocktemplate);
 }
