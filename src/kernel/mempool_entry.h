@@ -79,6 +79,7 @@ private:
     const size_t nUsageSize;        //!< ... and total memory usage
     const int64_t nTime;            //!< Local time when entering the mempool
     const unsigned int entryHeight; //!< Chain height when entering the mempool
+    const uint64_t expireSignedHeight; //!< Chain height when entering the mempool
     const bool spendsCoinbase;      //!< keep track of transactions that spend a coinbase
     const int64_t sigOpCost;        //!< Total sigop cost
     CAmount m_modified_fee;         //!< Used for determining the priority of the transaction for mining in a block
@@ -101,13 +102,14 @@ public:
     CTxMemPoolEntry(const CTransactionRef& tx, CAmount fee,
                     int64_t time, unsigned int entry_height,
                     bool spends_coinbase,
-                    int64_t sigops_cost, LockPoints lp)
+                    int64_t sigops_cost, LockPoints lp, uint64_t expire_signed_height = 0)
         : tx{tx},
           nFee{fee},
           nTxWeight(GetTransactionWeight(*tx)),
           nUsageSize{RecursiveDynamicUsage(tx)},
           nTime{time},
           entryHeight{entry_height},
+          expireSignedHeight{expire_signed_height},
           spendsCoinbase{spends_coinbase},
           sigOpCost{sigops_cost},
           m_modified_fee{nFee},
@@ -129,6 +131,7 @@ public:
     std::chrono::seconds GetTime() const { return std::chrono::seconds{nTime}; }
     unsigned int GetHeight() const { return entryHeight; }
     int64_t GetSigOpCost() const { return sigOpCost; }
+    uint64_t GetExpiredHeight() const { return expireSignedHeight; }
     CAmount GetModifiedFee() const { return m_modified_fee; }
     size_t DynamicMemoryUsage() const { return nUsageSize; }
     const LockPoints& GetLockPoints() const { return lockPoints; }

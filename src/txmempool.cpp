@@ -1024,6 +1024,23 @@ int CTxMemPool::Expire(std::chrono::seconds time)
     return stage.size();
 }
 
+int CTxMemPool::PreconfExpire(uint64_t expireHeight)
+{
+    AssertLockHeld(cs);
+    indexed_transaction_set::index<expiry_height>::type::iterator it = mapTx.get<expiry_height>().begin();
+    setEntries toremove;
+    while (it != mapTx.get<expiry_height>().end() && it->GetExpiredHeight() < expireHeight) {
+        toremove.insert(mapTx.project<0>(it));
+        it++;
+    }
+    setEntries stage;
+    for (txiter removeit : toremove) {
+        CalculateDescendants(removeit, stage);
+    }
+    RemoveStaged(stage, false, MemPoolRemovalReason::EXPIRY);
+    return stage.size();
+}
+
 void CTxMemPool::addUnchecked(const CTxMemPoolEntry &entry, bool validFeeEstimate)
 {
     auto ancestors{AssumeCalculateMemPoolAncestors(__func__, entry, Limits::NoLimits())};
