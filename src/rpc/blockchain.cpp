@@ -186,6 +186,22 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
     result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));
+
+    // preconf info
+    UniValue preconfblocks(UniValue::VARR);
+    for (const uint256& txId : block.preconfBlock) {
+        preconfblocks.push_back(txId.GetHex());
+    }
+    result.pushKV("preconfblocks", preconfblocks);
+
+    // invalid tx info
+    UniValue invalidTxs(UniValue::VARR);
+    for (const uint256& txId : block.invalidTx) {
+        invalidTxs.push_back(txId.GetHex());
+    }
+    result.pushKV("invalidtxs", invalidTxs);
+    result.pushKV("reconsiliationblock", block.reconsiliationBlock.GetHex());
+
     UniValue txs(UniValue::VARR);
 
     switch (verbosity) {

@@ -172,13 +172,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
 std::vector<CoordinatePreConfSig> getPreConfSig();
 
 /**
- * This function prepare federation output for preconf
- * @param[in] federationFee federation fee for preconf transaction
- * @param[in] chainman  used to find previous blocks based on active chain state to valid preconf signatures
- */
-CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee);
-
-/**
  * This function remove old federation signature for preconf
  */
 void removePreConfWitness();
@@ -194,3 +187,22 @@ CAmount getPreConfMinFee();
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime);
 
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
+
+/**
+ * This function get next pre confs
+ */
+std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman);
+
+std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
+
+uint256 getReconsiledBlock(ChainstateManager& chainman);
+
+CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) ;
+
+CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight);
+
+CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight);
+
+CScript getMinerScript(ChainstateManager& chainman, int blockHeight);
+
+CScript getFederationScript(ChainstateManager& chainman, int blockHeight);

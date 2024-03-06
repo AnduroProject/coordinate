@@ -148,6 +148,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
 
     pblock->nTime = TicksSinceEpoch<std::chrono::seconds>(GetAdjustedTime());
+    
     m_lock_time_cutoff = pindexPrev->GetMedianTimePast();
 
     int nPackagesSelected = 0;
@@ -161,9 +162,43 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     m_last_block_num_txs = nBlockTx;
     m_last_block_weight = nBlockWeight;
+
+    LogPrintf("testing 1\n");
+
+    pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
+    LogPrintf("testing 2\n");
+    pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
+    LogPrintf("testing 3\n");
+    std::vector<SignedBlock> nextPreconfs = getNextPreConfs(m_chainstate.m_chainman);
+    LogPrintf("testing 4\n");
+    for (size_t i = 0; i < nextPreconfs.size(); i++)
+    {
+          pblock->preconfBlock.push_back(nextPreconfs[i].GetHash());
+    }
     
     // increasing coinbase size for refunds
     int resize = 1;
+    CAmount minerFee = 0;
+    CAmount totalPreconfFee = 0;
+    CAmount federationFee = 0;
+    if(nHeight > 3) {
+    LogPrintf("testing 5\n");
+        CAmount minerFee = getFeeForBlock(m_chainstate.m_chainman, nHeight);
+        LogPrintf("testing 6\n");
+        CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainstate.m_chainman, nHeight);
+        LogPrintf("testing 7\n"); 
+        if(totalPreconfFee > 0) {
+            federationFee = std::ceil(totalPreconfFee * 0.20);
+            minerFee = minerFee + (totalPreconfFee - federationFee);
+        }
+    }
+
+    if(minerFee > 0) {
+        resize = resize + 1;
+    }
+    if(federationFee > 0) {
+        resize = resize + 1;
+    }
 
     // get next block presigned data
     // std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
@@ -207,9 +242,26 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vin[0].prevout.SetNull();
     coinbaseTx.vout.resize(resize);
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    coinbaseTx.vout[0].nValue = nFees + GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    int oIncr = 1;
+    if(minerFee > 0) {
+       LogPrintf("testing 8\n"); 
+       oIncr = oIncr + 1;
+       coinbaseTx.vout[1].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
+       coinbaseTx.vout[1].nValue = minerFee;
+       LogPrintf("testing 9\n"); 
+    }
 
-    // int oIncr = 1;
+    if(federationFee > 0) {
+       LogPrintf("testing 10\n"); 
+       oIncr = oIncr + 1;
+       coinbaseTx.vout[2].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
+       coinbaseTx.vout[2].nValue = federationFee;
+       LogPrintf("testing 11\n"); 
+    }
+
+    
+
     // if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
     // } else {
     //     // include new pegin in transaction output
