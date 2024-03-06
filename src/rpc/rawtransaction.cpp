@@ -316,13 +316,12 @@ static RPCHelpMan getrawtransaction()
     }
     LogPrintf("preconf testing 0");
     if(is_preconf) {
-        LogPrintf("preconf testing 1");
         UniValue result(UniValue::VOBJ);
         TxToUniv(*tx, /*block_hash=*/uint256(), result, /*include_hex=*/true, false);
         if(signed_block.nHeight > 0) {
-            LogPrintf("preconf testing 2");
             uint64_t currentHeight = 0;
             chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(currentHeight);
+            result.pushKV("blocktime", signed_block.nTime);
             result.pushKV("blockhash", signed_block.GetHash().ToString());
             result.pushKV("confirmations", currentHeight - signed_block.nHeight);
         }
