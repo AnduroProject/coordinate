@@ -31,6 +31,17 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
         return result;
     }
     
+    int finalizedStatus = 1;
+    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
+            [finalizedStatus] (const CoordinatePreConfSig& d) { 
+                return (uint64_t)d.finalized == finalizedStatus;
+            });
+
+    if (it == coordinatePreConfSig.end()) {
+        CoordinatePreConfBlock result;
+        return result;
+    }
+    
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
     CAmount finalFee = nextBlockFee(preconf_pool, signedBlockHeight+1);
     return prepareRefunds(preconf_pool,finalFee, signedBlockHeight+1);
@@ -98,17 +109,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
 
     int blockindex = preconf[0].minedBlockHeight;
-
-    // check list already exist array
-    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                [signedBlockHeight] (const CoordinatePreConfSig& d) { 
-                    return (uint64_t)d.blockHeight == signedBlockHeight;
-                });
-
-    if (it != coordinatePreConfSig.end()) {
-         LogPrintf("preconf transaction already exist \n");
-        return false;
-    }
+    int finalizedStatus = preconf[0].finalized;
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
@@ -143,10 +144,18 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
     }
 
-    if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
-       return false;
+    if(finalizedStatus == 1) {
+        if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
+            return false;
+        }
+    } else {
+        if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
+            return false;
+        }
     }
-    
+
+    removePreConfWitness();
+
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
     }

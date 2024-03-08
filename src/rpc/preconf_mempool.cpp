@@ -110,17 +110,26 @@ static RPCHelpMan sendpreconflist()
               }
             },
             {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "preconf witness for block"},
+            {"finalized", RPCArg::Type::STR, RPCArg::Optional::NO, "Finalized list from federation leader or not"},
+            {"federationkey", RPCArg::Type::STR, RPCArg::Optional::NO, "Federation identification"},
         },
         RPCResult{
             RPCResult::Type::BOOL, "", "the result for preconf block submission from anduro federation"
         },
         RPCExamples{
             "\nSend the signature for preconf block\n"
-            + HelpExampleCli("sendpreconflist", "\"[{\\\"txid\\\":\\\"mytxid\\\",\\\"signed_block_height\\\":0,\\\"mined_block_height\\\":0,\\\"reserve\\\":0,\\\"vsize\\\":0}]\" \"witness\"")
+            + HelpExampleCli("sendpreconflist", "\"[{\\\"txid\\\":\\\"mytxid\\\",\\\"signed_block_height\\\":0,\\\"mined_block_height\\\":0,\\\"reserve\\\":0,\\\"vsize\\\":0}]\" \"witness\" \"finalized\" \"federationkey\"")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             ChainstateManager& chainman = EnsureAnyChainman(request.context);
+
+            uint32_t finalized = 0;
+            if(!request.params[2].isNull()) {
+                ParseUInt32(request.params[2].get_str(),&finalized);
+            }
+ 
+
             const UniValue& req_params = request.params[0].get_array();
             if(req_params.size() > 0) {
                 std::vector<CoordinatePreConfSig> preconf;
@@ -143,9 +152,12 @@ static RPCHelpMan sendpreconflist()
                     preconfObj.minedBlockHeight =  find_value(fedParams, "mined_block_height").getInt<int32_t>();
                     preconfObj.vsize =  find_value(fedParams, "vsize").getInt<int32_t>();
                     preconfObj.reserve =  find_value(fedParams, "reserve").getInt<int32_t>();
+                    preconfObj.finalized = finalized;
                     preconfObj.witness =  request.params[1].get_str();
+                    preconfObj.federationKey = request.params[3].get_str();
                     preconf.push_back(preconfObj);
                 }
+                removePreConfWitness();
                 return includePreConfSigWitness(preconf, chainman);
             }
            
@@ -189,8 +201,12 @@ static RPCHelpMan getpreconflist()
                      {RPCResult::Type::OBJ, "", "",
                         {
                             {RPCResult::Type::STR, "txid", "preconf transaction txid"},
-                            {RPCResult::Type::NUM, "mined_height", "mine block height"},
-                            {RPCResult::Type::NUM, "signed_height", "signed block height"},
+                            {RPCResult::Type::NUM, "mined_block_height", "mine block height"},
+                            {RPCResult::Type::NUM, "signed_block_height", "signed block height"},
+                            {RPCResult::Type::NUM, "reserve", "Transaction reserve amount"},
+                            {RPCResult::Type::NUM, "vsize", "Transaction virtual size"},
+                            {RPCResult::Type::NUM, "finalized", "Finalized list from federation leader or not"},
+                            {RPCResult::Type::STR, "federationkey", "federation identification"}
                         }
                      }
                 }},
@@ -214,8 +230,12 @@ static RPCHelpMan getpreconflist()
                 if(coordinatePreConfSig.blockHeight == nHeight || nHeight == 0) {
                     UniValue voteItem(UniValue::VOBJ);
                     voteItem.pushKV("txid", coordinatePreConfSig.txid.ToString());
-                    voteItem.pushKV("mined_height", coordinatePreConfSig.blockHeight);
-                    voteItem.pushKV("signed_height", coordinatePreConfSig.minedBlockHeight);
+                    voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
+                    voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
+                    voteItem.pushKV("reserve", coordinatePreConfSig.reserve);
+                    voteItem.pushKV("vsize", coordinatePreConfSig.vsize);
+                    voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
+                    voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
                     block.push_back(voteItem);
                 }
             }

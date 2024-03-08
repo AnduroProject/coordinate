@@ -58,27 +58,31 @@ public:
 
 
 template<typename Stream, typename CoordinatePreConfSigType>
-inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& assetData, Stream& s) {
-    s >> assetData.txid;
-    s >> assetData.blockHeight;
-    s >> assetData.minedBlockHeight;
-    s >> assetData.reserve;
-    s >> assetData.vsize;
-    s >> assetData.witness;
-    s >> assetData.isBroadcasted;
-    s >> assetData.peerList;
+inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& preconfData, Stream& s) {
+    s >> preconfData.txid;
+    s >> preconfData.blockHeight;
+    s >> preconfData.minedBlockHeight;
+    s >> preconfData.reserve;
+    s >> preconfData.vsize;
+    s >> preconfData.witness;
+    s >> preconfData.isBroadcasted;
+    s >> preconfData.peerList;
+    s >> preconfData.federationKey;
+    s >> preconfData.finalized;
 }
 
 template<typename Stream, typename CoordinatePreConfSigType>
-inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& assetData, Stream& s) {
-    s << assetData.txid;
-    s << assetData.blockHeight;
-    s << assetData.minedBlockHeight;
-    s << assetData.reserve;
-    s << assetData.vsize;
-    s << assetData.witness;
-    s << assetData.isBroadcasted;
-    s << assetData.peerList;
+inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& preconfData, Stream& s) {
+    s << preconfData.txid;
+    s << preconfData.blockHeight;
+    s << preconfData.minedBlockHeight;
+    s << preconfData.reserve;
+    s << preconfData.vsize;
+    s << preconfData.witness;
+    s << preconfData.isBroadcasted;
+    s << preconfData.peerList;
+    s << preconfData.federationKey;
+    s << preconfData.finalized;
 }
 
 struct CoordinatePreConfSig {
@@ -89,6 +93,8 @@ public:
     int32_t reserve; /*!< transaction reserve */
     int32_t vsize; /*!< transaction virtula size */
     std::string witness;
+    std::string federationKey; /*!< federation public key */
+    uint32_t finalized; /*!< 0 - not finalized by federation, 1 - finalized by federation */
     bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
     std::vector<int64_t> peerList;
 
@@ -121,6 +127,7 @@ public:
         witness = "";
         isBroadcasted = false;
         peerList.clear();
+        federationKey = "";
     }
 };
 
