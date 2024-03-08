@@ -5,6 +5,7 @@
 #include <outputtype.h>
 #include <rpc/util.h>
 #include <util/message.h>
+#include <cmath>
 
 /**
  * Validate presigned signature
