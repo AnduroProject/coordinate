@@ -139,21 +139,11 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
  */
 void resetDeposit(uint32_t block_height) {
     std::vector<AnduroTxOut> tDepositsNew;
-    bool hasDeposits = true;
-    uint32_t currentHeight = block_height;
-    while(hasDeposits) {
-        for (const AnduroTxOut& tx_out : tDeposits) {
-            if(tx_out.block_height != block_height) {
-                tDepositsNew.push_back(tx_out);
-            }
-        }
-        currentHeight = currentHeight - 1;
-        std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
-        if(pending_deposits.size() == 0) {
-            hasDeposits = false;
-        }
-    }
-
+      for (const AnduroTxOut& tx_out : tDeposits) {
+         if(tx_out.block_height > block_height) {
+               tDepositsNew.push_back(tx_out);
+         }
+      }
     tDeposits = tDepositsNew;
 }
 
