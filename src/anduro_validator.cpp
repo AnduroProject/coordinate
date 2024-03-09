@@ -4,7 +4,7 @@
 #include <logging.h>
 #include <outputtype.h>
 #include <rpc/util.h>
-
+#include <cmath>
 /**
  * Validate presigned signature
  */
