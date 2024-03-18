@@ -307,10 +307,9 @@ static RPCHelpMan getsignedblock()
         }};
 }
 
-static RPCHelpMan getsignedblocklist()
-{
-    return RPCHelpMan{
-        "getsignedblocklist",
+static RPCHelpMan getsignedblocklist() {
+        return RPCHelpMan{
+        "getsignedblocklist" ,
         "get signed block detail",
         {
             {"startingHeight", RPCArg::Type::STR, RPCArg::Optional::NO, "The starting height index"},
@@ -318,21 +317,21 @@ static RPCHelpMan getsignedblocklist()
         },
 
         RPCResult{
-            RPCResult::Type::ARR,
-            "",
-            "",
+            RPCResult::Type::ARR, "", "",
             {
                 {
-                    {RPCResult::Type::OBJ, "", "Signed block details", {
-                                                                           {RPCResult::Type::NUM, "fee", "Signed block fee"},
-                                                                           {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
-                                                                           {RPCResult::Type::NUM, "height", "Signed block height"},
-                                                                           {RPCResult::Type::NUM, "time", "Signed block time"},
-                                                                           {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
-                                                                           {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
-                                                                           {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
-                                                                           {RPCResult::Type::ARR, "tx", "The transaction ids", {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
-                                                                       }},
+                    {RPCResult::Type::OBJ, "", "Signed block details",
+                    {
+                        {RPCResult::Type::NUM, "fee", "Signed block fee"},
+                        {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
+                        {RPCResult::Type::NUM, "height", "Signed block height"},
+                        {RPCResult::Type::NUM, "time", "Signed block time"},
+                        {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
+                        {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
+                        {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
+                        {RPCResult::Type::ARR, "tx", "The transaction ids",
+                            {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
+                    }},
                 },
             },
         },
@@ -346,27 +345,38 @@ static RPCHelpMan getsignedblocklist()
             uint64_t range;
             uint64_t nHeight = 0;
             chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nHeight);
-            if (request.params[1].isNull()) {
+            if(request.params[1].isNull()){
                 range = 10;
             }
-            if (!ParseUInt64(request.params[0].get_str(), &startingHeight) || (request.params.size() > 1) && !ParseUInt64(request.params[1].get_str(), &range) ||
-                range == 0) {
+            if (!ParseUInt64(request.params[0].get_str(), &startingHeight) || (request.params.size() > 1) && !ParseUInt64(request.params[1].get_str(), &range) || 
+              range == 0) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Height and range must be positive numbers");
-            }
-            if (range > 100) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Maximum range allowed is 100");
-            }
-            if (startingHeight + range > nHeight) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Starting height and range exceed the block count.");
-            }
+              }
+              if (range > 100) {
+                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Maximum range allowed is 100");
+              }
+             if (startingHeight + range > nHeight) {
+                  throw JSONRPCError(RPC_INVALID_PARAMETER, "Starting height and range exceed the block count.");
+               }
 
             LOCK(cs_main);
             UniValue result(UniValue::VARR);
             for (uint64_t i = startingHeight + 1; i <= startingHeight + range; ++i) {
                 SignedBlock block;
                 chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(i, block);
+                int blockSize = 0;
+                blockSize += sizeof(block.currentFee);
+                blockSize += sizeof(block.blockIndex);
+                blockSize += sizeof(block.nHeight);
+                blockSize += sizeof(block.nTime);
+                blockSize += block.hashPrevSignedBlock.size();
+                blockSize += block.hashMerkleRoot.size();
+                blockSize += block.GetHash().size();
+                for (const CTransactionRef& tx : block.vtx) {
+                    blockSize +=  GetVirtualTransactionSize(*tx);
+                }
 
-                UniValue blockDetails(UniValue::VOBJ);
+                UniValue blockDetails(UniValue::VOBJ); 
                 UniValue txs(UniValue::VARR);
                 for (const CTransactionRef& tx : block.vtx) {
                     txs.push_back(tx->GetHash().ToString());
@@ -376,16 +386,18 @@ static RPCHelpMan getsignedblocklist()
                 blockDetails.pushKV("blockindex", (uint64_t)block.blockIndex);
                 blockDetails.pushKV("height", (uint64_t)block.nHeight);
                 blockDetails.pushKV("time", block.nTime);
+                blockDetails.pushKV("size", blockSize);
                 blockDetails.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
                 blockDetails.pushKV("merkleroot", block.hashMerkleRoot.ToString());
                 blockDetails.pushKV("hash", block.GetHash().ToString());
                 blockDetails.pushKV("tx", txs);
 
-                result.push_back(blockDetails);
+                result.push_back(blockDetails); 
             }
 
             return result;
-        }};
+        }
+    };
 }
 
 static RPCHelpMan getsignedblockcount()
