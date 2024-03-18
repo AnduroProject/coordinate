@@ -128,6 +128,7 @@ BITCOIN_CORE_H = \
   coordinate_preconf.h \
   signed_block.h \
   signed_txindex.h \
+  invalid_tx.h \
   banman.h \
   base58.h \
   bech32.h \
@@ -655,6 +656,7 @@ libbitcoin_common_a_SOURCES = \
   coordinate/coordinate_preconf.cpp \
   coordinate/signed_block.cpp \
   coordinate/signed_txindex.cpp \
+  coordinate/invalid_tx.cpp \
   anduro_validator.cpp \
   base58.cpp \
   bech32.cpp \
@@ -921,6 +923,7 @@ libbitcoinkernel_la_SOURCES = \
   coordinate/coordinate_preconf.cpp \
   coordinate/signed_block.cpp \
   coordinate/signed_txindex.cpp \
+  coordinate/invalid_tx.cpp \
   anduro_validator.cpp \
   chain.cpp \
   chainparamsbase.cpp \

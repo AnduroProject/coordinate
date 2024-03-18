@@ -20,6 +20,7 @@
 #include <coordinate/coordinate_assets.h>
 #include <coordinate/signed_block.h>
 #include <coordinate/signed_txindex.h>
+#include <coordinate/invalid_tx.h>
 
 class CBlockFileInfo;
 class CBlockIndex;
@@ -123,5 +124,7 @@ public:
     bool RemoveSignedBlock(const uint64_t nID);
     bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
     bool getSignedBlockHeightByHash(const uint256 txHash, uint64_t& nHeight);
+    bool WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs);
+    bool GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx);
 };
 #endif // BITCOIN_TXDB_H

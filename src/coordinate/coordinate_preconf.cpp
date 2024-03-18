@@ -6,9 +6,12 @@
 #include <anduro_validator.h>
 #include <validation.h>
 #include <consensus/merkle.h>
+#include <coordinate/invalid_tx.h>
+#include <undo.h>
 
 using node::BlockManager;
 using node::ReadBlockFromDisk;
+using node::UndoReadFromDisk;
 
 std::vector<CoordinatePreConfSig> coordinatePreConfSig;
 
@@ -18,12 +21,23 @@ CAmount preconfMinFee = 5;
 CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     uint64_t signedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
-
+   LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = active_chain.Height();
     CBlock block;
     if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        CoordinatePreConfBlock result;
+        return result;
+    }
+    
+    int finalizedStatus = 1;
+    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
+            [finalizedStatus] (const CoordinatePreConfSig& d) { 
+                return (uint64_t)d.finalized == finalizedStatus;
+            });
+
+    if (it == coordinatePreConfSig.end()) {
         CoordinatePreConfBlock result;
         return result;
     }
@@ -36,7 +50,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
 CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
     CAmount finalFee = 0;
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {
-        if(coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
+        if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
         }
         if(coordinatePreConfSigtem.txid.IsNull()) {
@@ -56,7 +70,7 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
     LogPrintf("prepareRefunds check 1 %i \n", finalFee);
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {    
         LogPrintf("prepareRefunds check 2 %i\n", signedBlockHeight); 
-        if(coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
+        if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
         }
         LogPrintf("prepareRefunds check 3 %s\n", coordinatePreConfSigtem.witness); 
@@ -89,23 +103,13 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
 
     // check preconf sign block height is valid   
-    if(preconf[0].blockHeight <= signedBlockHeight) {
+    if((uint64_t)preconf[0].blockHeight <= signedBlockHeight) {
         LogPrintf("preconf transaction sig has old block height \n");
         return false;
     }
 
     int blockindex = preconf[0].minedBlockHeight;
-
-    // check list already exist array
-    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
-                [signedBlockHeight] (const CoordinatePreConfSig& d) { 
-                    return d.blockHeight == signedBlockHeight;
-                });
-
-    if (it != coordinatePreConfSig.end()) {
-         LogPrintf("preconf transaction already exist \n");
-        return false;
-    }
+    int finalizedStatus = preconf[0].finalized;
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
@@ -140,10 +144,18 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
     }
 
-    if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
-       return false;
+    if(finalizedStatus == 1) {
+        if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
+            return false;
+        }
+    } else {
+        if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
+            return false;
+        }
     }
-    
+
+    removePreConfWitness();
+
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
     }
@@ -200,36 +212,6 @@ CAmount getPreConfMinFee() {
 }
 
 /**
- * This function prepare federation output for preconf
- */
-CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee) {
-    LOCK(cs_main);
-    CChain& active_chain = chainman.ActiveChain();
-    int blockindex = active_chain.Height();
-    CBlock block;
-    CTxOut federationOut;
-    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
-        return federationOut;
-    }
-
-    std::vector<unsigned char> wData(ParseHex(block.currentKeys));
-    const std::string prevWitnessHexStr(wData.begin(), wData.end());
-    UniValue witnessVal(UniValue::VOBJ);
-    if (!witnessVal.read(prevWitnessHexStr)) {
-        LogPrintf("invalid witness params \n");
-        return federationOut;
-    }
-    const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
-    const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-
-    federationOut.nValue = federationFee;
-    federationOut.scriptPubKey = scriptPubKey;
-
-    return federationOut;
-}
-
-/**
  * This function get new block template for signed block
  */
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime) {
@@ -247,15 +229,12 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         return nullptr;
     }
 
-    LogPrintf("CreateNewSignedBlock 1\n");
-
     SignedBlock prevBlock;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nIDLast);
     if(nIDLast > 0) {
         chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(nIDLast,prevBlock);
         block->hashPrevSignedBlock = prevBlock.GetHash();
     }
-    LogPrintf("CreateNewSignedBlock 2\n");
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
 
     uint64_t nHeight = nIDLast + 1;
@@ -265,9 +244,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     block->blockIndex = chainman.ActiveHeight();
     block->vtx.resize(preconfList.txids.size() + 1);
 
-
-    LogPrintf("CreateNewSignedBlock 3\n");
-
     unsigned int i = 1;
     std::vector<CTxOut> coinBaseOuts;
 
@@ -275,10 +251,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut witnessOut(0, CScript() << OP_RETURN << witnessData);
     coinBaseOuts.push_back(witnessOut);
 
-
-    CAmount preConfMinerFee = 0;
-    CAmount preConfFederationFee = 0;
-    LogPrintf("CreateNewSignedBlock 4\n");
     for (const uint256& hash : preconfList.txids) {
         TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(hash));
         if(!info.tx) {
@@ -286,35 +258,16 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
            return nullptr;
         }
         CAmount totalFee = preconfList.fee * info.vsize;
-        LogPrintf("pre conf total fee for tx %i \n", totalFee);
-        CAmount minerFee = std::ceil(totalFee * 0.8);
-        LogPrintf("pre conf miner fee for tx %i \n", minerFee);
-        preConfMinerFee = preConfMinerFee + minerFee;
-        preConfFederationFee = preConfFederationFee + (totalFee - minerFee); 
         CTxOut refund(info.fee - totalFee, info.tx->vout[0].scriptPubKey);
         coinBaseOuts.push_back(refund);
-
         block->vtx[i] = info.tx;
         i = i + 1;
-    }
-    LogPrintf("CreateNewSignedBlock 5\n");
-    if(preConfMinerFee>0) {
-        LogPrintf("pre conf miner fee %i \n", preConfMinerFee);
-        LogPrintf("pre conf fed fee %i \n", preConfFederationFee);
-        std::vector<unsigned char> minerShare = ParseHex("Miner");
-        CTxOut minerShareOut(preConfMinerFee, CScript() << OP_RETURN << minerShare);
-        coinBaseOuts.push_back(minerShareOut);
-
-        std::vector<unsigned char> anduroShare = ParseHex("Anduro");
-        CTxOut anduroShareOut(preConfFederationFee, CScript() << OP_RETURN << anduroShare);
-        coinBaseOuts.push_back(anduroShareOut);
     }
 
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
 
-    LogPrintf("CreateNewSignedBlock 6\n");
     CMutableTransaction signedCoinbaseTx;
     signedCoinbaseTx.nVersion = TRANSACTION_PRECONF_VERSION;
     signedCoinbaseTx.vin.resize(1);
@@ -324,14 +277,9 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     {
         signedCoinbaseTx.vout[i] = coinBaseOuts[i];
     }
-    
     block->vtx[0] = MakeTransactionRef(std::move(signedCoinbaseTx));
-
     block->hashMerkleRoot = SignedBlockMerkleRoot(*block);
-
-    LogPrintf("CreateNewSignedBlock 7\n");
-
-    return std::move(pblocktemplate);
+    return pblocktemplate;
 }
 
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
@@ -383,3 +331,280 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 
     return true;
 }
+
+/**
+ * This function get next pre confs
+ */
+std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman) {
+    std::vector<SignedBlock> preconfs;
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+
+    int lastHeight = active_chain.Height();
+    uint64_t startSignedBlockHeight = 0;
+    uint64_t lastSignedBlockHeight = 0;
+    chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(lastSignedBlockHeight);   
+
+    if(lastSignedBlockHeight==0) {
+        return preconfs;
+    }
+
+    if(lastHeight > 0) {
+        bool findPreconf = false;
+        while (!findPreconf) {
+            CBlock prevblock;
+            if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[lastHeight-1]), Params().GetConsensus())) {
+                findPreconf = true;
+                break;
+            } 
+
+            if(prevblock.preconfBlock.size() > 0) {
+                uint256 lastPreconfBlock = prevblock.preconfBlock[prevblock.preconfBlock.size()-1];
+                chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(lastPreconfBlock, lastSignedBlockHeight); 
+                break;  
+            }
+
+            lastHeight = lastHeight-1;
+            if(lastHeight == 0) {
+                findPreconf = true;
+            }
+        }
+    } else {
+      startSignedBlockHeight = 1;
+    }
+
+   for (uint64_t i = startSignedBlockHeight; i <= lastSignedBlockHeight; i++) {
+        SignedBlock prevBlock;
+        chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(i);
+        preconfs.push_back(prevBlock);
+   }
+
+   return preconfs;
+}
+
+
+/**
+ * This function get next pre confs
+ */
+std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
+    std::vector<uint256> invalidTxs;
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int lastHeight = active_chain.Height();
+    if(lastHeight < 3 ) {
+        return invalidTxs;
+    }
+    int currentHeight = lastHeight - 3;
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return invalidTxs;
+    } 
+    InvalidTx invalidTxObj;
+    chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTxObj);
+    return invalidTxObj.invalidTxs;
+}
+
+
+/**
+ * This function is to get reconsiled block hash
+ */
+uint256 getReconsiledBlock(ChainstateManager& chainman) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int lastHeight = active_chain.Height();
+
+    if(lastHeight < 3 ) {
+        return uint256();
+    }
+
+    int currentHeight = lastHeight - 3;
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return uint256();
+    } 
+
+    return prevblock.GetHash();
+}
+
+
+CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    if(blockHeight<3) {
+        return 0;
+    }
+    int currentHeight = blockHeight - 3;
+
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return 0;
+    } 
+
+    CAmount fee = 0;
+
+    for (size_t i = 0; i < prevblock.preconfBlock.size(); i++)
+    {
+        uint64_t signedBlockIndex = 0;
+        chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(prevblock.preconfBlock[i],signedBlockIndex);
+        SignedBlock block;
+        chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(signedBlockIndex,block);
+        for (size_t i = 0; i < block.vtx.size(); i++) {
+            if(i==0) {
+                continue;
+            }
+            const CTransactionRef& tx = block.vtx[i];
+            fee = fee + (block.currentFee * ::GetSerializeSize(tx, SERIALIZE_TRANSACTION_NO_WITNESS));
+        }
+    }
+    
+    return fee;
+}
+
+CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    if(blockHeight<3) {
+        return 0;
+    }
+
+    int currentHeight = blockHeight - 3;
+
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return 0;
+    } 
+
+
+    CBlockUndo blockUndo;
+    if(!UndoReadFromDisk(blockUndo, CHECK_NONFATAL(active_chain[currentHeight]))) {
+       return 0;
+    }
+
+    InvalidTx invalidTx;
+    chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTx); 
+    CAmount totalFee = 0; 
+
+    LogPrintf("testing 5 4\n");
+    for (size_t i = 0; i < prevblock.vtx.size(); ++i) {
+        const CTransactionRef& tx = prevblock.vtx.at(i);
+        CAmount amt_total_in = 0;
+        CAmount amt_total_out = 0;
+        if(i > 0) {
+            const CTxUndo* txundo = &blockUndo.vtxundo.at(i - 1);
+            const bool have_undo = txundo != nullptr;
+            if(invalidTx.invalidTxs.size()>0) {
+                if(std::find(invalidTx.invalidTxs.begin(), invalidTx.invalidTxs.end(), tx->GetHash()) != invalidTx.invalidTxs.end()) {
+                    continue;
+                }
+            }
+            LogPrintf("testing 5 4 1\n");
+
+
+            for (unsigned int ix = 0; ix < tx->vin.size(); ix++) {
+                if (have_undo) {
+                    const Coin& prev_coin = txundo->vprevout[ix];
+                    LogPrintf("testing 5 4 1 1\n");
+                    const CTxOut& prev_txout = prev_coin.out;
+                    LogPrintf("testing 5 4 1 2\n");
+                    if(!(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && prev_coin.IsBitAssetController())) {
+                        amt_total_in += prev_txout.nValue;
+                    } 
+                }
+                LogPrintf("testing 5 4 1 3\n");
+            }
+            LogPrintf("testing 5 4 2\n");
+        }
+
+        for (unsigned int ix = 0; ix < tx->vout.size(); ix++) {
+            const CTxOut& txout = tx->vout[ix];
+            if(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+                if(ix > 1) {
+                    amt_total_out += txout.nValue;
+                }
+            } else if(tx->nVersion == TRANSACTION_PRECONF_VERSION) {
+                if(ix > 0) {
+                    amt_total_out += txout.nValue;
+                }
+            } else {
+                amt_total_out += txout.nValue;
+            }
+        }
+        LogPrintf("testing 5 4 3\n");
+        totalFee = totalFee + (amt_total_in - amt_total_out);
+    }
+
+    LogPrintf("testing 5 5\n");
+    if(!MoneyRange(totalFee)) {
+        return 0;
+    }
+
+    return totalFee;
+
+} 
+
+
+CScript getMinerScript(ChainstateManager& chainman, int blockHeight) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int currentHeight = blockHeight - 3;
+    CScript scriptPubKey;
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return scriptPubKey;
+    } 
+    return prevblock.vtx[0]->vout[0].scriptPubKey;
+}
+
+CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int currentHeight = blockHeight - 3;
+    CScript scriptPubKey;
+    CBlock prevblock;
+    if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
+        return scriptPubKey;
+    } 
+    std::vector<unsigned char> wData(ParseHex(prevblock.currentKeys));
+    const std::string prevWitnessHexStr(wData.begin(), wData.end());
+    UniValue witnessVal(UniValue::VOBJ);
+    if (!witnessVal.read(prevWitnessHexStr)) {
+        LogPrintf("invalid witness params \n");
+        return scriptPubKey;
+    }
+    const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
+    return GetScriptForDestination(coinbaseScript);
+}
+
+CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) {
+
+    if(ptx->nVersion != TRANSACTION_PRECONF_VERSION) {
+        return 0;
+    }
+    CAmount refund = 0;
+    CAmount fee = block.currentFee * ::GetSerializeSize(ptx, SERIALIZE_TRANSACTION_NO_WITNESS);
+
+    CAmount nValueIn = 0;
+    for (unsigned int i = 0; i < ptx->vin.size(); ++i) {
+        const COutPoint &prevout = ptx->vin[i].prevout;
+
+        const Coin& coin = inputs.AccessCoin(prevout);
+        if(!coin.IsSpent()) {
+            continue;
+        }
+
+        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
+            continue;
+        }
+        nValueIn += coin.out.nValue;
+    }
+    const CAmount value_out = ptx->GetValueOut();
+    if (nValueIn < value_out) { 
+        return refund;
+    }
+    refund = (nValueIn - value_out) - fee;
+    if(refund < 0) {
+        return 0;
+    }
+    return refund;
+}
+

@@ -67,6 +67,7 @@
 #include <coordinate/coordinate_mempool_entry.h>
 #include <coordinate/coordinate_preconf.h>
 #include <coordinate/signed_block.h>
+#include <coordinate/invalid_tx.h>
 #include <anduro_validator.h>
 
 using kernel::CCoinsStats;
@@ -2429,12 +2430,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size()  - 1);
     std::vector<CoordinateAsset> vAsset;
+    std::vector<uint256> invaidTx;
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
 
         nInputs += tx.vin.size();
-
+        bool isValidTx = true;
         if (!tx.IsCoinBase())
         {
 
@@ -2453,9 +2455,15 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             TxValidationState tx_state;
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
-                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                            tx_state.GetRejectReason(), tx_state.GetDebugMessage());
-                return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
+                if(state.GetRejectReason().compare("bad-txns-coins-not-exist") == 0) {
+                    invaidTx.push_back(tx.GetHash()); 
+                    isValidTx = false;
+                } else {
+                    state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+                                tx_state.GetRejectReason(), tx_state.GetDebugMessage());
+                    return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
+                }
+
             }
 
             nFees += txfee;
@@ -2503,6 +2511,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
             control.Add(vChecks);
         }
+
+         if(!isValidTx) { 
+             continue;
+         }
 
         // New asset created - set asset ID # and update CoordinateAssetDB
         uint32_t nNewAssetID = 0;
@@ -2589,6 +2601,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             blockundo.vtxundo.push_back(CTxUndo());
         }
 
+
+
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
@@ -2602,13 +2616,32 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              nInputs <= 1 ? 0 : Ticks<MillisecondsDouble>(time_3 - time_2) / (nInputs - 1),
              Ticks<SecondsDouble>(time_connect),
              Ticks<MillisecondsDouble>(time_connect) / num_blocks_total);
-
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
+     CAmount blockReward = GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
     if(block.vtx[0]->vout.size()>0) {
         CAmount totalAmount = block.vtx[0]->vout[0].nValue;
         if (totalAmount > blockReward) {
            LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+        }
+        CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainman, pindex->nHeight);
+        CAmount minerFee = getFeeForBlock(m_chainman, pindex->nHeight);
+
+        if(minerFee > 0) {
+            minerFee = minerFee + std::ceil(totalPreconfFee * 0.8);
+            CAmount totalMinerAmount = block.vtx[0]->vout[1].nValue;
+            if (totalMinerAmount > minerFee) {
+                LogPrintf("ERROR: ConnectBlock(): coinbase pays too much(actual=%d vs limit=%d)\n", totalAmount, totalMinerAmount);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+            }
+        }
+
+        if(totalPreconfFee > 0) {
+            CAmount federationAmount = std::ceil(totalPreconfFee * 0.2);
+            CAmount totalFederationAmount = block.vtx[0]->vout[2].nValue;
+            if (totalFederationAmount > federationAmount) {
+                LogPrintf("ERROR: ConnectBlock(): coinbase pays too much for federation (actual=%d vs limit=%d)\n", federationAmount, totalFederationAmount);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+            }
         }
     }
 
@@ -2668,6 +2701,15 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     if (vAsset.size()) {
         if (!passettree->WriteCoordinateAssets(vAsset))
             return state.Error("Failed to write CoordinateAsset index!");
+    }
+
+    if(invaidTx.size() > 0) {
+        std::vector<InvalidTx> invalidTxs;
+        InvalidTx invalidData;
+        invalidData.invalidTxs = invaidTx;
+        invalidData.nHeight = pindex->nHeight;
+        invalidTxs.push_back(invalidData);
+        psignedblocktree->WriteInvalidTx(invalidTxs);
     }
 
     resetDeposit(pindex->nHeight);

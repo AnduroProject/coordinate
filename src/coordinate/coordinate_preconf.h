@@ -58,27 +58,31 @@ public:
 
 
 template<typename Stream, typename CoordinatePreConfSigType>
-inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& assetData, Stream& s) {
-    s >> assetData.txid;
-    s >> assetData.blockHeight;
-    s >> assetData.minedBlockHeight;
-    s >> assetData.reserve;
-    s >> assetData.vsize;
-    s >> assetData.witness;
-    s >> assetData.isBroadcasted;
-    s >> assetData.peerList;
+inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& preconfData, Stream& s) {
+    s >> preconfData.txid;
+    s >> preconfData.blockHeight;
+    s >> preconfData.minedBlockHeight;
+    s >> preconfData.reserve;
+    s >> preconfData.vsize;
+    s >> preconfData.witness;
+    s >> preconfData.isBroadcasted;
+    s >> preconfData.peerList;
+    s >> preconfData.federationKey;
+    s >> preconfData.finalized;
 }
 
 template<typename Stream, typename CoordinatePreConfSigType>
-inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& assetData, Stream& s) {
-    s << assetData.txid;
-    s << assetData.blockHeight;
-    s << assetData.minedBlockHeight;
-    s << assetData.reserve;
-    s << assetData.vsize;
-    s << assetData.witness;
-    s << assetData.isBroadcasted;
-    s << assetData.peerList;
+inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& preconfData, Stream& s) {
+    s << preconfData.txid;
+    s << preconfData.blockHeight;
+    s << preconfData.minedBlockHeight;
+    s << preconfData.reserve;
+    s << preconfData.vsize;
+    s << preconfData.witness;
+    s << preconfData.isBroadcasted;
+    s << preconfData.peerList;
+    s << preconfData.federationKey;
+    s << preconfData.finalized;
 }
 
 struct CoordinatePreConfSig {
@@ -89,6 +93,8 @@ public:
     int32_t reserve; /*!< transaction reserve */
     int32_t vsize; /*!< transaction virtula size */
     std::string witness;
+    std::string federationKey; /*!< federation public key */
+    uint32_t finalized; /*!< 0 - not finalized by federation, 1 - finalized by federation */
     bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
     std::vector<int64_t> peerList;
 
@@ -121,6 +127,7 @@ public:
         witness = "";
         isBroadcasted = false;
         peerList.clear();
+        federationKey = "";
     }
 };
 
@@ -172,13 +179,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
 std::vector<CoordinatePreConfSig> getPreConfSig();
 
 /**
- * This function prepare federation output for preconf
- * @param[in] federationFee federation fee for preconf transaction
- * @param[in] chainman  used to find previous blocks based on active chain state to valid preconf signatures
- */
-CTxOut getFederationOutForFee(ChainstateManager& chainman, CAmount federationFee);
-
-/**
  * This function remove old federation signature for preconf
  */
 void removePreConfWitness();
@@ -194,3 +194,22 @@ CAmount getPreConfMinFee();
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime);
 
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
+
+/**
+ * This function get next pre confs
+ */
+std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman);
+
+std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
+
+uint256 getReconsiledBlock(ChainstateManager& chainman);
+
+CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) ;
+
+CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight);
+
+CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight);
+
+CScript getMinerScript(ChainstateManager& chainman, int blockHeight);
+
+CScript getFederationScript(ChainstateManager& chainman, int blockHeight);

@@ -25,3 +25,10 @@ uint256 prepareMessageHash(std::string message);
 */
 bool validateAnduroSignature(std::string witnessHex, std::string message, std::string prevWitnessHex);
 
+/**
+ * This function used to validate presigned signature
+ * @param[in] witnessHex  block witness which hold signature path and signature
+ * @param[in] message  sha256 presigned block message
+ * @param[in] prevWitnessHex anduro current keys
+*/
+bool validatePreconfSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex);

@@ -66,10 +66,9 @@ public:
 class CBlock : public CBlockHeader
 {
 public:
-
     std::vector<CTransactionRef> vtx;
 
-    std::vector<uint256> preconfTx;
+    std::vector<uint256> preconfBlock;
 
     std::vector<uint256> invalidTx;
 
@@ -93,6 +92,9 @@ public:
     {
         READWRITEAS(CBlockHeader, obj);
         READWRITE(obj.vtx);
+        READWRITE(obj.invalidTx);
+        READWRITE(obj.preconfBlock);
+        READWRITE(obj.reconsiliationBlock);
     }
 
     void SetNull()
@@ -100,7 +102,7 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         invalidTx.clear();
-        preconfTx.clear();
+        preconfBlock.clear();
         reconsiliationBlock.SetNull();
         fChecked = false;
     }
