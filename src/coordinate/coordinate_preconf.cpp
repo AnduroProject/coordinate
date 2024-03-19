@@ -148,13 +148,14 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
+        removePreConfWitness();
     } else {
         if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
     }
 
-    removePreConfWitness();
+
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
@@ -225,6 +226,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     uint64_t nIDLast = 0;
     CoordinatePreConfBlock preconfList = getNextPreConfSigList(chainman);
     if(preconfList.witness.compare("")==0) {
+        removePreConfWitness();
         LogPrintf("Signed block witness not exist \n");
         return nullptr;
     }
@@ -314,6 +316,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock minedblock;
     if (!ReadBlockFromDisk(minedblock, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+        removePreConfWitness();
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
         return false;
     }

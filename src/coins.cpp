@@ -65,8 +65,10 @@ bool CCoinsViewCache::GetCoin(const COutPoint &outpoint, Coin &coin) const {
 }
 
 void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possible_overwrite) {
+    LogPrintf("Start updating coins 722\n");
     assert(!coin.IsSpent());
     if (coin.out.scriptPubKey.IsUnspendable()) return;
+    LogPrintf("Start updating coins 723\n");
     CCoinsMap::iterator it;
     bool inserted;
     std::tie(it, inserted) = cacheCoins.emplace(std::piecewise_construct, std::forward_as_tuple(outpoint), std::tuple<>());
@@ -93,9 +95,11 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
         // DIRTY, then it can be marked FRESH.
         fresh = !(it->second.flags & CCoinsCacheEntry::DIRTY);
     }
+    LogPrintf("Start updating coins 724\n");
     it->second.coin = std::move(coin);
     it->second.flags |= CCoinsCacheEntry::DIRTY | (fresh ? CCoinsCacheEntry::FRESH : 0);
     cachedCoinsUsage += it->second.coin.DynamicMemoryUsage();
+    LogPrintf("Start updating coins 725\n");
     TRACE5(utxocache, add,
            outpoint.hash.data(),
            (uint32_t)outpoint.n,
@@ -115,8 +119,10 @@ void CCoinsViewCache::EmplaceCoinInternalDANGER(COutPoint&& outpoint, Coin&& coi
 void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN, uint32_t nNewAssetID, bool check_for_overwrite) {
     bool fCoinbase = tx.IsCoinBase();
     const uint256& txid = tx.GetHash();
-
+    LogPrintf("Start updating coins 5\n");
     if (amountAssetIn > 0) {
+            
+        LogPrintf("Start updating coins 61\n");
         // One of the input coins is a BitAsset, coins adding up to the asset
         // input amount will be marked as BitAssets
 
@@ -131,9 +137,11 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
             if (fAsset)
                 amountAssetOut += tx.vout[i].nValue;
         }
+        LogPrintf("Start updating coins 62\n");
     }
     else
     {
+        LogPrintf("Start updating coins 71\n");
         // The first two outputs of a BitAsset creation transaction are
         // 0: controller output
         // 1: genesis output
@@ -146,14 +154,17 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
             bool fControl = fNewAsset && i == 0;
             uint32_t nID = nNewAssetID ? nNewAssetID : nAssetID;
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
+            LogPrintf("Start updating coins 721 %i \n",tx.vout[i].nValue);
             cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, fAsset ? nID : 0), overwrite);
         }
+        LogPrintf("Start updating coins 72\n");
     }
 }
 
 bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;
+    LogPrintf("Start updating coins 21\n");
     fBitAsset = it->second.coin.fBitAsset;
     fBitAssetControl = it->second.coin.fBitAssetControl;
     nAssetID = it->second.coin.nAssetID;
@@ -173,6 +184,7 @@ bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool
         it->second.flags |= CCoinsCacheEntry::DIRTY;
         it->second.coin.Clear();
     }
+    LogPrintf("Start updating coins 2\n");
     return true;
 }
 
