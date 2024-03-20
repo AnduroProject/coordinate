@@ -674,6 +674,12 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     int coordinateOutputs = 0; 
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        if (tx.vout.size() < 2) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
+        }
+        if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction payload missing");
+        }
         coordinateOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
