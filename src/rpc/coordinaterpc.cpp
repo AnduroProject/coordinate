@@ -297,6 +297,65 @@ static std::vector<RPCArg> CreateTxDoc()
     };
 }
 
+
+static RPCHelpMan validateFederationSignature() {
+        return RPCHelpMan{
+        "validatefederationsignature",
+        "verify federation signature through rpc",
+        {
+            {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "message to verify"},
+            {"signature", RPCArg::Type::STR, RPCArg::Optional::NO, "message signature"},
+            {"redeempath", RPCArg::Type::STR, RPCArg::Optional::NO, "redeem path"}
+        },
+        RPCResult{
+            RPCResult::Type::BOOL, "", "If the signature is verified or not."
+        },
+        RPCExamples{
+           HelpExampleCli("validatefederationsignature", "\"message\" \"signature\" \"redeempath\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+
+            uint256 message = prepareMessageHash(request.params[0].get_str());
+            XOnlyPubKey xPubkey(CPubKey(ParseHex(request.params[2].get_str())));
+            if(!xPubkey.VerifySchnorr(message,ParseHex(request.params[1].get_str()))) {
+               LogPrintf("failed verfication \n");
+               return false;
+            } else {
+                LogPrintf("success verfication\n ");
+                return true;
+            }
+            return false;
+        }
+    };
+
+}
+
+
+static RPCHelpMan createFederationDigest() {
+        return RPCHelpMan{
+        "createfederationdigest",
+        "create federation digest through rpc",
+        {
+            {"message", RPCArg::Type::STR, RPCArg::Optional::NO, "message digest"},
+        },
+        RPCResult{
+            RPCResult::Type::STR, "", "It return digest key"
+        },
+        RPCExamples{
+           HelpExampleCli("createfederationdigest", "\"message\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+
+            uint256 message = prepareMessageHash(request.params[0].get_str());
+            return HexStr(message);
+        }
+    };
+
+}
+
+
 void RegisterCoordinateRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -306,7 +365,9 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
         {"coordinate", &anduroDepositAddress},
         {"coordinate", &anduroWithdrawAddress},
         {"coordinate", &listAllAssets},
-        {"coordinate", &listMempoolAssets}
+        {"coordinate", &listMempoolAssets},
+        {"coordinate", &validateFederationSignature},
+        {"coordinate", &createFederationDigest}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
