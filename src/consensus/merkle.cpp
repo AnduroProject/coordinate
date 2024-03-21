@@ -75,35 +75,24 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     // preconf merkle root preparation
     preconfBlockLeaves.resize(block.preconfBlock.size());
     for (size_t s = 0; s < block.preconfBlock.size(); s++) {
-         std::cout << "preconf merkle root preparation+++++++++++++++++++++ " <<  block.preconfBlock[s].GetHex() << "\n";
         preconfBlockLeaves[s] = block.preconfBlock[s];
     }
     leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves), mutated);
 
-    std::cout << "preconf merkle root +++++++++++++++++++++ " <<   leaves[0].GetHex() << "\n";
-
     // normal transaciton merkle root preparation
     txLeaves.resize(block.vtx.size());
     for (size_t s = 0; s < block.vtx.size(); s++) {
-         std::cout << "normal transaciton merkle root preparation+++++++++++++++++++++ " <<  block.vtx[s]->GetHash().GetHex() << "\n";
         txLeaves[s] = block.vtx[s]->GetHash();
     }
     leaves[1] = ComputeMerkleRoot(std::move(txLeaves), mutated);
-
-    std::cout << "normal transaciton merkle root +++++++++++++++++++++ " <<   leaves[1].GetHex() << "\n";
 
     // invalid transaciton merkle root preparation
     invalidTxeaves.resize(block.invalidTx.size() + 1);
     invalidTxeaves[0] = block.reconsiliationBlock;
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
-        std::cout << "invalid transaciton merkle root preparation+++++++++++++++++++++ " <<  block.invalidTx[s].GetHex() << "\n";;
         invalidTxeaves[s+1] = block.invalidTx[s];
     }
     leaves[2] = ComputeMerkleRoot(std::move(invalidTxeaves), mutated);
-
-    std::cout << "invalid transaciton merkle root +++++++++++++++++++++ " <<   leaves[2].GetHex() << "\n";
-
-    std::cout << "end +++++++++++++++++++++ \n";
     return ComputeMerkleRoot(std::move(leaves), mutated);
 }
 

@@ -182,14 +182,17 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CAmount totalPreconfFee = 0;
     CAmount federationFee = 0;
     if(nHeight > 3) {
-    LogPrintf("testing 5\n");
-        CAmount minerFee = getFeeForBlock(m_chainstate.m_chainman, nHeight);
-        LogPrintf("testing 6\n");
-        CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainstate.m_chainman, nHeight);
-        LogPrintf("testing 7\n"); 
+        LogPrintf("testing 5\n");
+        minerFee = getFeeForBlock(m_chainstate.m_chainman, nHeight);
+        LogPrintf("testing 6 %i \n", minerFee);
+        totalPreconfFee = getPreconfFeeForBlock(m_chainstate.m_chainman, nHeight);
+        LogPrintf("testing 7 %i \n", totalPreconfFee); 
         if(totalPreconfFee > 0) {
             federationFee = std::ceil(totalPreconfFee * 0.20);
+            LogPrintf("testing 7 1 %i \n", federationFee); 
             minerFee = minerFee + (totalPreconfFee - federationFee);
+
+            LogPrintf("testing 7 2 %i \n", minerFee); 
         }
     }
 

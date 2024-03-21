@@ -1851,7 +1851,9 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     nAssetIDOut = 0; // Track asset ID
     // mark inputs spent
     if (!tx.IsCoinBase()) {
+        LogPrintf("Start updating coins 1\n");
         txundo.vprevout.reserve(tx.vin.size());
+        LogPrintf("Start updating coins 2\n");
         for (size_t x = 0; x < tx.vin.size(); x++) {
             const CTxIn &txin = tx.vin[x];
             txundo.vprevout.emplace_back();
@@ -1859,7 +1861,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool fBitAssetControl = false;
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
-
+            LogPrintf("Start updating coins 3\n");
             assert(is_spent);
 
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
@@ -1871,6 +1873,8 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
 
             if (fBitAssetControl)
                 nControlNOut = x;
+
+            LogPrintf("Start updating coins 4\n");
         }
     }
 
@@ -2723,6 +2727,18 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     AssertLockHeld(cs_main);
     CCoinsViewCache view(&m_chainman.ActiveChainstate().CoinsTip());
 
+    CChain& active_chain = m_chainman.ActiveChain();
+    int blockindex = block.blockIndex;
+    // get block to find the eligible anduro keys to be signed on presigned block
+    CBlock minedblock;
+    if (!ReadBlockFromDisk(minedblock, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+        removePreConfWitness();
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        return false;
+    }
+
+    view.SetBestBlock(minedblock.GetHash());
+
     CAmount nFees = 0;
     BlockValidationState state;
     CBlockUndo blockundo;
@@ -2730,53 +2746,49 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
 
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
-        if(i == 0) {
-            continue;
-        }
-        
         CTransactionRef ptx = block.vtx[i];
-        // valiate has coins
-        for (size_t o = 0; o < ptx->vout.size(); o++) {
-            if (view.HaveCoin(COutPoint(ptx->GetHash(), o))) {
-                LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
-                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
-            }
-        }
-
         const CTransaction &tx = *ptx;
+        if(i != 0) {
+            // valiate has coins
+            for (size_t o = 0; o < ptx->vout.size(); o++) {
+                if (view.HaveCoin(COutPoint(ptx->GetHash(), o))) {
+                    LogPrintf("ERROR: ConnectBlock(): tried to overwrite transaction\n");
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-BIP30");
+                }
+            }
 
-        if (tx.vout.size() <= 1) {
-            return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction atleast have 2 output");
-        }
+            if (tx.vout.size() <= 1) {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction atleast have 2 output");
+            }
 
-        CAmount txfee = 0;
-        TxValidationState tx_state;
-        if (!Consensus::CheckTxInputs(tx, tx_state, view, block.blockIndex, txfee)) {
-            // Any transaction validation failure in ConnectBlock is a block consensus failure
-            state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
-                        tx_state.GetRejectReason(), tx_state.GetDebugMessage());
-            return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
-        }
-
-
-        nFees += txfee;
-        
-        if (!MoneyRange(nFees)) {
-            LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
-            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
-        }
-
-        bool fCacheResults = false; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
-        if (!CheckInputScripts(tx, tx_state, view, 0, true, false, txsdata[i])) {
-            // Any transaction validation failure in ConnectBlock is a block consensus failure
-            state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+            CAmount txfee = 0;
+            TxValidationState tx_state;
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, block.blockIndex, txfee)) {
+                // Any transaction validation failure in ConnectBlock is a block consensus failure
+                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                             tx_state.GetRejectReason(), tx_state.GetDebugMessage());
-            return error("ConnectBlock(): CheckInputScripts on %s failed with %s",
-                tx.GetHash().ToString(), state.ToString());
+                return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
+            }
+
+
+            nFees += txfee;
+            
+            if (!MoneyRange(nFees)) {
+                LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
+                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
+            }
+
+            bool fCacheResults = false; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
+            if (!CheckInputScripts(tx, tx_state, view, 0, true, false, txsdata[i])) {
+                // Any transaction validation failure in ConnectBlock is a block consensus failure
+                state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+                                tx_state.GetRejectReason(), tx_state.GetDebugMessage());
+                return error("ConnectBlock(): CheckInputScripts on %s failed with %s",
+                    tx.GetHash().ToString(), state.ToString());
+            }
+
         }
-
-
-
+        
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
@@ -2786,9 +2798,13 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         int nControlN = -1;
         uint32_t nAssetID = 0;
         LogPrintf("Start updating coins \n");
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), block.blockIndex, amountAssetIn, nControlN, nAssetID, 0);
-        LogPrintf("Start updating coins done \n");
+        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
+    }
 
+    bool flushed = view.Flush();
+    if(!flushed) {
+        LogPrintf("utxo cache issue");
+        return false;
     }
     
     LogPrintf("check signed block 1 \n");
@@ -2811,6 +2827,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     }
 
     GetMainSignals().SignBlockConnected(block);
+
     return true;
 }
 

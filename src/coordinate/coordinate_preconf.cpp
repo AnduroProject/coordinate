@@ -148,13 +148,14 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
+        removePreConfWitness();
     } else {
         if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
     }
 
-    removePreConfWitness();
+
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
@@ -225,6 +226,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     uint64_t nIDLast = 0;
     CoordinatePreConfBlock preconfList = getNextPreConfSigList(chainman);
     if(preconfList.witness.compare("")==0) {
+        removePreConfWitness();
         LogPrintf("Signed block witness not exist \n");
         return nullptr;
     }
@@ -314,6 +316,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock minedblock;
     if (!ReadBlockFromDisk(minedblock, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+        removePreConfWitness();
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
         return false;
     }
@@ -341,9 +344,12 @@ std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman) {
     CChain& active_chain = chainman.ActiveChain();
 
     int lastHeight = active_chain.Height();
+    LogPrintf("getNextPreConfs - lastHeight %i \n",lastHeight);
     uint64_t startSignedBlockHeight = 0;
     uint64_t lastSignedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(lastSignedBlockHeight);   
+
+    LogPrintf("getNextPreConfs - lastSignedBlockHeight %i \n",lastSignedBlockHeight);
 
     if(lastSignedBlockHeight==0) {
         return preconfs;
@@ -353,14 +359,19 @@ std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman) {
         bool findPreconf = false;
         while (!findPreconf) {
             CBlock prevblock;
-            if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[lastHeight-1]), Params().GetConsensus())) {
+            if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[lastHeight]), Params().GetConsensus())) {
                 findPreconf = true;
                 break;
             } 
 
             if(prevblock.preconfBlock.size() > 0) {
                 uint256 lastPreconfBlock = prevblock.preconfBlock[prevblock.preconfBlock.size()-1];
-                chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(lastPreconfBlock, lastSignedBlockHeight); 
+                chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(lastPreconfBlock, startSignedBlockHeight);
+                if(lastSignedBlockHeight ==  startSignedBlockHeight) {
+                    return preconfs;
+                }
+                LogPrintf("getNextPreConfs - last startSignedBlockHeight %i \n",startSignedBlockHeight);
+                startSignedBlockHeight = startSignedBlockHeight + 1;
                 break;  
             }
 
@@ -373,9 +384,12 @@ std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman) {
       startSignedBlockHeight = 1;
     }
 
+    LogPrintf("getNextPreConfs - start preconf block %i \n",startSignedBlockHeight);
+    LogPrintf("getNextPreConfs - last preconf block %i \n",lastSignedBlockHeight);
+
    for (uint64_t i = startSignedBlockHeight; i <= lastSignedBlockHeight; i++) {
         SignedBlock prevBlock;
-        chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(i);
+        chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(i, prevBlock);
         preconfs.push_back(prevBlock);
    }
 
@@ -417,7 +431,7 @@ uint256 getReconsiledBlock(ChainstateManager& chainman) {
         return uint256();
     }
 
-    int currentHeight = lastHeight - 3;
+    int currentHeight = lastHeight - 2;
     CBlock prevblock;
     if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[currentHeight]), Params().GetConsensus())) {
         return uint256();
@@ -484,7 +498,7 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTx); 
     CAmount totalFee = 0; 
 
-    LogPrintf("testing 5 4\n");
+    LogPrintf("testing 5 4 %i \n", currentHeight);
     for (size_t i = 0; i < prevblock.vtx.size(); ++i) {
         const CTransactionRef& tx = prevblock.vtx.at(i);
         CAmount amt_total_in = 0;
@@ -513,27 +527,31 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
                 LogPrintf("testing 5 4 1 3\n");
             }
             LogPrintf("testing 5 4 2\n");
+
+            for (unsigned int ix = 0; ix < tx->vout.size(); ix++) {
+                const CTxOut& txout = tx->vout[ix];
+                if(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+                    if(ix > 1) {
+                        amt_total_out += txout.nValue;
+                    }
+                } else if(tx->nVersion == TRANSACTION_PRECONF_VERSION) {
+                    if(ix > 0) {
+                        amt_total_out += txout.nValue;
+                    }
+                } else {
+                    amt_total_out += txout.nValue;
+                }
+            }
+        
         }
 
-        for (unsigned int ix = 0; ix < tx->vout.size(); ix++) {
-            const CTxOut& txout = tx->vout[ix];
-            if(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
-                if(ix > 1) {
-                    amt_total_out += txout.nValue;
-                }
-            } else if(tx->nVersion == TRANSACTION_PRECONF_VERSION) {
-                if(ix > 0) {
-                    amt_total_out += txout.nValue;
-                }
-            } else {
-                amt_total_out += txout.nValue;
-            }
-        }
-        LogPrintf("testing 5 4 3\n");
+
+        LogPrintf("testing 5 4 3 %i \n", amt_total_in);
+        LogPrintf("testing 5 4 3 %i \n", amt_total_out);
         totalFee = totalFee + (amt_total_in - amt_total_out);
     }
 
-    LogPrintf("testing 5 5\n");
+    LogPrintf("testing 5 5 %i \n", totalFee);
     if(!MoneyRange(totalFee)) {
         return 0;
     }
