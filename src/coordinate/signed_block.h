@@ -16,12 +16,14 @@ class SignedBlock {
         uint256 hashPrevSignedBlock;
         uint256 hashMerkleRoot;
         CAmount currentFee;
+        bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
+        std::vector<int64_t> peerList;
         std::vector<CTransactionRef> vtx;
         SignedBlock() {
          SetNull();
         }
 
-        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx); }
+        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx, obj.peerList, obj.isBroadcasted); }
 
         void SetNull()
         {
@@ -33,6 +35,8 @@ class SignedBlock {
             hashMerkleRoot.SetNull();
             currentFee = 0;
             vtx.empty();
+            peerList.empty();
+            isBroadcasted = false;
         }
 
         uint256 GetHash() const;

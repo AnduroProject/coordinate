@@ -14,6 +14,7 @@ using node::ReadBlockFromDisk;
 using node::UndoReadFromDisk;
 
 std::vector<CoordinatePreConfSig> coordinatePreConfSig;
+std::vector<SignedBlock> finalizedSignedBlocks;
 
 // temporary minfee
 CAmount preconfMinFee = 5;
@@ -155,14 +156,35 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         }
     }
 
-
-
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
     }
 
     return true;
 }
+
+
+bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedBlocks, ChainstateManager& chainman) {
+    
+    for (const SignedBlock& newFinalizedSignedBlock : newFinalizedSignedBlocks) {
+        if (!checkSignedBlock(block, chainman)) {
+            LogPrint(BCLog::NET, "signed block validity failed \n");
+             continue;
+        }
+        uint256 signedHash = newFinalizedSignedBlock.GetHash()
+        auto it = std::find_if(finalizedSignedBlocks.begin(), finalizedSignedBlocks.end(), 
+        [signedHash] (const SignedBlock& d) { 
+            return d.GetHash() == signedHash;
+        });
+        if (it == finalizedSignedBlocks.end()) {
+            LogPrint(BCLog::NET, "signed block already exist \n");
+            continue;
+        }
+        finalizedSignedBlocks.push_back(preconfItem);
+    }
+    return true;
+}
+
 
 void removePreConfWitness() {
     coordinatePreConfSig.clear();
@@ -183,6 +205,21 @@ std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig() {
 }
 
 /**
+ * This is the function which used to get unbroadcasted preconfirmation signed block
+ */
+std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
+    std::vector<SignedBlock> sigData;
+    for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
+        if(!finalizedSignedBlock.isBroadcasted) {
+            sigData.push_back(finalizedSignedBlock);
+        } 
+    }
+
+    return sigData;
+}
+
+
+/**
  * This is the function which used to get all preconfirmation signatures
  */
 std::vector<CoordinatePreConfSig> getPreConfSig() {
@@ -199,6 +236,22 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
                 coordinatePreConfSigItem.isBroadcasted = true;
             } else {
                 coordinatePreConfSigItem.peerList.push_back(peerId);
+            }
+            break;
+        }
+    }
+}
+
+/**
+ * This is the function which used change status for broadcasted signed block
+ */
+void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
+    for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
+        if(finalizedSignedBlock.witness.compare(signedBlockItem.witness)==0) {
+            if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
+                finalizedSignedBlock.isBroadcasted = true;
+            } else {
+                finalizedSignedBlock.peerList.push_back(peerId);
             }
             break;
         }

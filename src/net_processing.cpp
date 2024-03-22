@@ -4782,6 +4782,12 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         includePreConfSigWitness(vData,m_chainman);
     }
 
+    if (msg_type == NetMsgType::PRECONFFINALIZEPUSH) {
+        std::vector<SignedBlock> vData;
+        vRecv >> vData;
+        includePreConfBlockFromNetwork(vData,m_chainman);
+    }
+
     // receive response from other peer for recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
         std::vector<AnduroTxOut> vData;
@@ -5298,6 +5304,15 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PRECONFSIGNATUREPUSH, preconfList));
             for (CoordinatePreConfSig& coordinatePreConfSigItem : preconfList) {
                 updateBroadcastedPreConf(coordinatePreConfSigItem,peer.m_id);
+            }
+        }
+
+        std::vector<SignedBlock> preconfBlock = getUnBroadcastedSignedBlock();
+        if(preconfBlock.size() > 0) {
+            const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
+            m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PRECONFFINALIZEPUSH, preconfBlock));
+            for (SignedBlock& coordinatePreConfBlockItem : preconfBlock) {
+                updateBroadcastedSignedBlock(coordinatePreConfBlockItem,peer.m_id);
             }
         }
     }

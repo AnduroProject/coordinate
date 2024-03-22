@@ -145,6 +145,13 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman);
 bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, ChainstateManager& chainman);
 
 /**
+ * This function include preconf witness from anduro
+ * @param[in] newFinalizedSignedBlocks hold signed block list from network
+ * @param[in] chainman  used to find previous blocks based on active chain state to valid preconf signatures
+ */
+bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedBlocks, ChainstateManager& chainman);
+
+/**
  * This function used to remove preconf signature afer included to block
  */
 void removePreConfSigWitness(ChainstateManager& chainman);
@@ -155,6 +162,11 @@ void removePreConfSigWitness(ChainstateManager& chainman);
 std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig();
 
 /**
+ * This is the function which used to get unbroadcasted preconfirmation signed block
+ */
+std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock();
+
+/**
  * This is the function which used to get all preconfirmation signatures
  */
 std::vector<CoordinatePreConfSig> getPreConfSig();
@@ -163,6 +175,14 @@ std::vector<CoordinatePreConfSig> getPreConfSig();
  * This is the function which used change status for broadcasted preconf
  */
 void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId);
+
+
+/**
+ * This is the function which used change status for broadcasted signed block
+ */
+void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId);
+
+
 
 /**
  * Calculate next block preconf fee based on selected list
