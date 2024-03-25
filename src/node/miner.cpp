@@ -169,11 +169,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     LogPrintf("testing 2\n");
     pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
     LogPrintf("testing 3\n");
-    std::vector<SignedBlock> nextPreconfs = getNextPreConfs(m_chainstate.m_chainman);
+    std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
     LogPrintf("testing 4\n");
     for (size_t i = 0; i < nextPreconfs.size(); i++)
     {
-          pblock->preconfBlock.push_back(nextPreconfs[i].GetHash());
+       pblock->preconfBlock.push_back(nextPreconfs[i]);
     }
     
     // increasing coinbase size for refunds

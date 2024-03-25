@@ -204,6 +204,11 @@ std::vector<CoordinatePreConfSig> getPreConfSig();
 void removePreConfWitness();
 
 /**
+ * This function remove finalized preconf block after included in mined block
+ */
+void removePreConfFinalizedBlock(int blockHeight);
+
+/**
  * This function return preconf minimum fee
  */
 CAmount getPreConfMinFee();
@@ -214,11 +219,6 @@ CAmount getPreConfMinFee();
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime);
 
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
-
-/**
- * This function get next pre confs
- */
-std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman);
 
 std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
 
@@ -233,3 +233,12 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight);
 CScript getMinerScript(ChainstateManager& chainman, int blockHeight);
 
 CScript getFederationScript(ChainstateManager& chainman, int blockHeight);
+
+/**
+ * This is the function which used to get all finalized signed block
+ */
+std::vector<SignedBlock> getFinalizedSignedBlocks();
+
+CCoinsViewCache& getPreconfCoinView(ChainstateManager& chainman);
+
+void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock);

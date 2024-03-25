@@ -16,13 +16,15 @@ using node::UndoReadFromDisk;
 std::vector<CoordinatePreConfSig> coordinatePreConfSig;
 std::vector<SignedBlock> finalizedSignedBlocks;
 
+CCoinsView coins_view;
+CCoinsViewCache preconfView(&coins_view);
 // temporary minfee
 CAmount preconfMinFee = 5;
 
 CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     uint64_t signedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
-   LOCK(cs_main);
+    LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = active_chain.Height();
     CBlock block;
@@ -165,24 +167,29 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
 
 bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedBlocks, ChainstateManager& chainman) {
-    
     for (const SignedBlock& newFinalizedSignedBlock : newFinalizedSignedBlocks) {
-        if (!checkSignedBlock(block, chainman)) {
-            LogPrint(BCLog::NET, "signed block validity failed \n");
-             continue;
-        }
-        uint256 signedHash = newFinalizedSignedBlock.GetHash()
+        uint256 signedHash = newFinalizedSignedBlock.GetHash();
         auto it = std::find_if(finalizedSignedBlocks.begin(), finalizedSignedBlocks.end(), 
         [signedHash] (const SignedBlock& d) { 
             return d.GetHash() == signedHash;
         });
         if (it == finalizedSignedBlocks.end()) {
-            LogPrint(BCLog::NET, "signed block already exist \n");
-            continue;
+            if (!checkSignedBlock(newFinalizedSignedBlock, chainman)) {
+                LogPrint(BCLog::NET, "signed block validity failed from network\n");
+                continue;
+            }
+            if (!chainman.ActiveChainstate().ConnectSignedBlock(newFinalizedSignedBlock)) {
+                LogPrint(BCLog::NET, "signed block connect failed from network\n");
+                continue;
+            }
+            insertNewSignedBlock(newFinalizedSignedBlock);
         }
-        finalizedSignedBlocks.push_back(preconfItem);
     }
     return true;
+}
+
+void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock) {
+    finalizedSignedBlocks.push_back(newFinalizedSignedBlock);
 }
 
 
@@ -190,6 +197,15 @@ void removePreConfWitness() {
     coordinatePreConfSig.clear();
 }
 
+void removePreConfFinalizedBlock(int blockHeight) {
+    std::vector<SignedBlock> newFinalizedSignedBlocks;
+    for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
+        if(finalizedSignedBlock.nHeight > blockHeight) {
+            newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
+        }
+    }
+    finalizedSignedBlocks = newFinalizedSignedBlocks;
+}
 /**
  * This is the function which used to get unbroadcasted preconfirmation signatures
  */
@@ -247,14 +263,12 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
     for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.witness.compare(signedBlockItem.witness)==0) {
-            if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
-                finalizedSignedBlock.isBroadcasted = true;
-            } else {
-                finalizedSignedBlock.peerList.push_back(peerId);
-            }
-            break;
+        if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
+            finalizedSignedBlock.isBroadcasted = true;
+        } else {
+            finalizedSignedBlock.peerList.push_back(peerId);
         }
+        break;
     }
 }
 
@@ -284,11 +298,16 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         return nullptr;
     }
 
-    SignedBlock prevBlock;
+    if(chainman.ActiveChainstate().IsInitialBlockDownload()) {
+        LogPrintf("Coordinate is downloading blocks... \n");
+        return nullptr;
+    }
+
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nIDLast);
     if(nIDLast > 0) {
-        chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(nIDLast,prevBlock);
-        block->hashPrevSignedBlock = prevBlock.GetHash();
+        uint256 lastHash;
+        chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockHash(lastHash);
+        block->hashPrevSignedBlock = lastHash;
     }
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
 
@@ -391,68 +410,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 /**
  * This function get next pre confs
  */
-std::vector<SignedBlock> getNextPreConfs(ChainstateManager& chainman) {
-    std::vector<SignedBlock> preconfs;
-    LOCK(cs_main);
-    CChain& active_chain = chainman.ActiveChain();
-
-    int lastHeight = active_chain.Height();
-    LogPrintf("getNextPreConfs - lastHeight %i \n",lastHeight);
-    uint64_t startSignedBlockHeight = 0;
-    uint64_t lastSignedBlockHeight = 0;
-    chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(lastSignedBlockHeight);   
-
-    LogPrintf("getNextPreConfs - lastSignedBlockHeight %i \n",lastSignedBlockHeight);
-
-    if(lastSignedBlockHeight==0) {
-        return preconfs;
-    }
-
-    if(lastHeight > 0) {
-        bool findPreconf = false;
-        while (!findPreconf) {
-            CBlock prevblock;
-            if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[lastHeight]), Params().GetConsensus())) {
-                findPreconf = true;
-                break;
-            } 
-
-            if(prevblock.preconfBlock.size() > 0) {
-                uint256 lastPreconfBlock = prevblock.preconfBlock[prevblock.preconfBlock.size()-1];
-                chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(lastPreconfBlock, startSignedBlockHeight);
-                if(lastSignedBlockHeight ==  startSignedBlockHeight) {
-                    return preconfs;
-                }
-                LogPrintf("getNextPreConfs - last startSignedBlockHeight %i \n",startSignedBlockHeight);
-                startSignedBlockHeight = startSignedBlockHeight + 1;
-                break;  
-            }
-
-            lastHeight = lastHeight-1;
-            if(lastHeight == 0) {
-                findPreconf = true;
-            }
-        }
-    } else {
-      startSignedBlockHeight = 1;
-    }
-
-    LogPrintf("getNextPreConfs - start preconf block %i \n",startSignedBlockHeight);
-    LogPrintf("getNextPreConfs - last preconf block %i \n",lastSignedBlockHeight);
-
-   for (uint64_t i = startSignedBlockHeight; i <= lastSignedBlockHeight; i++) {
-        SignedBlock prevBlock;
-        chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(i, prevBlock);
-        preconfs.push_back(prevBlock);
-   }
-
-   return preconfs;
-}
-
-
-/**
- * This function get next pre confs
- */
 std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
     std::vector<uint256> invalidTxs;
     LOCK(cs_main);
@@ -493,7 +450,6 @@ uint256 getReconsiledBlock(ChainstateManager& chainman) {
     return prevblock.GetHash();
 }
 
-
 CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
@@ -510,11 +466,8 @@ CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     CAmount fee = 0;
 
     for (size_t i = 0; i < prevblock.preconfBlock.size(); i++)
-    {
-        uint64_t signedBlockIndex = 0;
-        chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(prevblock.preconfBlock[i],signedBlockIndex);
-        SignedBlock block;
-        chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(signedBlockIndex,block);
+    {  
+        SignedBlock block = prevblock.preconfBlock[i];
         for (size_t i = 0; i < block.vtx.size(); i++) {
             if(i==0) {
                 continue;
@@ -679,3 +632,28 @@ CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, con
     return refund;
 }
 
+/**
+ * This is the function which used to get all finalized signed block
+ */
+std::vector<SignedBlock> getFinalizedSignedBlocks() {
+    return finalizedSignedBlocks;
+}
+
+CCoinsViewCache& getPreconfCoinView(ChainstateManager& chainman) {
+    CCoinsViewCache preconfView(&chainman.ActiveChainstate().CoinsTip());
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int blockindex = active_chain.Height();
+    CBlock block;
+    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+    }
+    preconfView.SetBestBlock(block.GetHash());
+    for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
+        if(!chainman.ActiveChainstate().ConnectSignedBlock(finalizedSignedBlock)) {
+            LogPrint(BCLog::NET, "new signed block utxo update failed \n");
+        }
+    }
+
+    return preconfView;
+}

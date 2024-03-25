@@ -2716,6 +2716,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         psignedblocktree->WriteInvalidTx(invalidTxs);
     }
 
+    if(block.preconfBlock.size() > 0) {
+        std::vector<uint256> signedBlockHashes;
+        for (const SignedBlock& finalizedSignedBlock : block.preconfBlock) {
+            signedBlockHashes.push_back(finalizedSignedBlock.GetHash());
+        }
+        psignedblocktree->WriteSignedBlockHash(signedBlockHashes,block.GetHash());
+    }
+
     resetDeposit(pindex->nHeight);
 
     return true;
@@ -2725,19 +2733,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     LogPrintf("start adding new signed block............. \n");
     AssertLockHeld(cs_main);
-    CCoinsViewCache view(&m_chainman.ActiveChainstate().CoinsTip());
-
-    CChain& active_chain = m_chainman.ActiveChain();
-    int blockindex = block.blockIndex;
-    // get block to find the eligible anduro keys to be signed on presigned block
-    CBlock minedblock;
-    if (!ReadBlockFromDisk(minedblock, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-        removePreConfWitness();
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
-        return false;
-    }
-
-    view.SetBestBlock(minedblock.GetHash());
+    CCoinsViewCache& view = getPreconfCoinView(m_chainman);
 
     CAmount nFees = 0;
     BlockValidationState state;
@@ -2800,22 +2796,10 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         LogPrintf("Start updating coins \n");
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
     }
-
-    bool flushed = view.Flush();
-    if(!flushed) {
-        LogPrintf("utxo cache issue");
-        return false;
-    }
     
     LogPrintf("check signed block 1 \n");
-    std::vector<SignedBlock> signedBlocks;
-    signedBlocks.push_back(block);
-    if (!psignedblocktree->WriteSignedBlocks(signedBlocks)) {
-        LogPrintf("Transaction not exist in preconf mempool \n");
-        return false;
-    }
-    LogPrintf("check signed block 2 \n");
     psignedblocktree->WriteLastSignedBlockID(block.nHeight);
+    psignedblocktree->WriteLastSignedBlockHash(block.GetHash());
     LogPrintf("check signed block 3 \n");
     removePreConfWitness();
     LogPrintf("check signed block 4 \n");
@@ -3263,7 +3247,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
              Ticks<SecondsDouble>(time_read_from_disk_total),
              Ticks<MillisecondsDouble>(time_read_from_disk_total) / num_blocks_total);
     {
-        CCoinsViewCache view(&CoinsTip());
+        CCoinsViewCache& view = getPreconfCoinView(m_chainman);
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view);
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {
@@ -3280,6 +3264,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
                  Ticks<MillisecondsDouble>(time_connect_total) / num_blocks_total);
         bool flushed = view.Flush();
         assert(flushed);
+        
     }
     const auto time_4{SteadyClock::now()};
     time_flush += time_4 - time_3;
@@ -3306,7 +3291,6 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     // Update m_chain & related variables.
     m_chain.SetTip(*pindexNew);
     UpdateTip(pindexNew);
-
     const auto time_6{SteadyClock::now()};
     time_post_connect += time_6 - time_5;
     time_total += time_6 - time_1;

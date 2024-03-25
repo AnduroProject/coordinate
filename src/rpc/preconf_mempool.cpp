@@ -21,12 +21,12 @@
 #include <util/moneystr.h>
 #include <util/time.h>
 #include <utility>
+#include <net.h>
 
 using node::BlockManager;
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
 using node::NodeContext;
 using node::ReadBlockFromDisk;
-
 
 static RPCHelpMan sendpreconftransaction()
 {
@@ -114,7 +114,20 @@ static RPCHelpMan sendpreconflist()
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+            if (!chainman.GetParams().IsTestChain()) {
+                const CConnman& connman = EnsureConnman(node);
+                if (connman.GetNodeCount(ConnectionDirection::Both) == 0) {
+                    throw JSONRPCError (RPC_CLIENT_NOT_CONNECTED,
+                                    "Coordinate is not connected!");
+                }
+                Chainstate& active_chainstate = chainman.ActiveChainstate();
+                if (active_chainstate.IsInitialBlockDownload()) {
+                    throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+                                    "Coordinate is downloading blocks...");
+                }
+            }
 
             uint32_t finalized = 0;
             if(!request.params[2].isNull()) {
@@ -231,90 +244,12 @@ static RPCHelpMan getpreconflist()
     };
 }
 
-
-static RPCHelpMan getsignedblock()
-{
-    return RPCHelpMan{
-        "getsignedblock",
-        "get signed block detail",
-        {
-            {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The block hash"},
-            {"verbosity|verbose", RPCArg::Type::NUM, RPCArg::Default{0}, "0 for hex-encoded data, 1 for a JSON object, 2 for JSON object with transaction data",
-             RPCArgOptions{.skip_type_check = true}},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ,
-            "",
-            "",
-            {{
-                {RPCResult::Type::NUM, "fee", "Signed block fee"},
-                {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
-                {RPCResult::Type::NUM, "height", "Signed block height"},
-                {RPCResult::Type::NUM, "time", "Signed block time"},
-                {RPCResult::Type::NUM, "time", "Signed block time"},
-                {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
-                {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
-                {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
-                {RPCResult::Type::ARR, "tx", "The transaction ids", {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
-            }},
-        },
-        RPCExamples{
-            HelpExampleCli("getsignedblock", "00000000c937983704a73af28acdec37b049d214adbda81d7e2a3dd146f6ed09")},
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            uint256 txhash = ParseHashV(request.params[0], "blockhash");
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            uint64_t nHeight = 0;
-            int verbosity = 1;
-            if (!request.params[1].isNull()) {
-                if (request.params[1].isNum()) {
-                    verbosity = request.params[1].getInt<int>();
-                } else if (request.params[1].isStr()) {
-                    verbosity = std::stoi(request.params[1].get_str());
-                }
-            }
-            SignedBlock block;
-            chainman.ActiveChainstate().psignedblocktree->getSignedBlockHeightByHash(txhash, block.nHeight);
-            chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(block.nHeight, block);
-            UniValue result(UniValue::VOBJ);
-           
-            result.pushKV("fee", block.currentFee);
-            result.pushKV("blockindex", (uint64_t)block.blockIndex);
-            result.pushKV("height", (uint64_t)block.nHeight);
-            result.pushKV("time", block.nTime);
-            result.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
-            result.pushKV("merkleroot", block.hashMerkleRoot.ToString());
-            result.pushKV("hash", block.GetHash().ToString());
-            UniValue txs(UniValue::VARR);
-
-            if (verbosity == 1) {
-                for (const CTransactionRef& tx : block.vtx) {
-                    txs.push_back(tx->GetHash().ToString());
-                }
-            }
-
-            if (verbosity == 2) {
-                LOCK(cs_main);
-                for (size_t i = 0; i < block.vtx.size(); ++i) {
-                    const CTransactionRef& tx = block.vtx.at(i);
-                    UniValue objTx(UniValue::VOBJ);
-                    TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, verbosity);
-                    txs.push_back(objTx);
-                }
-            }
-            result.pushKV("tx", txs);
-            return result;
-        }};
-}
-
-static RPCHelpMan getsignedblocklist() {
+static RPCHelpMan getfinalizedsignedblocks() {
         return RPCHelpMan{
-        "getsignedblocklist" ,
-        "get signed block detail",
+        "getfinalizedsignedblocks" ,
+        "get finalized signed blocks",
         {
-            {"startingHeight", RPCArg::Type::STR, RPCArg::Optional::NO, "The starting height index"},
-            {"range", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "The range of heights to retrieve signed block details"},
         },
-
         RPCResult{
             RPCResult::Type::ARR, "", "",
             {
@@ -335,34 +270,14 @@ static RPCHelpMan getsignedblocklist() {
             },
         },
         RPCExamples{
-            HelpExampleCli("getsignedblocklist", "146 20"),
+            HelpExampleCli("getfinalizedsignedblocks", ""),
 
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            uint64_t startingHeight;
-            uint64_t range;
-            uint64_t nHeight = 0;
-            chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nHeight);
-            if(request.params[1].isNull()){
-                range = 10;
-            }
-            if (!ParseUInt64(request.params[0].get_str(), &startingHeight) || (request.params.size() > 1) && !ParseUInt64(request.params[1].get_str(), &range) || 
-              range == 0) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Height and range must be positive numbers");
-              }
-              if (range > 100) {
-                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Maximum range allowed is 100");
-              }
-             if (startingHeight + range > nHeight) {
-                  throw JSONRPCError(RPC_INVALID_PARAMETER, "Starting height and range exceed the block count.");
-               }
-
             LOCK(cs_main);
             UniValue result(UniValue::VARR);
-            for (uint64_t i = startingHeight + 1; i <= startingHeight + range; ++i) {
-                SignedBlock block;
-                chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(i, block);
+            std::vector<SignedBlock> finalizedBlocks = getFinalizedSignedBlocks();
+            for (const SignedBlock& block : finalizedBlocks) {
                 int blockSize = 0;
                 blockSize += sizeof(block.currentFee);
                 blockSize += sizeof(block.blockIndex);
@@ -420,60 +335,6 @@ static RPCHelpMan getsignedblockcount()
     };
 }
 
-static RPCHelpMan getsignedblockbynumber()
-{
-    return RPCHelpMan{
-        "getsignedblockbynumber",
-        "get signed block details by number",
-        {
-            {"height", RPCArg::Type::STR, RPCArg::Optional::NO, "The starting height index"},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ,
-            "",
-            "",
-            {{
-                {RPCResult::Type::NUM, "fee", "Signed block fee"},
-                {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
-                {RPCResult::Type::NUM, "height", "Signed block height"},
-                {RPCResult::Type::NUM, "time", "Signed block time"},
-                {RPCResult::Type::NUM, "time", "Signed block time"},
-                {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
-                {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
-                {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
-                {RPCResult::Type::ARR, "tx", "The transaction ids", {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
-            }},
-        },
-        RPCExamples{
-            HelpExampleCli("getsignedblockbynumber", "1")},
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            uint64_t nHeight;
-            if (!ParseUInt64(request.params[0].get_str(), &nHeight)) {
-                throw JSONRPCError(RPC_INVALID_PARAMETER, "Height and range must be positive numbers");
-            }
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-
-
-            SignedBlock block;
-            chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(nHeight, block);
-            UniValue result(UniValue::VOBJ);
-           
-            result.pushKV("fee", block.currentFee);
-            result.pushKV("blockindex", (uint64_t)block.blockIndex);
-            result.pushKV("height", (uint64_t)block.nHeight);
-            result.pushKV("time", block.nTime);
-            result.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
-            result.pushKV("merkleroot", block.hashMerkleRoot.ToString());
-            result.pushKV("hash", block.GetHash().ToString());
-            UniValue txs(UniValue::VARR);
-            for (const CTransactionRef& tx : block.vtx) {
-                txs.push_back(tx->GetHash().ToString());
-            }
-            result.pushKV("tx", txs);
-            return result;
-        }};
-}
-
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -481,10 +342,8 @@ void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
         {"preconf", &sendpreconflist},
         {"preconf", &getpreconffee},
         {"preconf", &getpreconflist},
-        {"preconf", &getsignedblock},
-        {"preconf", &getsignedblockcount},
-        {"preconf", &getsignedblocklist},
-        {"preconf", &getsignedblockbynumber},
+        {"preconf", &getfinalizedsignedblocks},
+        {"preconf", &getsignedblockcount}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

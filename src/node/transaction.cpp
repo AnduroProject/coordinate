@@ -13,6 +13,7 @@
 #include <validation.h>
 #include <validationinterface.h>
 #include <node/transaction.h>
+#include <coordinate/coordinate_preconf.h>
 
 #include <future>
 
@@ -138,6 +139,15 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
         CTransactionRef ptx = mempool->get(hash);
         if (ptx) return ptx;
     }
+    
+    std::vector<SignedBlock> finalizedBlocks= getFinalizedSignedBlocks();
+    for (SignedBlock finalizedSignedBlock : finalizedBlocks) {
+        for (const auto& tx : finalizedSignedBlock.vtx) {
+            if (tx->GetHash() == hash) {
+                return tx;
+            }
+        }
+    }
 
     if(preconf) {
         return nullptr;
@@ -163,6 +173,14 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
                 if (tx->GetHash() == hash) {
                     hashBlock = block_index->GetBlockHash();
                     return tx;
+                }
+            }
+            for (SignedBlock finalizedSignedBlock : block.preconfBlock) {
+                for (const auto& tx : finalizedSignedBlock.vtx) {
+                    if (tx->GetHash() == hash) {
+                        hashBlock = block_index->GetBlockHash();
+                        return tx;
+                    }
                 }
             }
         }
