@@ -1851,9 +1851,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     nAssetIDOut = 0; // Track asset ID
     // mark inputs spent
     if (!tx.IsCoinBase()) {
-        LogPrintf("Start updating coins 1\n");
         txundo.vprevout.reserve(tx.vin.size());
-        LogPrintf("Start updating coins 2\n");
         for (size_t x = 0; x < tx.vin.size(); x++) {
             const CTxIn &txin = tx.vin[x];
             txundo.vprevout.emplace_back();
@@ -1861,7 +1859,6 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool fBitAssetControl = false;
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
-            LogPrintf("Start updating coins 3\n");
             assert(is_spent);
 
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
@@ -1874,7 +1871,6 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             if (fBitAssetControl)
                 nControlNOut = x;
 
-            LogPrintf("Start updating coins 4\n");
         }
     }
 
@@ -2233,14 +2229,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 {
     AssertLockHeld(cs_main);
     assert(pindex);
-
     uint256 block_hash{block.GetHash()};
     assert(*pindex->phashBlock == block_hash);
     const bool parallel_script_checks{scriptcheckqueue.HasThreads()};
-
     const auto time_start{SteadyClock::now()};
     const CChainParams& params{m_chainman.GetParams()};
-
     // Check it again in case a previous version let a bad block in
     // NOTE: We don't currently (re-)invoke ContextualCheckBlock() or
     // ContextualCheckBlockHeader() here. This means that if we add a new
@@ -2266,10 +2259,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
+
+    
     assert(hashPrevBlock == view.GetBestBlock());
 
     num_blocks_total++;
-
     // Special case for the genesis block, skipping connection of its transactions
     // (its coinbase is unspendable)
     if (block_hash == params.GetConsensus().hashGenesisBlock) {
@@ -2277,7 +2271,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             view.SetBestBlock(pindex->GetBlockHash());
         return true;
     }
-
     bool fScriptChecks = true;
     if (!m_chainman.AssumedValidBlock().IsNull()) {
         // We've been configured with the hash of a block which has been externally verified to have a valid history.
@@ -2435,6 +2428,20 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     blockundo.vtxundo.reserve(block.vtx.size()  - 1);
     std::vector<CoordinateAsset> vAsset;
     std::vector<uint256> invaidTx;
+
+    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
+        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+            const CTransaction &tx = *ptx;
+            CTxUndo undoDummy;
+            CAmount amountAssetIn = CAmount(0);
+            int nControlN = -1;
+            uint32_t nAssetID = 0;
+            UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+        }
+    }
+        
+
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
         const CTransaction &tx = *(block.vtx[i]);
@@ -2725,6 +2732,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
     resetDeposit(pindex->nHeight);
+    removePreConfFinalizedBlock(pindex->nHeight);
 
     return true;
 }
@@ -2733,7 +2741,19 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     LogPrintf("start adding new signed block............. \n");
     AssertLockHeld(cs_main);
-    CCoinsViewCache& view = getPreconfCoinView(m_chainman);
+    CCoinsViewCache view(&CoinsTip());
+
+    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
+        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+            const CTransaction &tx = *ptx;
+            CTxUndo undoDummy;
+            CAmount amountAssetIn = CAmount(0);
+            int nControlN = -1;
+            uint32_t nAssetID = 0;
+            UpdateCoins(tx, view, undoDummy, m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
+        }
+    }
 
     CAmount nFees = 0;
     BlockValidationState state;
@@ -2793,21 +2813,15 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-        LogPrintf("Start updating coins \n");
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
     }
     
-    LogPrintf("check signed block 1 \n");
     psignedblocktree->WriteLastSignedBlockID(block.nHeight);
     psignedblocktree->WriteLastSignedBlockHash(block.GetHash());
-    LogPrintf("check signed block 3 \n");
     removePreConfWitness();
-    LogPrintf("check signed block 4 \n");
     if(m_preconf_mempool) {
-        LogPrintf("check signed block 5 \n");
         m_preconf_mempool->removeForPreconfBlock(block.vtx);
         m_preconf_mempool->PreconfExpire(block.nHeight);
-        LogPrintf("check signed block 6 \n");
     }
 
     GetMainSignals().SignBlockConnected(block);
@@ -3247,7 +3261,9 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
              Ticks<SecondsDouble>(time_read_from_disk_total),
              Ticks<MillisecondsDouble>(time_read_from_disk_total) / num_blocks_total);
     {
-        CCoinsViewCache& view = getPreconfCoinView(m_chainman);
+        CCoinsViewCache view(&CoinsTip());
+
+        
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view);
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {

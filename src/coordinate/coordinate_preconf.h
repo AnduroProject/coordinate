@@ -239,6 +239,4 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight);
  */
 std::vector<SignedBlock> getFinalizedSignedBlocks();
 
-CCoinsViewCache& getPreconfCoinView(ChainstateManager& chainman);
-
 void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock);

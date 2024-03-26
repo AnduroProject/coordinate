@@ -638,22 +638,3 @@ CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, con
 std::vector<SignedBlock> getFinalizedSignedBlocks() {
     return finalizedSignedBlocks;
 }
-
-CCoinsViewCache& getPreconfCoinView(ChainstateManager& chainman) {
-    CCoinsViewCache preconfView(&chainman.ActiveChainstate().CoinsTip());
-    LOCK(cs_main);
-    CChain& active_chain = chainman.ActiveChain();
-    int blockindex = active_chain.Height();
-    CBlock block;
-    if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
-    }
-    preconfView.SetBestBlock(block.GetHash());
-    for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if(!chainman.ActiveChainstate().ConnectSignedBlock(finalizedSignedBlock)) {
-            LogPrint(BCLog::NET, "new signed block utxo update failed \n");
-        }
-    }
-
-    return preconfView;
-}
