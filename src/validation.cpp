@@ -68,6 +68,7 @@
 #include <coordinate/coordinate_preconf.h>
 #include <coordinate/signed_block.h>
 #include <coordinate/invalid_tx.h>
+#include <coordinate/signed_txindex.h>
 #include <anduro_validator.h>
 
 using kernel::CCoinsStats;
@@ -2731,6 +2732,17 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         psignedblocktree->WriteSignedBlockHash(signedBlockHashes,block.GetHash());
     }
 
+    for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
+        for (unsigned int i = 0; i < preconfBlockItem.vtx.size(); i++) {
+            CTransactionRef ptx = preconfBlockItem.vtx[i];
+            SignedTxindex signTxIndex;
+            signTxIndex.signedBlockHash = preconfBlockItem.GetHash();
+            signTxIndex.blockIndex = pindex->nHeight;
+            signTxIndex.pos = i;
+            psignedblocktree->WriteTxPosition(signTxIndex,ptx->GetHash());
+        }
+    }
+
     resetDeposit(pindex->nHeight);
     removePreConfFinalizedBlock(pindex->nHeight);
 
@@ -3481,7 +3493,20 @@ bool Chainstate::ActivateBestChainStep(BlockValidationState& state, CBlockIndex*
         // any disconnected transactions back to the mempool.
         MaybeUpdateMempoolForReorg(disconnectpool, true);
     }
-    if (m_mempool) m_mempool->check(this->CoinsTip(), this->m_chain.Height() + 1);
+    CCoinsViewCache view(&this->CoinsTip());
+    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
+        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+            const CTransaction &tx = *ptx;
+            CTxUndo undoDummy;
+            CAmount amountAssetIn = CAmount(0);
+            int nControlN = -1;
+            uint32_t nAssetID = 0;
+            UpdateCoins(tx, view, undoDummy, this->m_chain.Height() + 1, amountAssetIn, nControlN, nAssetID, 0);
+        }
+    }
+
+    if (m_mempool) m_mempool->check(view, this->m_chain.Height() + 1);
 
     CheckForkWarningConditions();
 
@@ -4464,10 +4489,23 @@ MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef&
     }
 
     auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept, is_preconf);
+    CCoinsViewCache view(&active_chainstate.CoinsTip());
+    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
+        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+            const CTransaction &tx = *ptx;
+            CTxUndo undoDummy;
+            CAmount amountAssetIn = CAmount(0);
+            int nControlN = -1;
+            uint32_t nAssetID = 0;
+            UpdateCoins(tx, view, undoDummy, active_chainstate.m_chain.Height() + 1, amountAssetIn, nControlN, nAssetID, 0);
+        }
+    }
+
     if(is_preconf) {
-       active_chainstate.GetPreConfMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
+       active_chainstate.GetPreConfMempool()->check(view, active_chainstate.m_chain.Height() + 1);
     } else {
-       active_chainstate.GetMempool()->check(active_chainstate.CoinsTip(), active_chainstate.m_chain.Height() + 1);
+       active_chainstate.GetMempool()->check(view, active_chainstate.m_chain.Height() + 1);
     }
 
     return result;

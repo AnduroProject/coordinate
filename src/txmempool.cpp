@@ -650,7 +650,6 @@ void CTxMemPool::removeForPreconfBlock(const std::vector<CTransactionRef>& vtx)
         if (it != mapTx.end()) {
             setEntries stage;
             stage.insert(it);
-
             RemoveStaged(stage, true, MemPoolRemovalReason::SIGNEDBLOCK);
         }
         LogPrintf("remove check 2 \n");

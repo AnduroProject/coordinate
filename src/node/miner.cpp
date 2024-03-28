@@ -163,14 +163,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_num_txs = nBlockTx;
     m_last_block_weight = nBlockWeight;
 
-    LogPrintf("testing 1\n");
 
     pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
-    LogPrintf("testing 2\n");
     pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
-    LogPrintf("testing 3\n");
     std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
-    LogPrintf("testing 4\n");
     for (size_t i = 0; i < nextPreconfs.size(); i++)
     {
        pblock->preconfBlock.push_back(nextPreconfs[i]);
@@ -182,17 +178,11 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CAmount totalPreconfFee = 0;
     CAmount federationFee = 0;
     if(nHeight > 3) {
-        LogPrintf("testing 5\n");
         minerFee = getFeeForBlock(m_chainstate.m_chainman, nHeight);
-        LogPrintf("testing 6 %i \n", minerFee);
         totalPreconfFee = getPreconfFeeForBlock(m_chainstate.m_chainman, nHeight);
-        LogPrintf("testing 7 %i \n", totalPreconfFee); 
         if(totalPreconfFee > 0) {
             federationFee = std::ceil(totalPreconfFee * 0.20);
-            LogPrintf("testing 7 1 %i \n", federationFee); 
             minerFee = minerFee + (totalPreconfFee - federationFee);
-
-            LogPrintf("testing 7 2 %i \n", minerFee); 
         }
     }
 
@@ -248,19 +238,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     int oIncr = 1;
     if(minerFee > 0) {
-       LogPrintf("testing 8\n"); 
        oIncr = oIncr + 1;
        coinbaseTx.vout[1].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
        coinbaseTx.vout[1].nValue = minerFee;
-       LogPrintf("testing 9\n"); 
     }
 
     if(federationFee > 0) {
-       LogPrintf("testing 10\n"); 
        oIncr = oIncr + 1;
        coinbaseTx.vout[2].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
        coinbaseTx.vout[2].nValue = federationFee;
-       LogPrintf("testing 11\n"); 
     }
 
     
