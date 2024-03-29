@@ -52,6 +52,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
 
 CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
     CAmount finalFee = 0;
+    uint64_t totalSize = 0;
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {
         if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
@@ -60,11 +61,13 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
           continue;
         }
         CTransactionRef tx = preconf_pool.get(coordinatePreConfSigtem.txid);
+        totalSize = totalSize + tx->GetTotalSize()
         if(finalFee == 0 || finalFee > tx->vout[0].nValue) {
             finalFee = tx->vout[0].nValue;
         }
     } 
-    return finalFee;
+    // check and set preconf fee if mempool size is greator than 1MB
+    return preconf_pool.GetTotalTxSize() > 1048576 ? finalFee : preconfMinFee;
 }
 
 CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee, uint64_t signedBlockHeight) {
