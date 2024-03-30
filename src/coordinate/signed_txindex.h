@@ -6,9 +6,9 @@
 
 class SignedTxindex {
     public:
-        uint32_t pos;
-        int blockIndex;
-        uint256 signedBlockHash;
+        uint32_t pos; /*!< signed tx position where it positioned in signed block */
+        int blockIndex; /*!< mined block index where signed block confirmed */
+        uint256 signedBlockHash; /*!< signed block hash where tx included */
 
         SignedTxindex() {
          SetNull();
