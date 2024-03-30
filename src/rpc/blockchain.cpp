@@ -180,7 +180,6 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
 UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, TxVerbosity verbosity)
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
-    LogPrintf("full block ******************** %s \n",block.ToString());
     result.pushKV("currentkeys", block.currentKeys.empty() ? "" : block.currentKeys);
     result.pushKV("nextindex", block.nextIndex);
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));

@@ -316,7 +316,6 @@ static RPCHelpMan getrawtransaction()
     if (verbosity <= 0) {
         return EncodeHexTx(*tx, RPCSerializationFlags());
     }
-    LogPrintf("preconf testing 0");
 
 
     UniValue result(UniValue::VOBJ);
