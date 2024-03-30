@@ -27,6 +27,12 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = active_chain.Height();
+
+    if(blockindex < 0) {
+        CoordinatePreConfBlock result;
+        return result;
+    }
+
     CBlock block;
     if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
@@ -52,7 +58,6 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
 
 CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
     CAmount finalFee = 0;
-    uint64_t totalSize = 0;
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {
         if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
@@ -61,7 +66,6 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
           continue;
         }
         CTransactionRef tx = preconf_pool.get(coordinatePreConfSigtem.txid);
-        totalSize = totalSize + tx->GetTotalSize()
         if(finalFee == 0 || finalFee > tx->vout[0].nValue) {
             finalFee = tx->vout[0].nValue;
         }
@@ -101,6 +105,12 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
     uint64_t signedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
+    
+    int blockindex = active_chain.Height();
+
+    if(blockindex < 0) {
+       return false;
+    }
 
     // check preconf data is empty
     if(preconf.size()==0) {
@@ -162,7 +172,16 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
-        coordinatePreConfSig.push_back(preconfItem);
+        uint256 txid = preconfItem.txid;
+        std::string federationKey = preconfItem.federationKey;
+        auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
+        [txid, federationKey] (const CoordinatePreConfSig& d) { 
+            return d.txid == txid && d.federationKey.compare(federationKey) == 0;
+        });
+        if (it == coordinatePreConfSig.end()) {
+            coordinatePreConfSig.push_back(preconfItem);
+        }
+      
     }
 
     return true;
@@ -171,10 +190,10 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
 bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedBlocks, ChainstateManager& chainman) {
     for (const SignedBlock& newFinalizedSignedBlock : newFinalizedSignedBlocks) {
-        uint256 signedHash = newFinalizedSignedBlock.GetHash();
+        uint64_t nHeight = newFinalizedSignedBlock.nHeight;
         auto it = std::find_if(finalizedSignedBlocks.begin(), finalizedSignedBlocks.end(), 
-        [signedHash] (const SignedBlock& d) { 
-            return d.GetHash() == signedHash;
+        [nHeight] (const SignedBlock& d) { 
+            return d.nHeight == nHeight;
         });
         if (it == finalizedSignedBlocks.end()) {
             if (!checkSignedBlock(newFinalizedSignedBlock, chainman)) {
