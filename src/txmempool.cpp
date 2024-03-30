@@ -473,7 +473,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     // We increment mempool sequence value no matter removal reason
     // even if not directly reported below.
     uint64_t mempool_sequence = GetAndIncrementSequence();
-    LogPrintf("remove check 1 3 \n");
     if (reason != MemPoolRemovalReason::BLOCK && reason != MemPoolRemovalReason::SIGNEDBLOCK) {
         // Notify clients that a transaction has been removed from the mempool
         // for any reason except being included in a block. Clients interested
