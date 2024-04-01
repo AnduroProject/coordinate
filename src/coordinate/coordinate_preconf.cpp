@@ -106,9 +106,9 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     uint64_t signedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
     
-    int blockindex = active_chain.Height();
+    int currentBlockindex = active_chain.Height();
 
-    if(blockindex < 0) {
+    if(currentBlockindex < 0) {
        return false;
     }
 
