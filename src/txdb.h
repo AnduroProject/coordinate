@@ -19,8 +19,9 @@
 #include <vector>
 #include <coordinate/coordinate_assets.h>
 #include <coordinate/signed_block.h>
-#include <coordinate/signed_txindex.h>
 #include <coordinate/invalid_tx.h>
+#include <coordinate/signed_txindex.h>
+
 
 class CBlockFileInfo;
 class CBlockIndex;
@@ -116,15 +117,15 @@ public:
 class SignedBlocksDB : public CDBWrapper {
 public:
     SignedBlocksDB(size_t nCacheSize, bool fMemory = false, bool fWipe = false);
-    bool WriteSignedBlocks(const std::vector<SignedBlock>& block);
-    std::vector<SignedBlock> GetSignedBlocks();
     bool GetLastSignedBlockID(uint64_t& nHeight);
     bool WriteLastSignedBlockID(const uint64_t nHeight);
-    bool GetSignedBlock(const uint64_t nHeight, SignedBlock& block);
-    bool RemoveSignedBlock(const uint64_t nID);
-    bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
-    bool getSignedBlockHeightByHash(const uint256 txHash, uint64_t& nHeight);
+    bool GetLastSignedBlockHash(uint256& blockHash);
+    bool WriteLastSignedBlockHash(const uint256 blockHash);
+    bool WriteSignedBlockHash(const std::vector<uint256>& signedBlockHashes, uint256 blockHash);
+    bool GetSignedBlockHash(const uint256 signedBlockHashes, uint256& blockHash);
     bool WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs);
     bool GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx);
+    bool WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash);
+    bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
 };
 #endif // BITCOIN_TXDB_H

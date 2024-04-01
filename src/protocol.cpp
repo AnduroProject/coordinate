@@ -29,6 +29,7 @@ const char *MEMPOOL="mempool";
 const char *PREBLOCKSIGNREQUEST="presignreq";
 const char *PREBLOCKSIGNREPONSE="presignres";
 const char *PRECONFSIGNATUREPUSH="preconfpush";
+const char *PRECONFFINALIZEPUSH="signedpush";
 const char *PING="ping";
 const char *PONG="pong";
 const char *NOTFOUND="notfound";
@@ -73,6 +74,7 @@ const static std::string allNetMessageTypes[] = {
     NetMsgType::MEMPOOL,
     NetMsgType::PREBLOCKSIGNREQUEST,
     NetMsgType::PREBLOCKSIGNREPONSE,
+    NetMsgType::PRECONFFINALIZEPUSH,
     NetMsgType::PRECONFSIGNATUREPUSH,
     NetMsgType::PING,
     NetMsgType::PONG,

@@ -277,19 +277,21 @@ static RPCHelpMan getrawtransaction()
 
     uint256 hash_block;
     CTransactionRef mined_tx = GetTransaction(blockindex, node.mempool.get(), hash, chainman.GetConsensus(), hash_block);
-    SignedBlock signed_block;
     if(!mined_tx) {
-        mined_tx = GetTransaction(nullptr, node.preconfmempool.get(), hash, chainman.GetConsensus(), hash_block, true);
-        if(!mined_tx) {
-            SignedTxindex txindex;
-            chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash, txindex);
-            if(txindex.nHeight>0) {
-                chainman.ActiveChainstate().psignedblocktree->GetSignedBlock(txindex.nHeight,signed_block);
-                mined_tx = signed_block.vtx[txindex.pos];
-                is_preconf = true;
-            }
-        } else {
-            is_preconf = true;
+        SignedTxindex signedTxIndex;
+        chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash,signedTxIndex);
+
+        if(!signedTxIndex.signedBlockHash.IsNull()) {
+            CChain& active_chain = chainman.ActiveChain();
+            CBlock block;
+            if (ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[signedTxIndex.blockIndex]), chainman.GetConsensus())) {
+                 for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
+                    if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
+                        mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
+                        break;
+                    }
+                 }
+            } 
         }
     }
     const CTransactionRef tx = mined_tx;
@@ -314,20 +316,7 @@ static RPCHelpMan getrawtransaction()
     if (verbosity <= 0) {
         return EncodeHexTx(*tx, RPCSerializationFlags());
     }
-    LogPrintf("preconf testing 0");
-    if(is_preconf) {
-        UniValue result(UniValue::VOBJ);
-        TxToUniv(*tx, /*block_hash=*/uint256(), result, /*include_hex=*/true, false);
-        if(signed_block.nHeight > 0) {
-            uint64_t currentHeight = 0;
-            chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(currentHeight);
-            result.pushKV("blocktime", signed_block.nTime);
-            result.pushKV("blockhash", signed_block.GetHash().ToString());
-            result.pushKV("confirmations", currentHeight - signed_block.nHeight);
-        }
-        LogPrintf("preconf testing 3");
-        return result;
-    }
+
 
     UniValue result(UniValue::VOBJ);
     if (blockindex) {
@@ -335,7 +324,7 @@ static RPCHelpMan getrawtransaction()
         result.pushKV("in_active_chain", chainman.ActiveChain().Contains(blockindex));
     }
     // If request is verbosity >= 1 but no blockhash was given, then look up the blockindex
-    if (request.params[2].isNull() && !is_preconf) {
+    if (request.params[2].isNull()) {
         LOCK(cs_main);
         blockindex = chainman.m_blockman.LookupBlockIndex(hash_block);
     }

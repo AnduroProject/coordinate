@@ -5,6 +5,7 @@
 #include <consensus/merkle.h>
 #include <hash.h>
 #include <iostream>
+#include <coordinate/signed_block.h>
 
 /*     WARNING! If you're reading this because you're learning about crypto
        and/or designing a new system that will use merkle trees, keep in mind
@@ -75,7 +76,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     // preconf merkle root preparation
     preconfBlockLeaves.resize(block.preconfBlock.size());
     for (size_t s = 0; s < block.preconfBlock.size(); s++) {
-        preconfBlockLeaves[s] = block.preconfBlock[s];
+        preconfBlockLeaves[s] = block.preconfBlock[s].GetHash();
     }
     leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves), mutated);
 
@@ -107,7 +108,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     // preconf merkle root preparation
     preconfBlockLeaves.resize(block.preconfBlock.size());
     for (size_t s = 0; s < block.preconfBlock.size(); s++) {
-        preconfBlockLeaves[s] = block.preconfBlock[s];
+        preconfBlockLeaves[s] = block.preconfBlock[s].GetHash();
     }
     leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves), mutated);
 

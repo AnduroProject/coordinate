@@ -180,7 +180,6 @@ UniValue blockheaderToJSON(const CBlockIndex* tip, const CBlockIndex* blockindex
 UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIndex* tip, const CBlockIndex* blockindex, TxVerbosity verbosity)
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
-    LogPrintf("full block ******************** %s \n",block.ToString());
     result.pushKV("currentkeys", block.currentKeys.empty() ? "" : block.currentKeys);
     result.pushKV("nextindex", block.nextIndex);
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
@@ -189,8 +188,24 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 
     // preconf info
     UniValue preconfblocks(UniValue::VARR);
-    for (const uint256& txId : block.preconfBlock) {
-        preconfblocks.push_back(txId.GetHex());
+    for (const SignedBlock& signedBlock : block.preconfBlock) {
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("fee", signedBlock.currentFee);
+        result.pushKV("blockindex", (uint64_t)signedBlock.blockIndex);
+        result.pushKV("height", (uint64_t)signedBlock.nHeight);
+        result.pushKV("time", signedBlock.nTime);
+        result.pushKV("previousblock", signedBlock.hashPrevSignedBlock.ToString());
+        result.pushKV("merkleroot", signedBlock.hashMerkleRoot.ToString());
+        result.pushKV("hash", signedBlock.GetHash().ToString());
+        UniValue txs(UniValue::VARR);
+        for (size_t i = 0; i < signedBlock.vtx.size(); ++i) {
+            const CTransactionRef& tx = signedBlock.vtx.at(i);
+            UniValue objTx(UniValue::VOBJ);
+            TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
+            txs.push_back(objTx);
+        }
+        result.pushKV("tx", txs);
+        preconfblocks.push_back(result);
     }
     result.pushKV("preconfblocks", preconfblocks);
 

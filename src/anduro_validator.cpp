@@ -25,8 +25,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     }
 
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
-    LogPrintf("thresold %i \n ", thresold);
-   
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue allSignatures(UniValue::VARR);
@@ -57,7 +55,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                LogPrintf("failed verfication \n");
             } else {
-                LogPrintf("success verfication\n ");
                 thresold = thresold - 1;
             }
           
@@ -118,7 +115,6 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                LogPrintf("failed verfication \n");
             } else {
-                LogPrintf("success verfication\n ");
                 thresold = thresold - 1;
             }
           

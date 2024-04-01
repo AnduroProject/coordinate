@@ -38,11 +38,11 @@ static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 static constexpr uint8_t DB_ASSET_DATA{'J'};
 static constexpr uint8_t DB_ASSET_DATA_LAST_ID{'K'};
 
-static constexpr uint8_t DB_SIGNED_BLOCK{'P'};
 static constexpr uint8_t DB_SIGNED_BLOCK_HASH{'V'};
-static constexpr uint8_t DB_SIGNED_BLOCK_TX{'U'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
+static constexpr uint8_t DB_SIGNED_BLOCK_LAST_HASH{'U'};
 static constexpr uint8_t DB_BLOCK_INVALID_TX{'Q'};
+static constexpr uint8_t DB_SIGNED_BLOCK_TX{'P'};
 
 std::optional<bilingual_str> CheckLegacyTxindex(CBlockTreeDB& block_tree_db)
 {
@@ -412,50 +412,9 @@ bool CoordinateAssetDB::GetAsset(const uint32_t nID, CoordinateAsset& asset)
 SignedBlocksDB::SignedBlocksDB(size_t nCacheSize, bool fMemory, bool fWipe)
     : CDBWrapper(gArgs.GetDataDirNet() / "blocks" / "signedblocks",nCacheSize, fMemory, fWipe) { }
 
-bool SignedBlocksDB::WriteSignedBlocks(const std::vector<SignedBlock>& vBlock)
+bool SignedBlocksDB::WriteLastSignedBlockID(const uint64_t nHeight)
 {
-    CDBBatch batch(*this);
-    CDBBatch hashBatch(*this);
-    for (const SignedBlock& block : vBlock) {
-        std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, block.nHeight);
-       std::pair<uint8_t, uint256> hashKey = std::make_pair(DB_SIGNED_BLOCK_HASH, block.GetHash());
-        CDBBatch txBatch(*this);
-        int incr = 0;
-        for (const CTransactionRef& tx : block.vtx) {
-            std::pair<uint8_t, uint256> txindexKey = std::make_pair(DB_SIGNED_BLOCK_TX, tx->GetHash());
-            SignedTxindex txindex;
-            txindex.pos = incr;
-            txindex.nHeight = block.nHeight;
-            txBatch.Write(txindexKey, txindex);
-            incr = incr + 1;
-        }
-        WriteBatch(txBatch, true);
-        batch.Write(key, block);
-        hashBatch.Write(hashKey, block.nHeight);
-    }
-    WriteBatch(hashBatch, true);
-
-    return WriteBatch(batch, true);
-}
-
-std::vector<SignedBlock> SignedBlocksDB::GetSignedBlocks()
-{
-    std::unique_ptr<CDBIterator> pcursor(NewIterator());
-    pcursor->Seek(std::make_pair(DB_SIGNED_BLOCK, uint256()));
-
-    std::vector<SignedBlock> vBlock;
-
-    while (pcursor->Valid()) {
-        std::pair<uint8_t, uint64_t> key;
-        SignedBlock block;
-        if (pcursor->GetKey(key) && key.first == DB_SIGNED_BLOCK) {
-            if (pcursor->GetValue(block))
-                vBlock.push_back(block);
-        }
-
-        pcursor->Next();
-    }
-    return vBlock;
+    return Write(DB_SIGNED_BLOCK_LAST_ID, nHeight);
 }
 
 bool SignedBlocksDB::GetLastSignedBlockID(uint64_t& nHeight)
@@ -466,36 +425,35 @@ bool SignedBlocksDB::GetLastSignedBlockID(uint64_t& nHeight)
     return true;
 }
 
-bool SignedBlocksDB::WriteLastSignedBlockID(const uint64_t nHeight)
+bool SignedBlocksDB::WriteLastSignedBlockHash(const uint256 blockHash)
 {
-    return Write(DB_SIGNED_BLOCK_LAST_ID, nHeight);
+    return Write(DB_SIGNED_BLOCK_LAST_HASH, blockHash);
 }
 
-bool SignedBlocksDB::RemoveSignedBlock(const uint64_t nHeight)
+bool SignedBlocksDB::GetLastSignedBlockHash(uint256& blockHash)
 {
-    std::pair<uint8_t, uint64_t> key = std::make_pair(DB_SIGNED_BLOCK, nHeight);
-    return Erase(key);
+    if (!Read(DB_SIGNED_BLOCK_LAST_HASH, blockHash))
+        return false;
+
+    return true;
 }
 
-bool SignedBlocksDB::GetSignedBlock(const uint64_t nHeight, SignedBlock& block)
+bool SignedBlocksDB::WriteSignedBlockHash(const std::vector<uint256>& signedBlockHashes, uint256 blockHash)
 {
-    return Read(std::make_pair(DB_SIGNED_BLOCK, nHeight), block);
+    CDBBatch batch(*this);
+    for (const uint256& signedBlockHash : signedBlockHashes) {
+        std::pair<uint8_t, uint256> key = std::make_pair(DB_SIGNED_BLOCK_HASH, signedBlockHash);
+        batch.Write(key, blockHash);
+    }
+    return WriteBatch(batch, true);
 }
 
-bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
+bool SignedBlocksDB::GetSignedBlockHash(const uint256 signedBlockHashes, uint256& blockHash)
 {
-    return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
+    return Read(std::make_pair(DB_SIGNED_BLOCK_HASH, signedBlockHashes), blockHash);
 }
 
-
-bool SignedBlocksDB::getSignedBlockHeightByHash(const uint256 txHash, uint64_t& nHeight)
-{
-    return Read(std::make_pair(DB_SIGNED_BLOCK_HASH, txHash), nHeight);
-}
-
-
-bool SignedBlocksDB::WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs)
-{
+bool SignedBlocksDB::WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs){
     CDBBatch batch(*this);
     for (const InvalidTx& invalidTx : invalidTxs) {
         std::pair<uint8_t, uint64_t> key = std::make_pair(DB_BLOCK_INVALID_TX, invalidTx.nHeight);
@@ -507,4 +465,17 @@ bool SignedBlocksDB::WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs)
 bool SignedBlocksDB::GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx)
 {
     return Read(std::make_pair(DB_BLOCK_INVALID_TX, nHeight), invalidTx);
+}
+
+
+bool SignedBlocksDB::WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash){
+    CDBBatch batch(*this);
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_SIGNED_BLOCK_TX, txHash);
+    batch.Write(key, signedTx);
+    return WriteBatch(batch, true);
+}
+
+bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
+{
+    return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
 }

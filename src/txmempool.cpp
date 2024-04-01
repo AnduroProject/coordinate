@@ -473,7 +473,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     // We increment mempool sequence value no matter removal reason
     // even if not directly reported below.
     uint64_t mempool_sequence = GetAndIncrementSequence();
-    LogPrintf("remove check 1 3 \n");
     if (reason != MemPoolRemovalReason::BLOCK && reason != MemPoolRemovalReason::SIGNEDBLOCK) {
         // Notify clients that a transaction has been removed from the mempool
         // for any reason except being included in a block. Clients interested
@@ -482,13 +481,11 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx(), reason, mempool_sequence);
         removeMempoolAsset(it->GetTx());
     }
-    LogPrintf("remove check 1 4 \n");
     const uint256 hash = it->GetTx().GetHash();
     for (const CTxIn& txin : it->GetTx().vin)
         mapNextTx.erase(txin.prevout);
 
     RemoveUnbroadcastTx(hash, true /* add logging because unchecked */ );
-    LogPrintf("remove check 1 5 \n");
     if (vTxHashes.size() > 1) {
         vTxHashes[it->vTxHashesIdx] = std::move(vTxHashes.back());
         vTxHashes[it->vTxHashesIdx].second->vTxHashesIdx = it->vTxHashesIdx;
@@ -498,7 +495,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     } else
         vTxHashes.clear();
 
-    LogPrintf("remove check 1 6 \n");
     totalTxSize -= it->GetTxSize();
     m_total_fee -= it->GetFee();
     cachedInnerUsage -= it->DynamicMemoryUsage();
@@ -506,7 +502,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
     mapTx.erase(it);
     nTransactionsUpdated++;
     if (minerPolicyEstimator) {minerPolicyEstimator->removeTx(hash, false);}
-    LogPrintf("remove check 1 7 \n");
 }
 
 // Calculates descendants of entry that are not already in setDescendants, and adds to
@@ -643,19 +638,15 @@ void CTxMemPool::removeForBlock(const std::vector<CTransactionRef>& vtx, unsigne
 void CTxMemPool::removeForPreconfBlock(const std::vector<CTransactionRef>& vtx)
 {
     AssertLockHeld(cs);
-    LogPrintf("remove check 1 \n");
     for (const auto& tx : vtx)
     {
         txiter it = mapTx.find(tx->GetHash());
         if (it != mapTx.end()) {
             setEntries stage;
             stage.insert(it);
-
             RemoveStaged(stage, true, MemPoolRemovalReason::SIGNEDBLOCK);
         }
-        LogPrintf("remove check 2 \n");
         removeConflicts(*tx);
-        LogPrintf("remove check 3 \n");
         ClearPrioritisation(tx->GetHash());
     }
 
@@ -999,9 +990,7 @@ void CTxMemPool::RemoveUnbroadcastTx(const uint256& txid, const bool unchecked) 
 
 void CTxMemPool::RemoveStaged(setEntries &stage, bool updateDescendants, MemPoolRemovalReason reason) {
     AssertLockHeld(cs);
-    LogPrintf("remove check 1 1 \n");
     UpdateForRemoveFromMempool(stage, updateDescendants);
-    LogPrintf("remove check 1 2 \n");
     for (txiter it : stage) {
         removeUnchecked(it, reason);
     }

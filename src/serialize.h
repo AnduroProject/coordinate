@@ -284,19 +284,19 @@ uint64_t ReadCompactSize(Stream& is, bool range_check = true)
     {
         nSizeRet = ser_readdata16(is);
         if (nSizeRet < 253)
-            throw std::ios_base::failure("non-canonical ReadCompactSize()");
+            throw std::ios_base::failure("non-canonical 1 ReadCompactSize()");
     }
     else if (chSize == 254)
     {
         nSizeRet = ser_readdata32(is);
         if (nSizeRet < 0x10000u)
-            throw std::ios_base::failure("non-canonical ReadCompactSize()");
+            throw std::ios_base::failure("non-canonical  2 ReadCompactSize()");
     }
     else
     {
         nSizeRet = ser_readdata64(is);
         if (nSizeRet < 0x100000000ULL)
-            throw std::ios_base::failure("non-canonical ReadCompactSize()");
+            throw std::ios_base::failure("non-canonical  3 ReadCompactSize()");
     }
     if (range_check && nSizeRet > MAX_SIZE) {
         throw std::ios_base::failure("ReadCompactSize(): size too large");
