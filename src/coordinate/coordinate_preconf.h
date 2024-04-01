@@ -96,7 +96,7 @@ public:
     std::string federationKey; /*!< federation public key */
     uint32_t finalized; /*!< 0 - not finalized by federation, 1 - finalized by federation */
     bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
-    std::vector<int64_t> peerList;
+    std::vector<int64_t> peerList;  /*!< connected peer array that federation signed list sent through network*/
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -153,6 +153,7 @@ bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedB
 
 /**
  * This function used to remove preconf signature afer included to block
+ * @param[in] chainman  used to find previous blocks based on active chain state to valid preconf signatures
  */
 void removePreConfSigWitness(ChainstateManager& chainman);
 
@@ -173,12 +174,16 @@ std::vector<CoordinatePreConfSig> getPreConfSig();
 
 /**
  * This is the function which used change status for broadcasted preconf
+ * @param[in] preconfItem current preconf list send to network
+ * @param[in] peerId  current preconf received peer id
  */
 void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId);
 
 
 /**
  * This is the function which used change status for broadcasted signed block
+ * @param[in] signedBlockItem current signed block list send to network
+ * @param[in] peerId  current preconf received peer id
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId);
 
@@ -186,25 +191,31 @@ void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId);
 
 /**
  * Calculate next block preconf fee based on selected list
+ * @param[in] preconf_pool preconf pool current object from active chain state
+ * @param[in] signedBlockHeight Signed block height to calculate fee
 */
 CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight);
 
 /**
  * Calculate next block refunds
+ * @param[in] preconf_pool preconf pool current object from active chain state
+ * @param[in] finalFee final fee for current signed block
+ * @param[in] signedBlockHeight Signed block height to calculate refunds
 */
 CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee, uint64_t signedBlockHeight);
 /**
- * This is the function which used to get all preconfirmation signatures
+ * This is the function which used to get all preconfirmation signatures list
  */
 std::vector<CoordinatePreConfSig> getPreConfSig();
 
 /**
- * This function remove old federation signature for preconf
+ * This function remove old federation signature for memmory
  */
 void removePreConfWitness();
 
 /**
  * This function remove finalized preconf block after included in mined block
+ * @param[in] blockHeight block height to expire the preconf finalized block list
  */
 void removePreConfFinalizedBlock(int blockHeight);
 
@@ -215,23 +226,66 @@ CAmount getPreConfMinFee();
 
 /**
  * This function get new block template for signed block
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] nTime utc time to include the signed block time 
  */
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime);
 
+/**
+ * This function check whether signed block is valid or not based on federation witness
+ * @param[in] block signed block details
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ */
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
 
+
+/**
+ * This function will get all invalid mined tx details for bloks
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ */
 std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
 
+/**
+ * This function will get reconsile mined block hash
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ */
 uint256 getReconsiledBlock(ChainstateManager& chainman);
 
+/**
+ * This function will calculate refund for particular tx in signed block
+ * @param[in] ptx  used to find previous blocks based on active chain state 
+ * @param[in] block signed block details
+ * @param[in] inputs active coin tip
+ */
 CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) ;
 
+
+/**
+ * This function will get preconf fee for block based on signed block height
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] blockHeight signed block height  
+ */
 CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight);
 
+/**
+ * This function will get mined block fee based on block height
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] blockHeight mined block height  
+ */
 CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight);
 
+/**
+ * This function will get miner details who solved the block using auxpow
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] blockHeight mined block height  
+ */
 CScript getMinerScript(ChainstateManager& chainman, int blockHeight);
 
+/**
+ * This function will get curren federation script key for preconf reward
+ * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] blockHeight mined block height  
+ */
 CScript getFederationScript(ChainstateManager& chainman, int blockHeight);
 
 /**
@@ -239,4 +293,8 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight);
  */
 std::vector<SignedBlock> getFinalizedSignedBlocks();
 
+/**
+ * This function will insert new signed block in memory
+ * @param[in] newFinalizedSignedBlock  signed block detail
+ */
 void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock);

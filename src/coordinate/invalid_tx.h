@@ -6,8 +6,8 @@
 
 class InvalidTx {
     public:
-        std ::vector<uint256> invalidTxs;
-        uint64_t nHeight;
+        std ::vector<uint256> invalidTxs; /*!< all invalid tx hash for mined block */
+        uint64_t nHeight; /*!< mined block height */
         InvalidTx() {
          SetNull();
         }

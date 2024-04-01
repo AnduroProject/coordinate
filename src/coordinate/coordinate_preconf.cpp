@@ -77,13 +77,10 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
 CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee, uint64_t signedBlockHeight) {
     std::vector<uint256> txids;
     CoordinatePreConfBlock result;
-    LogPrintf("prepareRefunds check 1 %i \n", finalFee);
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {    
-        LogPrintf("prepareRefunds check 2 %i\n", signedBlockHeight); 
         if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
         }
-        LogPrintf("prepareRefunds check 3 %s\n", coordinatePreConfSigtem.witness); 
         result.witness = coordinatePreConfSigtem.witness;
         if(coordinatePreConfSigtem.txid.IsNull()) {
           continue;
@@ -91,7 +88,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         txids.push_back(coordinatePreConfSigtem.txid);
 
     }
-    LogPrintf("prepareRefunds check 4 \n"); 
     result.txids = txids;
     result.fee = finalFee;
     return result;
@@ -418,9 +414,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     CTxOut witnessOut = block.vtx[0]->vout[0];
     const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
 
-    LogPrintf("preconf current keys %s \n", minedblock.currentKeys);
-    LogPrintf("preconf message json %s \n", messages.write());
-    LogPrintf("preconf witness %s \n", witnessStr);
     if(!validateAnduroSignature(witnessStr,messages.write(),minedblock.currentKeys)) {
        removePreConfWitness();
        return false;
@@ -526,7 +519,6 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTx); 
     CAmount totalFee = 0; 
 
-    LogPrintf("testing 5 4 %i \n", currentHeight);
     for (size_t i = 0; i < prevblock.vtx.size(); ++i) {
         const CTransactionRef& tx = prevblock.vtx.at(i);
         CAmount amt_total_in = 0;
@@ -539,22 +531,17 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
                     continue;
                 }
             }
-            LogPrintf("testing 5 4 1\n");
 
 
             for (unsigned int ix = 0; ix < tx->vin.size(); ix++) {
                 if (have_undo) {
                     const Coin& prev_coin = txundo->vprevout[ix];
-                    LogPrintf("testing 5 4 1 1\n");
                     const CTxOut& prev_txout = prev_coin.out;
-                    LogPrintf("testing 5 4 1 2\n");
                     if(!(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && prev_coin.IsBitAssetController())) {
                         amt_total_in += prev_txout.nValue;
                     } 
                 }
-                LogPrintf("testing 5 4 1 3\n");
             }
-            LogPrintf("testing 5 4 2\n");
 
             for (unsigned int ix = 0; ix < tx->vout.size(); ix++) {
                 const CTxOut& txout = tx->vout[ix];
@@ -573,13 +560,9 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
         
         }
 
-
-        LogPrintf("testing 5 4 3 %i \n", amt_total_in);
-        LogPrintf("testing 5 4 3 %i \n", amt_total_out);
         totalFee = totalFee + (amt_total_in - amt_total_out);
     }
 
-    LogPrintf("testing 5 5 %i \n", totalFee);
     if(!MoneyRange(totalFee)) {
         return 0;
     }
