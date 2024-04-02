@@ -809,10 +809,15 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     LockPoints lp;
-    m_view.SetBackend(m_viewmempool);
+ 
 
     const CCoinsViewCache& coins_cache = m_active_chainstate.CoinsTip();
+
+
+    m_view.SetBackend(m_viewmempool);
     // do all inputs exist?
+
+    m_active_chainstate.UpdatedCoinsTip(m_view,m_active_chainstate.m_chain.Height());
 
     for (const CTxIn& txin : tx.vin) {
         if (!coins_cache.HaveCoinInCache(txin.prevout)) {
@@ -835,7 +840,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-
+    LogPrintf("check 4 \n");
 
     // This is const, but calls into the back end CoinsViews. The CCoinsViewDB at the bottom of the
     // hierarchy brings the best block into scope. See CCoinsViewDB::GetBestBlock().
@@ -847,7 +852,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     m_view.SetBackend(m_dummy);
 
     assert(m_active_chainstate.m_blockman.LookupBlockIndex(m_view.GetBestBlock()) == m_active_chainstate.m_chain.Tip());
-
+    LogPrintf("check 5 \n");
     // Only accept BIP68 sequence locked transactions that can be mined in the next
     // block; we don't want our mempool filled up with transactions that can't
     // be mined yet.
@@ -861,6 +866,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees)) {
         return false; // state filled in by CheckTxInputs
     }
+
+    LogPrintf("check 6 \n");
 
     if(!AreCoordinateTransactionStandard(tx, m_view)) {
        LogPrintf("Invalid transaction standard \n");
@@ -1108,9 +1115,12 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
     // There is a similar check in CreateNewBlock() to prevent creating
     // invalid blocks (using TestBlockValidity), however allowing such
     // transactions into the mempool can be exploited as a DoS attack.
+    CCoinsViewCache coins_tip(&m_active_chainstate.CoinsTip());
+    m_active_chainstate.UpdatedCoinsTip(coins_tip,m_active_chainstate.m_chain.Height());
+
     unsigned int currentBlockScriptVerifyFlags{GetBlockScriptFlags(*m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman)};
     if (!CheckInputsFromMempoolAndCache(tx, state, m_view, m_pool, currentBlockScriptVerifyFlags,
-                                        ws.m_precomputed_txdata, m_active_chainstate.CoinsTip())) {
+                                        ws.m_precomputed_txdata, coins_tip)) {
         LogPrintf("BUG! PLEASE REPORT THIS! CheckInputScripts failed against latest-block but not STANDARD flags %s, %s\n", hash.ToString(), state.ToString());
         return Assume(false);
     }
@@ -1667,7 +1677,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // disable block subsidy. only fee will be given as reward
-    return 0;
+    // return 0;
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2430,18 +2440,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::vector<CoordinateAsset> vAsset;
     std::vector<uint256> invaidTx;
 
-    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
-        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
-            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
-            const CTransaction &tx = *ptx;
-            CTxUndo undoDummy;
-            CAmount amountAssetIn = CAmount(0);
-            int nControlN = -1;
-            uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
-        }
-    }
-        
+    UpdatedCoinsTip(view,pindex->nHeight);
+
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2749,12 +2749,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     return true;
 }
 
-
-bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
-    LogPrintf("start adding new signed block............. \n");
-    AssertLockHeld(cs_main);
-    CCoinsViewCache view(&CoinsTip());
-
+CCoinsViewCache& Chainstate::UpdatedCoinsTip(CCoinsViewCache& view, int blockHeight) {
     for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
         for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
             CTransactionRef ptx = finalizedSignedBlock.vtx[i];
@@ -2763,9 +2758,19 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
             CAmount amountAssetIn = CAmount(0);
             int nControlN = -1;
             uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
+            UpdateCoins(tx, view, undoDummy, blockHeight, amountAssetIn, nControlN, nAssetID, 0);
         }
     }
+
+    return view;
+}
+
+bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
+    LogPrintf("start adding new signed block............. \n");
+    AssertLockHeld(cs_main);
+    CCoinsViewCache view(&CoinsTip());
+
+    UpdatedCoinsTip(view,m_chainman.ActiveHeight());
 
     CAmount nFees = 0;
     BlockValidationState state;
@@ -3494,17 +3499,9 @@ bool Chainstate::ActivateBestChainStep(BlockValidationState& state, CBlockIndex*
         MaybeUpdateMempoolForReorg(disconnectpool, true);
     }
     CCoinsViewCache view(&this->CoinsTip());
-    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
-        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
-            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
-            const CTransaction &tx = *ptx;
-            CTxUndo undoDummy;
-            CAmount amountAssetIn = CAmount(0);
-            int nControlN = -1;
-            uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, this->m_chain.Height() + 1, amountAssetIn, nControlN, nAssetID, 0);
-        }
-    }
+
+    UpdatedCoinsTip(view,this->m_chain.Height() + 1);
+
 
     if (m_mempool) m_mempool->check(view, this->m_chain.Height() + 1);
 
@@ -4490,17 +4487,7 @@ MempoolAcceptResult ChainstateManager::ProcessTransaction(const CTransactionRef&
 
     auto result = AcceptToMemoryPool(active_chainstate, tx, GetTime(), /*bypass_limits=*/ false, test_accept, is_preconf);
     CCoinsViewCache view(&active_chainstate.CoinsTip());
-    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
-        for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
-            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
-            const CTransaction &tx = *ptx;
-            CTxUndo undoDummy;
-            CAmount amountAssetIn = CAmount(0);
-            int nControlN = -1;
-            uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, active_chainstate.m_chain.Height() + 1, amountAssetIn, nControlN, nAssetID, 0);
-        }
-    }
+    active_chainstate.UpdatedCoinsTip(view,active_chainstate.m_chain.Height() + 1);
 
     if(is_preconf) {
        active_chainstate.GetPreConfMempool()->check(view, active_chainstate.m_chain.Height() + 1);
