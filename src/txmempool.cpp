@@ -750,9 +750,10 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         for (size_t x = 0; x < tx.vin.size(); x++) {
             bool fBitAsset = false;
             bool fBitAssetControl = false;
+            bool isPreconf = is_preconf ? true : false;
             uint32_t nAssetID = 0;
             Coin coin;
-            mempoolDuplicate.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, nAssetID, &coin);
+            mempoolDuplicate.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &coin);
             if (fBitAsset)
                 amountAssetIn += coin.out.nValue;
             if (fBitAssetControl)
@@ -957,7 +958,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
     CTransactionRef ptx = mempool.get(outpoint.hash);
     if (ptx) {
         if (outpoint.n < ptx->vout.size()) {
-            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false, false, false, 0);
+            coin = Coin(ptx->vout[outpoint.n], MEMPOOL_HEIGHT, false, false, false, false, 0);
             return true;
         } else {
             return false;
@@ -969,7 +970,7 @@ bool CCoinsViewMemPool::GetCoin(const COutPoint &outpoint, Coin &coin) const {
 void CCoinsViewMemPool::PackageAddTransaction(const CTransactionRef& tx)
 {
     for (unsigned int n = 0; n < tx->vout.size(); ++n) {
-        m_temp_added.emplace(COutPoint(tx->GetHash(), n), Coin(tx->vout[n], MEMPOOL_HEIGHT, false, false, false, 0));
+        m_temp_added.emplace(COutPoint(tx->GetHash(), n), Coin(tx->vout[n], MEMPOOL_HEIGHT, false, false, false, false, 0));
     }
 }
 

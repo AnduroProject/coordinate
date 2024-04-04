@@ -84,8 +84,9 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 Coin move_to;
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
+                bool isPreconf = false;
                 uint32_t nAssetID = 0;
-                (void)coins_view_cache.SpendCoin(random_out_point, fBitAsset, fBitAssetControl, nAssetID, fuzzed_data_provider.ConsumeBool() ? &move_to : nullptr);
+                (void)coins_view_cache.SpendCoin(random_out_point, fBitAsset, fBitAssetControl, isPreconf, nAssetID, fuzzed_data_provider.ConsumeBool() ? &move_to : nullptr);
             },
             [&] {
                 coins_view_cache.Uncache(random_out_point);
@@ -202,7 +203,7 @@ FUZZ_TARGET_INIT(coins_view, initialize_coins_view)
                 const CTransaction transaction{random_mutable_transaction};
                 bool is_spent = false;
                 for (const CTxOut& tx_out : transaction.vout) {
-                    if (Coin{tx_out, 0, transaction.IsCoinBase(), false, false, 0}.IsSpent()) {
+                    if (Coin{tx_out, 0, transaction.IsCoinBase(), false, false, false, 0}.IsSpent()) {
                         is_spent = true;
                     }
                 }

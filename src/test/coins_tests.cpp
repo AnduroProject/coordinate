@@ -194,8 +194,9 @@ void SimulationTest(CCoinsView* base, bool fake_best_block)
                 coin.Clear();
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
+                bool isPreconf = false;
                 uint32_t nAssetID = 0;
-                BOOST_CHECK(stack.back()->SpendCoin(COutPoint(txid, 0),fBitAsset, fBitAssetControl, nAssetID));
+                BOOST_CHECK(stack.back()->SpendCoin(COutPoint(txid, 0),fBitAsset, fBitAssetControl, isPreconf, nAssetID));
             }
         }
 
@@ -412,7 +413,7 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // Update the expected result to know about the new output coins
             assert(tx.vout.size() == 1);
             const COutPoint outpoint(tx.GetHash(), 0);
-            result[outpoint] = Coin{tx.vout[0], height, CTransaction{tx}.IsCoinBase(), false, false, 0};
+            result[outpoint] = Coin{tx.vout[0], height, CTransaction{tx}.IsCoinBase(), false, false, false, 0};
 
             // Call UpdateCoins on the top cache
             CTxUndo undo;
@@ -448,8 +449,9 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
             // remove outputs
             bool fBitAsset = false;
             bool fBitAssetControl = false;
+            bool isPreconf = false;
             uint32_t nAssetID = 0;
-            BOOST_CHECK(stack.back()->SpendCoin(utxod->first, fBitAsset, fBitAssetControl, nAssetID));
+            BOOST_CHECK(stack.back()->SpendCoin(utxod->first, fBitAsset, fBitAssetControl, isPreconf, nAssetID));
             // restore inputs
             if (!tx.IsCoinBase()) {
                 const COutPoint &out = tx.vin[0].prevout;
@@ -709,9 +711,10 @@ static void CheckSpendCoins(CAmount base_value, CAmount cache_value, CAmount exp
 {
     bool fBitAsset = false;
     bool fBitAssetControl = false;
+    bool isPreconf = false;
     uint32_t nAssetID = 0;
     SingleEntryCacheTest test(base_value, cache_value, cache_flags);
-    test.cache.SpendCoin(OUTPOINT, fBitAsset, fBitAssetControl, nAssetID);
+    test.cache.SpendCoin(OUTPOINT, fBitAsset, fBitAssetControl, isPreconf, nAssetID);
     test.cache.SelfTest();
 
     CAmount result_value;
@@ -768,7 +771,7 @@ static void CheckAddCoinBase(CAmount base_value, CAmount cache_value, CAmount mo
     try {
         CTxOut output;
         output.nValue = modify_value;
-        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinbase, false, false, 0), coinbase);
+        test.cache.AddCoin(OUTPOINT, Coin(std::move(output), 1, coinbase, false, false, false, 0), coinbase);
         test.cache.SelfTest();
         GetCoinsMapEntry(test.cache.map(), result_value, result_flags);
     } catch (std::logic_error&) {
@@ -1016,8 +1019,9 @@ void TestFlushBehavior(
     //
     bool fBitAsset = false;
     bool fBitAssetControl = false;
+    bool isPreconf = false;
     uint32_t nAssetID = 0;
-    BOOST_CHECK(view->SpendCoin(outp, fBitAsset, fBitAssetControl, nAssetID));
+    BOOST_CHECK(view->SpendCoin(outp, fBitAsset, fBitAssetControl, isPreconf, nAssetID));
 
     // The coin should be in the cache, but spent and marked dirty.
     GetCoinsMapEntry(view->map(), value, flags, outp);
@@ -1034,7 +1038,7 @@ void TestFlushBehavior(
 
     // Spent coin should not be spendable.
 
-    BOOST_CHECK(!view->SpendCoin(outp, fBitAsset, fBitAssetControl, nAssetID));
+    BOOST_CHECK(!view->SpendCoin(outp, fBitAsset, fBitAssetControl, isPreconf, nAssetID));
 
     // --- Bonus check: ensure that a coin added to the base view via one cache
     //     can be spent by another cache which has never seen it.
@@ -1053,7 +1057,7 @@ void TestFlushBehavior(
     BOOST_CHECK(!all_caches[1]->HaveCoinInCache(outp));
 
 
-    BOOST_CHECK(all_caches[1]->SpendCoin(outp, fBitAsset ,fBitAssetControl, nAssetID));
+    BOOST_CHECK(all_caches[1]->SpendCoin(outp, fBitAsset ,fBitAssetControl, isPreconf, nAssetID));
     flush_all(/*erase=*/ false);
     BOOST_CHECK(!base.HaveCoin(outp));
     BOOST_CHECK(!all_caches[0]->HaveCoin(outp));
@@ -1082,7 +1086,7 @@ void TestFlushBehavior(
     // Base shouldn't have seen coin.
     BOOST_CHECK(!base.HaveCoin(outp));
 
-    BOOST_CHECK(all_caches[0]->SpendCoin(outp, fBitAsset, fBitAssetControl, nAssetID));
+    BOOST_CHECK(all_caches[0]->SpendCoin(outp, fBitAsset, fBitAssetControl, isPreconf, nAssetID));
     all_caches[0]->Sync();
 
     // Ensure there is no sign of the coin after spend/flush.

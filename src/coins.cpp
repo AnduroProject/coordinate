@@ -127,7 +127,7 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
             bool fAsset = amountAssetIn > amountAssetOut;
             bool fControl = nControlN >= 0 && (int)i == nControlN;
             uint32_t nID = nNewAssetID ? nNewAssetID : nAssetID;
-            cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, fAsset ? nID : 0), overwrite);
+            cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
             if (fAsset)
                 amountAssetOut += tx.vout[i].nValue;
         }
@@ -146,16 +146,17 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
             bool fControl = fNewAsset && i == 0;
             uint32_t nID = nNewAssetID ? nNewAssetID : nAssetID;
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-            cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, fAsset ? nID : 0), overwrite);
+            cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
         }
     }
 }
 
-bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveout) {
+bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, bool& isPreconf, uint32_t& nAssetID, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;
     fBitAsset = it->second.coin.fBitAsset;
     fBitAssetControl = it->second.coin.fBitAssetControl;
+    isPreconf = it->second.coin.isPreconf;
     nAssetID = it->second.coin.nAssetID;
     cachedCoinsUsage -= it->second.coin.DynamicMemoryUsage();
     TRACE5(utxocache, spent,

@@ -1868,8 +1868,9 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             txundo.vprevout.emplace_back();
             bool fBitAsset = false;
             bool fBitAssetControl = false;
+            bool isPreconf = false;
             uint32_t nAssetID = 0;
-            bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, nAssetID, &txundo.vprevout.back());
+            bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &txundo.vprevout.back());
             assert(is_spent);
 
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
@@ -2107,8 +2108,9 @@ DisconnectResult Chainstate::DisconnectBlock(const CBlock& block, const CBlockIn
                 Coin coin;
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
+                bool isPreconf = false;
                 uint32_t nAssetID = 0;
-                bool is_spent = view.SpendCoin(out, fBitAsset, fBitAssetControl, nAssetID, &coin);
+                bool is_spent = view.SpendCoin(out, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &coin);
                 if (!is_spent || tx.vout[o] != coin.out || pindex->nHeight != coin.nHeight || is_coinbase != coin.fCoinBase) {
                     if (!is_bip30_exception) {
                         fClean = false; // transaction output mismatch
@@ -4726,9 +4728,10 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
             for (const CTxIn &txin : tx->vin) {
                 bool fBitAsset = false;
                 bool fBitAssetControl = false;
+                bool isPreconf = false;
                 uint32_t nAssetID = 0;
                 Coin coin;
-                inputs.SpendCoin(txin.prevout,fBitAsset, fBitAssetControl, nAssetID,  &coin);
+                inputs.SpendCoin(txin.prevout,fBitAsset, fBitAssetControl, isPreconf, nAssetID,  &coin);
 
                 if (fBitAsset)
                     amountAssetIn += coin.out.nValue;

@@ -541,6 +541,7 @@ BOOST_AUTO_TEST_CASE(test_big_witness_transaction)
         coin.fCoinBase = false;
         coin.fBitAsset = false;
         coin.fBitAssetControl = false;
+        coin.isPreconf = false;
         coin.nAssetID = 0;
         coin.out.nValue = 1000;
         coin.out.scriptPubKey = scriptPubKey;
