@@ -47,11 +47,14 @@ public:
     //! Is this a BitAsset controller?
     bool fBitAssetControl;
 
+    //! Is this a BitAsset controller?
+    bool isPreconf;
+
     uint32_t nAssetID;
 
     //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, uint32_t nAssetIDIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), nAssetID(nAssetIDIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, uint32_t nAssetIDIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), nAssetID(nAssetIDIn) {}
+    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, uint32_t nAssetIDIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), nAssetID(nAssetIDIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, uint32_t nAssetIDIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), nAssetID(nAssetIDIn) {}
 
     void Clear() {
         out.SetNull();
@@ -59,11 +62,12 @@ public:
         nHeight = 0;
         fBitAsset = false;
         fBitAssetControl = false;
+        isPreconf = false;
         nAssetID = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0), fBitAsset(false), fBitAssetControl(false), nAssetID(0) { }
+    Coin() : fCoinBase(false), nHeight(0), fBitAsset(false), fBitAssetControl(false), isPreconf(false), nAssetID(0) { }
 
     bool IsBitAsset() const {
         return fBitAsset;
@@ -71,6 +75,10 @@ public:
 
     bool IsBitAssetController() const {
         return fBitAssetControl;
+    }
+
+    bool isPreconfCoin() const {
+        return isPreconf;
     }
 
     uint32_t GetAssetID() const {
@@ -89,6 +97,7 @@ public:
         ::Serialize(s, Using<TxOutCompression>(out));
         ::Serialize(s, fBitAsset);
         ::Serialize(s, fBitAssetControl);
+        ::Serialize(s, isPreconf);
         ::Serialize(s, nAssetID);
     }
 
@@ -101,6 +110,7 @@ public:
         ::Unserialize(s, Using<TxOutCompression>(out));
         ::Unserialize(s, fBitAsset);
         ::Unserialize(s, fBitAssetControl);
+        ::Unserialize(s, isPreconf);
         ::Unserialize(s, nAssetID);
     }
 
@@ -310,7 +320,7 @@ public:
      * If no unspent output exists for the passed outpoint, this call
      * has no effect.
      */
-    bool SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveto = nullptr);
+    bool SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, bool& isPreconf, uint32_t& nAssetID, Coin* moveto = nullptr);
 
 
     /**

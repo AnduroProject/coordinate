@@ -66,7 +66,6 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
         uint32_t nAssetID = 0;
         bool fBitAsset = false;
         bool fBitAssetControl = false;
-
         CoordinateMempoolEntry assetMempoolObj;
         bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
         nAssetID = assetMempoolObj.assetID;

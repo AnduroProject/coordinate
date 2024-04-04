@@ -195,7 +195,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     // get next block presigned data
     std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
-
+    LogPrintf("peg queue count %i\n", pending_deposits.size());
     // prevent to get block template if not presigned signature available for next block
     if(pending_deposits.size() == 0) {
         LogPrintf("peg queue unavailable\n");

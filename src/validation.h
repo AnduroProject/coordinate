@@ -32,6 +32,7 @@
 #include <util/hasher.h>
 #include <util/translation.h>
 #include <versionbits.h>
+#include <undo.h>
 
 #include <atomic>
 #include <map>
@@ -572,6 +573,8 @@ public:
         assert(m_coins_views->m_cacheview);
         return *m_coins_views->m_cacheview.get();
     }
+
+    CCoinsViewCache& UpdatedCoinsTip(CCoinsViewCache& view, int blockHeight) EXCLUSIVE_LOCKS_REQUIRED(::cs_main);
 
     //! @returns A reference to the on-disk UTXO set database.
     CCoinsViewDB& CoinsDB() EXCLUSIVE_LOCKS_REQUIRED(::cs_main)
@@ -1139,4 +1142,5 @@ bool IsBIP30Repeat(const CBlockIndex& block_index);
 /** Identifies blocks which coinbase output was subsequently overwritten in the UTXO set (see BIP30) */
 bool IsBIP30Unspendable(const CBlockIndex& block_index);
 
+void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight, CAmount& amountAssetInOut, int& nControlNOut, uint32_t& nAssetIDOut, uint32_t nNewAssetIDIn);
 #endif // BITCOIN_VALIDATION_H
