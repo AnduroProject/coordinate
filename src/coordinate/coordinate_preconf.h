@@ -168,11 +168,6 @@ std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig();
 std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock();
 
 /**
- * This is the function which used to get all preconfirmation signatures
- */
-std::vector<CoordinatePreConfSig> getPreConfSig();
-
-/**
  * This is the function which used change status for broadcasted preconf
  * @param[in] preconfItem current preconf list send to network
  * @param[in] peerId  current preconf received peer id
