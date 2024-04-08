@@ -48,8 +48,8 @@ public:
     void SetNull()
     {
         fee = -1;
-        txids.empty();
-        refunds.empty();
+        txids.clear();
+        refunds.clear();
         witness = "";
     }
 };
@@ -226,8 +226,8 @@ CAmount getPreConfMinFee();
 
 /**
  * This function get new block template for signed block
- * @param[in] chainman  used to find previous blocks based on active chain state 
- * @param[in] nTime utc time to include the signed block time 
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ * @param[in] nTime utc time to include the signed block time
  */
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime);
 
@@ -241,19 +241,19 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
 
 /**
  * This function will get all invalid mined tx details for bloks
- * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] chainman  used to find previous blocks based on active chain state
  */
 std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
 
 /**
  * This function will get reconsile mined block hash
- * @param[in] chainman  used to find previous blocks based on active chain state 
+ * @param[in] chainman  used to find previous blocks based on active chain state
  */
 uint256 getReconsiledBlock(ChainstateManager& chainman);
 
 /**
  * This function will calculate refund for particular tx in signed block
- * @param[in] ptx  used to find previous blocks based on active chain state 
+ * @param[in] ptx  used to find previous blocks based on active chain state
  * @param[in] block signed block details
  * @param[in] inputs active coin tip
  */
@@ -262,29 +262,29 @@ CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, con
 
 /**
  * This function will get preconf fee for block based on signed block height
- * @param[in] chainman  used to find previous blocks based on active chain state 
- * @param[in] blockHeight signed block height  
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ * @param[in] blockHeight signed block height
  */
 CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight);
 
 /**
  * This function will get mined block fee based on block height
- * @param[in] chainman  used to find previous blocks based on active chain state 
- * @param[in] blockHeight mined block height  
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ * @param[in] blockHeight mined block height
  */
 CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight);
 
 /**
  * This function will get miner details who solved the block using auxpow
- * @param[in] chainman  used to find previous blocks based on active chain state 
- * @param[in] blockHeight mined block height  
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ * @param[in] blockHeight mined block height
  */
 CScript getMinerScript(ChainstateManager& chainman, int blockHeight);
 
 /**
  * This function will get curren federation script key for preconf reward
- * @param[in] chainman  used to find previous blocks based on active chain state 
- * @param[in] blockHeight mined block height  
+ * @param[in] chainman  used to find previous blocks based on active chain state
+ * @param[in] blockHeight mined block height
  */
 CScript getFederationScript(ChainstateManager& chainman, int blockHeight);
 

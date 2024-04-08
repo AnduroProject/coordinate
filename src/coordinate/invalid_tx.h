@@ -16,7 +16,7 @@ class InvalidTx {
 
         void SetNull()
         {
-            invalidTxs.empty();
+            invalidTxs.clear();
             nHeight = 0;
         }
 };
