@@ -633,10 +633,9 @@ private:
     {
         AssertLockHeld(::cs_main);
         AssertLockHeld(m_pool.cs);
-       
+
         CAmount mempoolRejectFee;
         if(m_pool.is_preconf) {
-            int pindex = m_active_chainstate.m_chainman.ActiveChain().Height();
             const CAmount& preconfMinFee = getPreConfMinFee();
             mempoolRejectFee = m_pool.GetMinFee().GetPreConfFee(package_size, preconfMinFee);
         } else {
@@ -685,7 +684,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     TxValidationState& state = ws.m_state;
     std::unique_ptr<CTxMemPoolEntry>& entry = ws.m_entry;
 
-    int coordinateOutputs = 0; 
+    int coordinateOutputs = 0;
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         if (tx.vout.size() < 2) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
@@ -776,7 +775,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    
+
 
     // Check for conflicts with in-memory transactions
     for (const CTxIn &txin : tx.vin)
@@ -809,7 +808,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     LockPoints lp;
- 
+
 
     const CCoinsViewCache& coins_cache = m_active_chainstate.CoinsTip();
 
@@ -1250,8 +1249,8 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
             if(ws.m_ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
                 includeMempoolAsset(*ws.m_ptx, m_active_chainstate);
             }
-            
-            
+
+
         } else {
             all_submitted = false;
             ws.m_state.Invalid(TxValidationResult::TX_MEMPOOL_POLICY, "mempool full");
@@ -1288,7 +1287,7 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
         return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                             ws.m_base_fees, effective_feerate, single_wtxid);
     }
-    
+
 
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
@@ -1560,7 +1559,7 @@ MempoolAcceptResult AcceptToMemoryPool(Chainstate& active_chainstate, const CTra
     } else {
        assert(active_chainstate.GetMempool() != nullptr);
     }
-   
+
 
     CTxMemPool& pool{is_preconf ? *active_chainstate.GetPreConfMempool() : *active_chainstate.GetMempool()};
 
@@ -2268,7 +2267,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // verify that the view's current state corresponds to the previous block
     uint256 hashPrevBlock = pindex->pprev == nullptr ? uint256() : pindex->pprev->GetBlockHash();
 
-    
+
     assert(hashPrevBlock == view.GetBestBlock());
 
     num_blocks_total++;
@@ -2465,7 +2464,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 if(state.GetRejectReason().compare("bad-txns-coins-not-exist") == 0) {
-                    invaidTx.push_back(tx.GetHash()); 
+                    invaidTx.push_back(tx.GetHash());
                     isValidTx = false;
                 } else {
                     state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
@@ -2476,7 +2475,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
 
             nFees += txfee;
-            
+
             if (!MoneyRange(nFees)) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
@@ -2521,7 +2520,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             control.Add(vChecks);
         }
 
-         if(!isValidTx) { 
+         if(!isValidTx) {
              continue;
          }
 
@@ -2802,7 +2801,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
 
 
             nFees += txfee;
-            
+
             if (!MoneyRange(nFees)) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
@@ -2818,7 +2817,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
             }
 
         }
-        
+
         CTxUndo undoDummy;
         if (i > 0) {
             blockundo.vtxundo.push_back(CTxUndo());
@@ -2829,7 +2828,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         uint32_t nAssetID = 0;
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
     }
-    
+
     psignedblocktree->WriteLastSignedBlockID(block.nHeight);
     psignedblocktree->WriteLastSignedBlockHash(block.GetHash());
     removePreConfWitness();
@@ -3277,7 +3276,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     {
         CCoinsViewCache view(&CoinsTip());
 
-        
+
         bool rv = ConnectBlock(blockConnecting, state, pindexNew, view);
         GetMainSignals().BlockChecked(blockConnecting, state);
         if (!rv) {
@@ -3294,7 +3293,7 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
                  Ticks<MillisecondsDouble>(time_connect_total) / num_blocks_total);
         bool flushed = view.Flush();
         assert(flushed);
-        
+
     }
     const auto time_4{SteadyClock::now()};
     time_flush += time_4 - time_3;
