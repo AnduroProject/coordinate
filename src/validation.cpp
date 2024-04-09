@@ -2531,7 +2531,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - vout too small");
             }
 
-
             uint32_t nIDLast = 0;
             uint32_t nAssetID = 0;
             CoordinateAsset asset;
@@ -2546,14 +2545,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 if (tx.vin.size() == 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input spciefied");
                 }
-                bool fBitAsset = false;
+
                 bool fBitAssetControl = false;
                 Coin coin;
-                // check first input is asset controller
-                bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+
                 if(fBitAssetControl) {
                    nIDLast = nAssetID;
-                   bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
                 }
             }
 
@@ -2652,8 +2649,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
         }
     }
-
-    const CTransaction &dtx = *(block.vtx[0]);
 
     if (!control.Wait()) {
         LogPrintf("ERROR: %s: CheckQueue failed\n", __func__);
@@ -2799,7 +2794,6 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
                 return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
             }
 
-
             nFees += txfee;
 
             if (!MoneyRange(nFees)) {
@@ -2807,7 +2801,6 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
             }
 
-            bool fCacheResults = false; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
             if (!CheckInputScripts(tx, tx_state, view, 0, true, false, txsdata[i])) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
