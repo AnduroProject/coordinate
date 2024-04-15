@@ -209,11 +209,14 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
       return true;
    }
 
-   // check coinbase should have three output
+   // check coinbase should have five output
    //  0 - fee reward for merge mine
-   //  1 - coinbase message
-   //  2 - signature by previous block anduro current keys
-   if(block.vtx[0]->vout.size() < 3) {
+   //  1 - preconf miner script
+   //  2 - federation script
+   //  3 - signature by previous block anduro current keys
+   //  4 - coinbase message
+
+   if(block.vtx[0]->vout.size() < 5) {
       return false;
    }
 
@@ -236,14 +239,14 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
 
    std::vector<AnduroTxOut> tOuts;
-   if(block.vtx[0]->vout.size() == 3) {
+   if(block.vtx[0]->vout.size() == 5) {
       const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
       AnduroTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
    } else {
       // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with anduro current keys
-      for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {
+      for (size_t i = 1; i < block.vtx[0]->vout.size()-4; i=i+1) {
          CTxOut pegTx = block.vtx[0]->vout[i];
          AnduroTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);

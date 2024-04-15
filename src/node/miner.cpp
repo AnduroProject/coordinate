@@ -173,7 +173,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     }
     
     // increasing coinbase size for refunds
-    int resize = 1;
+    int resize = 3;
     CAmount minerFee = 0;
     CAmount totalPreconfFee = 0;
     CAmount federationFee = 0;
@@ -184,13 +184,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             federationFee = std::ceil(totalPreconfFee * 0.20);
             minerFee = minerFee + (totalPreconfFee - federationFee);
         }
-    }
-
-    if(minerFee > 0) {
-        resize = resize + 1;
-    }
-    if(federationFee > 0) {
-        resize = resize + 1;
     }
 
     // get next block presigned data
@@ -237,19 +230,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
     coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
     int oIncr = 1;
-    if(minerFee > 0) {
-       oIncr = oIncr + 1;
-       coinbaseTx.vout[1].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
-       coinbaseTx.vout[1].nValue = minerFee;
-    }
-
-    if(federationFee > 0) {
-       oIncr = oIncr + 1;
-       coinbaseTx.vout[2].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
-       coinbaseTx.vout[2].nValue = federationFee;
-    }
-
-    
 
     if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
     } else {
@@ -260,6 +240,18 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             oIncr = oIncr + 1;
         }
     }
+
+
+    // miner fee for preconf
+    coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
+    coinbaseTx.vout[oIncr].nValue = minerFee;
+    oIncr = oIncr + 1;
+
+    // federation fee for preconf
+    coinbaseTx.vout[oIncr].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
+    coinbaseTx.vout[oIncr].nValue = federationFee;
+    oIncr = oIncr + 1;
+    
     // including anduro signature information
     std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
     CTxOut out(0, CScript() << OP_RETURN << data);

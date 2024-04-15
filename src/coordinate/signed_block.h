@@ -34,8 +34,8 @@ class SignedBlock {
             hashPrevSignedBlock.SetNull();
             hashMerkleRoot.SetNull();
             currentFee = 0;
-            vtx.empty();
-            peerList.empty();
+            vtx.clear();
+            peerList.clear();
             isBroadcasted = false;
         }
 

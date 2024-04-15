@@ -9,7 +9,7 @@
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-
+    LogPrintf("validateAnduroSignature messageIn %s \n", messageIn);
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
@@ -55,6 +55,7 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                LogPrintf("failed verfication \n");
             } else {
+                LogPrintf("success verfication \n");
                 thresold = thresold - 1;
             }
           
