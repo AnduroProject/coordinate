@@ -3,7 +3,6 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
-#include <chainparams.h>
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
@@ -30,11 +29,11 @@ FUZZ_TARGET(chain)
         (void)disk_block_index->GetBlockTimeMax();
         (void)disk_block_index->GetMedianTimePast();
         (void)disk_block_index->GetUndoPos();
-        (void)disk_block_index->HaveTxsDownloaded();
+        (void)disk_block_index->HaveNumChainTxs();
         (void)disk_block_index->IsValid();
     }
 
-    const CBlockHeader block_header = disk_block_index->GetBlockHeader(Params().GetConsensus());
+    const CBlockHeader block_header = disk_block_index->GetBlockHeader();
     (void)CDiskBlockIndex{*disk_block_index};
     (void)disk_block_index->BuildSkip();
 

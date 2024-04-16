@@ -67,12 +67,12 @@ CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), 
 
 uint256 CMutableTransaction::GetHash() const
 {
-    return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << *this).GetHash();
 }
 
 uint256 CTransaction::ComputeHash() const
 {
-    return SerializeHash(*this, SER_GETHASH, SERIALIZE_TRANSACTION_NO_WITNESS);
+    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << *this).GetHash();
 }
 
 uint256 CTransaction::ComputeWitnessHash() const
@@ -80,7 +80,7 @@ uint256 CTransaction::ComputeWitnessHash() const
     if (!HasWitness()) {
         return hash;
     }
-    return SerializeHash(*this, SER_GETHASH, 0);
+    return (CHashWriter{0} << *this).GetHash();
 }
 
 CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), assetType(tx.assetType), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
@@ -88,15 +88,15 @@ CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), v
 
 CAmount CTransaction::GetValueOut() const
 {
-    bool fCoordinateAsset = nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION;
-
-    // Skip the controller and genesis output of a CoordinateAsset creation
     std::vector<CTxOut>::const_iterator it;
-    if (fCoordinateAsset && vout.size() >= 2)
+    if (nVersion == TRANSACTION_PRECONF_VERSION) {
+        it = vout.begin() + 1;
+    } else if (nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         it = vout.begin() + 2;
-    else
+    } else {
         it = vout.begin();
-
+    }
+     
     CAmount nValueOut = 0;
     for (; it != vout.end(); it++) {
         if (!MoneyRange(it->nValue) || !MoneyRange(nValueOut + it->nValue))

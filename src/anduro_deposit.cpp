@@ -13,7 +13,6 @@
 #include <anduro_validator.h>
 
 using node::BlockManager;
-using node::ReadBlockFromDisk;
 // temporary storage for including presigned signature on next block
 std::vector<AnduroTxOut> tDeposits;
 // check blocks are fully synced to active anduro presign validation
@@ -22,7 +21,6 @@ bool isValidationActivate = false;
 std::string depositAddress = "";
 // temporary storage for withdraw address
 std::string burnAddress = "";
-
 /**
  * Include presigned signature from anduro.
  */
@@ -61,7 +59,7 @@ bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& cha
    }
    // get block to find the eligible anduro keys to be signed on presigned block
    CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
 
@@ -139,11 +137,21 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
  */
 void resetDeposit(uint32_t block_height) {
     std::vector<AnduroTxOut> tDepositsNew;
-      for (const AnduroTxOut& tx_out : tDeposits) {
-         if(tx_out.block_height > block_height) {
-               tDepositsNew.push_back(tx_out);
-         }
-      }
+    bool hasDeposits = true;
+    uint32_t currentHeight = block_height;
+    while(hasDeposits) {
+        for (const AnduroTxOut& tx_out : tDeposits) {
+            if(tx_out.block_height != block_height) {
+                tDepositsNew.push_back(tx_out);
+            }
+        }
+        currentHeight = currentHeight - 1;
+        std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
+        if(pending_deposits.size() == 0) {
+            hasDeposits = false;
+        }
+    }
+
     tDeposits = tDepositsNew;
 }
 
@@ -155,7 +163,7 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[block_index]), Params().GetConsensus())) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[block_index])) {
         // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[block_index])->GetBlockHash().ToString());
    }
@@ -170,7 +178,7 @@ int32_t getNextIndex(ChainstateManager& chainman) {
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!ReadBlockFromDisk(block, CHECK_NONFATAL(active_chain[blockindex]), Params().GetConsensus())) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
         // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
@@ -188,6 +196,7 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
+   // return true;
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    // activate presigned signature checker after blocks fully synced in node
@@ -199,17 +208,20 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
       return true;
    }
 
-   // check coinbase should have three output
+   // check coinbase should have five output
    //  0 - fee reward for merge mine
-   //  1 - coinbase message
-   //  2 - signature by previous block anduro current keys
-   if(block.vtx[0]->vout.size() < 3) {
+   //  1 - preconf miner script
+   //  2 - federation script
+   //  3 - signature by previous block anduro current keys
+   //  4 - coinbase message
+
+   if(block.vtx[0]->vout.size() < 5) {
       return false;
    }
 
    // check for current keys for anduro
    CBlock prevblock;
-   if (!ReadBlockFromDisk(prevblock, CHECK_NONFATAL(active_chain[active_chain.Height()]), Params().GetConsensus())) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[active_chain.Height()])) {
       return false;
    }
 
@@ -226,14 +238,14 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
 
    std::vector<AnduroTxOut> tOuts;
-   if(block.vtx[0]->vout.size() == 3) {
-      const CTxDestination coinbaseScript = DecodeDestination(find_value(witnessVal.get_obj(), "current_address").get_str());
+   if(block.vtx[0]->vout.size() == 5) {
+      const CTxDestination coinbaseScript = DecodeDestination(witnessVal.get_obj().find_value("current_address").get_str());
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
       AnduroTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
    } else {
       // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with anduro current keys
-      for (size_t i = 1; i < block.vtx[0]->vout.size()-2; i=i+1) {
+      for (size_t i = 1; i < block.vtx[0]->vout.size()-4; i=i+1) {
          CTxOut pegTx = block.vtx[0]->vout[i];
          AnduroTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, active_chain.Height() + 1,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);

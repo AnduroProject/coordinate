@@ -8,25 +8,15 @@
 #include <tinyformat.h>
 #include <util/time.h>
 
-std::string CBlockFileInfo::ToString() const
-{
-    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
-}
-
 /* Moved here from the header, because we need auxpow and the logic
    becomes more involved.  */
-CBlockHeader CBlockIndex::GetBlockHeader(const Consensus::Params& consensusParams) const
+CBlockHeader CBlockIndex::GetBlockHeader() const
 {
     CBlockHeader block;
     block.nVersion = nVersion;
 
-    /* The CBlockIndex object's block header is missing the auxpow.
-       So if this is an auxpow block, read it from disk instead.  We only
-       have to read the actual *header*, not the full block.  */
-    if (block.IsAuxpow())
-    {
-        node::ReadBlockHeaderFromDisk(block, this, consensusParams);
-        return block;
+    if (block.IsAuxpow()) {
+        block.auxpow = block.auxpow;
     }
 
     if (pprev)
@@ -38,6 +28,10 @@ CBlockHeader CBlockIndex::GetBlockHeader(const Consensus::Params& consensusParam
     return block;
 }
 
+std::string CBlockFileInfo::ToString() const
+{
+    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
+}
 
 std::string CBlockIndex::ToString() const
 {

@@ -10,17 +10,16 @@
 
 bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coordinateOutputs)
 {
+    // Basic checks that don't depend on any context
     if (tx.vin.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vin-empty");
     if (tx.vout.empty())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-vout-empty");
-
     // Size limits (this doesn't take the witness into account, as that hasn't been checked for malleability)
     if (::GetSerializeSize(tx, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * WITNESS_SCALE_FACTOR > MAX_BLOCK_WEIGHT)
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-oversize");
     
     std::vector<CTxOut>::const_iterator it = tx.vout.begin();
-
     // Check for negative or overflow output values (see CVE-2010-5139)
     CAmount nValueOut = 0;
     int incr = 0;
@@ -35,8 +34,6 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coor
         }
         if (!MoneyRange(nValueOut))
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-txouttotal-toolarge");
-
-        incr++;
     }
 
     // Check for duplicate inputs (see CVE-2018-17144)
