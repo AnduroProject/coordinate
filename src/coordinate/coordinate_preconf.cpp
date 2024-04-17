@@ -424,7 +424,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 
     CAmount federationFee = std::ceil(getPreconfFeeForFederation(block.vtx, block.currentFee) * 0.20);
     CTxOut federationOut = block.vtx[0]->vout[block.vtx[0]->vout.size() - 2];
-    if(federationOut.nValue == federationFee) {
+    if(federationOut.nValue != federationFee) {
         LogPrintf("invalid federation fee included");
         return false;
     }
@@ -603,7 +603,6 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     return totalFee;
 
 } 
-
 
 CScript getMinerScript(ChainstateManager& chainman, int blockHeight) {
     LOCK(cs_main);
