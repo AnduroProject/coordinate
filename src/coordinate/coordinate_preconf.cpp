@@ -148,6 +148,9 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
 
 
+    if(blockindex<0) {
+          return false;
+    }
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock block;
     if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
@@ -400,7 +403,9 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         messages.push_back(message);
     }
 
-
+    if(blockindex < 0) {
+        return false;
+    }
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock minedblock;
     if (!chainman.m_blockman.ReadBlockFromDisk(minedblock, *active_chain[blockindex])) {
@@ -432,6 +437,10 @@ std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
         return invalidTxs;
     }
     int currentHeight = lastHeight - 3;
+
+    if(currentHeight < 0) {
+        return invalidTxs;
+    }
     CBlock prevblock;
     if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
         return invalidTxs;
@@ -455,6 +464,9 @@ uint256 getReconsiledBlock(ChainstateManager& chainman) {
     }
 
     int currentHeight = lastHeight - 2;
+    if(currentHeight < 0) {
+        return uint256();
+    }
     CBlock prevblock;
     if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
         return uint256();
@@ -576,6 +588,10 @@ CScript getMinerScript(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
     CScript scriptPubKey;
     CBlock prevblock;
+
+    if(currentHeight < 0) { 
+         return scriptPubKey;
+    }
     if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
         return scriptPubKey;
     } 
@@ -587,6 +603,10 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
     CChain& active_chain = chainman.ActiveChain();
     int currentHeight = blockHeight - 3;
     CScript scriptPubKey;
+    if(currentHeight < 0) { 
+         return scriptPubKey;
+    }
+
     CBlock prevblock;
     if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
         return scriptPubKey;

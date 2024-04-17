@@ -3352,7 +3352,6 @@ bool Chainstate::ConnectTip(BlockValidationState& state, CBlockIndex* pindexNew,
     const auto time_1{SteadyClock::now()};
     std::shared_ptr<const CBlock> pthisBlock;
     if (!pblock) {
-        LogPrintf("check test 1 \n");
         std::shared_ptr<CBlock> pblockNew = std::make_shared<CBlock>();
         if (!m_blockman.ReadBlockFromDisk(*pblockNew, *pindexNew)) {
             return FatalError(m_chainman.GetNotifications(), state, "Failed to read block");

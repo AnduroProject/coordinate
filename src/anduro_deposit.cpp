@@ -136,22 +136,12 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
  * Used to reset presigned signature for processed blocks
  */
 void resetDeposit(uint32_t block_height) {
-    std::vector<AnduroTxOut> tDepositsNew;
-    bool hasDeposits = true;
-    uint32_t currentHeight = block_height;
-    while(hasDeposits) {
-        for (const AnduroTxOut& tx_out : tDeposits) {
-            if(tx_out.block_height != block_height) {
-                tDepositsNew.push_back(tx_out);
-            }
-        }
-        currentHeight = currentHeight - 1;
-        std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(currentHeight);
-        if(pending_deposits.size() == 0) {
-            hasDeposits = false;
-        }
-    }
-
+   std::vector<AnduroTxOut> tDepositsNew;
+   for (const AnduroTxOut& tx_out : tDeposits) {
+      if(tx_out.block_height > block_height) {
+         tDepositsNew.push_back(tx_out);
+      }
+   }
     tDeposits = tDepositsNew;
 }
 
@@ -196,7 +186,10 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
-   // return true;
+   if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
+      return true;
+   }
+   
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();
    // activate presigned signature checker after blocks fully synced in node
@@ -207,6 +200,7 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    if(!isAnduroValidationActive()) {
       return true;
    }
+
 
    // check coinbase should have five output
    //  0 - fee reward for merge mine

@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(blockmanager_flush_block_file)
     block3.nVersion = 3;
 
     // They are 80 bytes header + 1 byte 0x00 for vtx length
-    constexpr int TEST_BLOCK_SIZE{86};
+    constexpr int TEST_BLOCK_SIZE{120};
 
     // Blockstore is empty
     BOOST_CHECK_EQUAL(blockman.CalculateCurrentUsage(), 0);

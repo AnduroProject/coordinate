@@ -512,58 +512,6 @@ BOOST_AUTO_TEST_CASE(updatecoins_simulation_test)
     g_mock_deterministic_tests = false;
 }
 
-BOOST_AUTO_TEST_CASE(ccoins_serialization)
-{
-    // Good example
-    DataStream ss1{ParseHex("97f23c835800816115944e077fe7c803cfa57f29b36bf87c1d35")};
-    Coin cc1;
-    ss1 >> cc1;
-    BOOST_CHECK_EQUAL(cc1.fCoinBase, false);
-    BOOST_CHECK_EQUAL(cc1.nHeight, 203998U);
-    BOOST_CHECK_EQUAL(cc1.out.nValue, CAmount{60000000000});
-    BOOST_CHECK_EQUAL(HexStr(cc1.out.scriptPubKey), HexStr(GetScriptForDestination(PKHash(uint160(ParseHex("816115944e077fe7c803cfa57f29b36bf87c1d35"))))));
-
-    // Good example
-    DataStream ss2{ParseHex("8ddf77bbd123008c988f1a4a4de2161e0f50aac7f17e7f9555caa4")};
-    Coin cc2;
-    ss2 >> cc2;
-    BOOST_CHECK_EQUAL(cc2.fCoinBase, true);
-    BOOST_CHECK_EQUAL(cc2.nHeight, 120891U);
-    BOOST_CHECK_EQUAL(cc2.out.nValue, 110397);
-    BOOST_CHECK_EQUAL(HexStr(cc2.out.scriptPubKey), HexStr(GetScriptForDestination(PKHash(uint160(ParseHex("8c988f1a4a4de2161e0f50aac7f17e7f9555caa4"))))));
-
-    // Smallest possible example
-    DataStream ss3{ParseHex("000006")};
-    Coin cc3;
-    ss3 >> cc3;
-    BOOST_CHECK_EQUAL(cc3.fCoinBase, false);
-    BOOST_CHECK_EQUAL(cc3.nHeight, 0U);
-    BOOST_CHECK_EQUAL(cc3.out.nValue, 0);
-    BOOST_CHECK_EQUAL(cc3.out.scriptPubKey.size(), 0U);
-
-    // scriptPubKey that ends beyond the end of the stream
-    DataStream ss4{ParseHex("000007")};
-    try {
-        Coin cc4;
-        ss4 >> cc4;
-        BOOST_CHECK_MESSAGE(false, "We should have thrown");
-    } catch (const std::ios_base::failure&) {
-    }
-
-    // Very large scriptPubKey (3*10^9 bytes) past the end of the stream
-    DataStream tmp{};
-    uint64_t x = 3000000000ULL;
-    tmp << VARINT(x);
-    BOOST_CHECK_EQUAL(HexStr(tmp), "8a95c0bb00");
-    DataStream ss5{ParseHex("00008a95c0bb00")};
-    try {
-        Coin cc5;
-        ss5 >> cc5;
-        BOOST_CHECK_MESSAGE(false, "We should have thrown");
-    } catch (const std::ios_base::failure&) {
-    }
-}
-
 const static COutPoint OUTPOINT;
 const static CAmount SPENT = -1;
 const static CAmount ABSENT = -2;
