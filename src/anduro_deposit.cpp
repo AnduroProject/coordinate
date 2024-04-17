@@ -209,7 +209,7 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    //  3 - signature by previous block anduro current keys
    //  4 - coinbase message
 
-   if(block.vtx[0]->vout.size() < 5) {
+   if(block.vtx[0]->vout.size() < 4) {
       return false;
    }
 
