@@ -166,7 +166,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             minerFee = minerFee + (totalPreconfFee - federationFee);
         }
     }
-    int resize = 3;
+    int resize = 2;
     CMutableTransaction coinbaseTx;
     if(Params().GetChainType() != ChainType::REGTEST) {
         pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
@@ -237,11 +237,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
         coinbaseTx.vout[oIncr].nValue = minerFee;
         oIncr = oIncr + 1;
-
-        // federation fee for preconf
-        coinbaseTx.vout[oIncr].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
-        coinbaseTx.vout[oIncr].nValue = federationFee;
-        oIncr = oIncr + 1;
         
         // including anduro signature information
         std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
@@ -260,10 +255,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         // miner fee for preconf
         coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
         coinbaseTx.vout[oIncr].nValue = minerFee;
-        oIncr = oIncr + 1;
-        // federation fee for preconf
-        coinbaseTx.vout[oIncr].scriptPubKey = getFederationScript(m_chainstate.m_chainman, nHeight);
-        coinbaseTx.vout[oIncr].nValue = federationFee;
     }
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
