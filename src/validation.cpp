@@ -2555,6 +2555,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     std::vector<CoordinateAsset> vAsset;
     std::vector<uint256> invaidTx;
 
+    //validate signed block before it get included in mined block
+    for (const SignedBlock& finalizedSignedBlock : block.preconfBlock) {
+        if (!checkSignedBlock(finalizedSignedBlock, m_chainman)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Invalid signed block");
+        }
+    }
+
     UpdatedCoinsTip(view,pindex->nHeight);
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)

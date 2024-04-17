@@ -22,7 +22,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
         allKeysArray.push_back(allKeysArrayRequest[i].get_str());
     }
-
     int thresold =  std::ceil(allKeysArray.size() * 0.6);
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
@@ -31,11 +30,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
         LogPrintf("invalid signature params \n");
         return false;
     }
-     if(allSignatures.size() == 0) {
-        LogPrintf("invalid signature params \n");
-        return false;
-     }
-
     for (unsigned int idx = 0; idx < allSignatures.size(); idx++) {
         const UniValue& o = allSignatures[idx].get_obj();
         RPCTypeCheckObj(o,
@@ -55,13 +49,11 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
                LogPrintf("failed verfication \n");
             } else {
                 LogPrintf("success verfication \n");
-                thresold = thresold - 1;
+                thresold -= 1;
+                if(thresold == 0) {
+                    break;
+                }
             }
-          
-        }
-
-        if(thresold == 0) {
-            break;
         }
     }
     return thresold == 0 ? true : false;
@@ -92,11 +84,6 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
         LogPrintf("invalid signature params \n");
         return false;
     }
-     if(allSignatures.size() == 0) {
-        LogPrintf("invalid signature params \n");
-        return false;
-     }
-
     for (unsigned int idx = 0; idx < allSignatures.size(); idx++) {
         const UniValue& o = allSignatures[idx].get_obj();
         RPCTypeCheckObj(o,
@@ -113,15 +100,13 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
             uint256 message = prepareMessageHash(messageIn);
             XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
-               LogPrintf("failed verfication \n");
+                LogPrintf("failed verfication \n");
             } else {
-                thresold = thresold - 1;
+                thresold -= 1;
+                if(thresold == 0) {
+                    break;
+                }
             }
-          
-        }
-
-        if(thresold == 0) {
-            break;
         }
     }
     return thresold == 0 ? true : false;

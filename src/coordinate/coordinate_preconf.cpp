@@ -41,7 +41,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     int finalizedStatus = 1;
     auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
             [finalizedStatus] (const CoordinatePreConfSig& d) { 
-                return (uint64_t)d.finalized == finalizedStatus;
+                return (int)d.finalized == finalizedStatus;
             });
 
     if (it == coordinatePreConfSig.end()) {
@@ -219,7 +219,7 @@ void removePreConfWitness() {
 void removePreConfFinalizedBlock(int blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.nHeight > blockHeight) {
+        if((int)finalizedSignedBlock.nHeight > blockHeight) {
             newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
         }
     }
@@ -344,6 +344,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut witnessOut(0, CScript() << OP_RETURN << witnessData);
     coinBaseOuts.push_back(witnessOut);
 
+
     for (const uint256& hash : preconfList.txids) {
         TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(hash));
         if(!info.tx) {
@@ -356,6 +357,10 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         block->vtx[i] = info.tx;
         i = i + 1;
     }
+
+    CAmount federationFee = std::ceil(getPreconfFeeForFederation(block->vtx, block->currentFee) * 0.20);
+    CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
+    coinBaseOuts.push_back(federationFeeOut);
 
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
@@ -416,6 +421,13 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 
     CTxOut witnessOut = block.vtx[0]->vout[0];
     const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
+
+    CAmount federationFee = std::ceil(getPreconfFeeForFederation(block.vtx, block.currentFee) * 0.20);
+    CTxOut federationOut = block.vtx[0]->vout[block.vtx[0]->vout.size() - 2];
+    if(federationOut.nValue == federationFee) {
+        LogPrintf("invalid federation fee included");
+        return false;
+    }
 
     if(!validateAnduroSignature(witnessStr,messages.write(),minedblock.currentKeys)) {
        removePreConfWitness();
@@ -498,11 +510,22 @@ CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
                 continue;
             }
             const CTransactionRef& tx = block.vtx[i];
-            fee = fee + (block.currentFee * ::GetSerializeSize(tx, SERIALIZE_TRANSACTION_NO_WITNESS));
+            fee = fee + (block.currentFee * GetVirtualTransactionSize(*tx));
         }
     }
-    
     return fee;
+}
+
+CAmount getPreconfFeeForFederation(std::vector<CTransactionRef> vtx, CAmount currentFee) {
+    CAmount fee = 0;
+    for (size_t i = 0; i < vtx.size(); i++) {
+        if(i==0) {
+            continue;
+        }
+        const CTransactionRef& tx = vtx[i];
+        fee = fee + (currentFee * GetVirtualTransactionSize(*tx));
+    }
+     return fee;
 }
 
 CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {

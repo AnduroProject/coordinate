@@ -214,9 +214,9 @@ static RPCHelpMan getpreconflist()
         },
         RPCExamples{"\nGet current preconf block in queue\n" + HelpExampleCli("getpreconflist", "height")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            uint64_t nHeight = 0;
+            uint32_t nHeight = 0;
             if (!request.params[0].isNull()) {
-                ParseUInt64(request.params[0].get_str(), &nHeight);
+                ParseUInt32(request.params[0].get_str(), &nHeight);
             }
 
             UniValue result(UniValue::VOBJ);

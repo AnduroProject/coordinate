@@ -293,3 +293,10 @@ std::vector<SignedBlock> getFinalizedSignedBlocks();
  * @param[in] newFinalizedSignedBlock  signed block detail
  */
 void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock);
+
+/**
+ * This function will calculate federation fee for particular signed block
+ * @param[in] vtx signed block transactioh list
+ * @param[in] currentFee current signed block fee
+ */
+CAmount getPreconfFeeForFederation(std::vector<CTransactionRef> vtx, CAmount currentFee);
