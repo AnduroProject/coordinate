@@ -41,7 +41,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     int finalizedStatus = 1;
     auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
             [finalizedStatus] (const CoordinatePreConfSig& d) { 
-                return (uint64_t)d.finalized == finalizedStatus;
+                return (int)d.finalized == finalizedStatus;
             });
 
     if (it == coordinatePreConfSig.end()) {
@@ -219,7 +219,7 @@ void removePreConfWitness() {
 void removePreConfFinalizedBlock(int blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.nHeight > blockHeight) {
+        if((int)finalizedSignedBlock.nHeight > blockHeight) {
             newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
         }
     }
