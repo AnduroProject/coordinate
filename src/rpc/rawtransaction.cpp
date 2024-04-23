@@ -40,7 +40,7 @@
 #include <util/vector.h>
 #include <validation.h>
 #include <validationinterface.h>
-
+#include <coordinate/coordinate_mempool_entry.h>
 #include <numeric>
 #include <stdint.h>
 
@@ -2075,7 +2075,7 @@ static RPCHelpMan getAssetOutputCountForTx()
             }
 
             uint256 hash_block;
-            const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, chainman.GetConsensus(), hash_block);
+            const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, hash_block, chainman.m_blockman);
             if (!tx) {
                 std::string errmsg;
                 if (blockindex) {
