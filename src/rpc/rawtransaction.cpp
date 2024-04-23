@@ -40,7 +40,7 @@
 #include <util/vector.h>
 #include <validation.h>
 #include <validationinterface.h>
-
+#include <coordinate/coordinate_mempool_entry.h>
 #include <numeric>
 #include <stdint.h>
 
@@ -168,6 +168,15 @@ static std::vector<RPCArg> CreateTxDoc()
         {"locktime", RPCArg::Type::NUM, RPCArg::Default{0}, "Raw locktime. Non-0 value also locktime-activates inputs"},
         {"replaceable", RPCArg::Type::BOOL, RPCArg::Default{true}, "Marks this transaction as BIP125-replaceable.\n"
                 "Allows this transaction to be replaced by a transaction with higher fees. If provided, it is an error if explicit sequence numbers are incompatible."},
+        {"assetInfo", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "Additional parameters for asset creation",
+            {
+                {"assettype", RPCArg::Type::NUM, RPCArg::Optional::NO, "The asset type"},
+                {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "The ticker symbol"},
+                {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "The headline"},
+                {"payload", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The payload"},
+                {"payloaddata", RPCArg::Type::STR, RPCArg::Optional::NO, "The payload data"}
+            }
+        }
     };
 }
 
@@ -472,7 +481,17 @@ static RPCHelpMan createrawtransaction()
         rbf = request.params[3].get_bool();
     }
     CMutableTransaction rawTx = ConstructTransaction(request.params[0], request.params[1], request.params[2], rbf);
-
+    if (!request.params[4].isNull()) {
+        const UniValue& assetParams = request.params[4];
+        if (assetParams.isObject()) {
+            rawTx.nVersion = 10;
+            rawTx.assetType = assetParams["assettype"].getInt<int>();
+            rawTx.ticker = assetParams["ticker"].get_str();
+            rawTx.headline = assetParams["headline"].get_str();
+            rawTx.payload = uint256S(assetParams["payload"].get_str());
+            rawTx.payloadData = assetParams["payloaddata"].get_str();
+        }
+    }
     return EncodeHexTx(CTransaction(rawTx));
 },
     };
@@ -2026,6 +2045,59 @@ RPCHelpMan descriptorprocesspsbt()
     };
 }
 
+static RPCHelpMan getAssetOutputCountForTx()
+{
+    return RPCHelpMan{
+        "getassetoutputcountfortx",
+        "Get Transanction asset output count",
+        {
+            {"txid", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The transaction hash"},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+                {RPCResult::Type::NUM, "result", /*optional=*/true, "Returns asset output count"},
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getassetoutputcountfortx", "\"mytxid\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+
+            uint256 hash = ParseHashV(request.params[0], "parameter 1");
+            const CBlockIndex* blockindex = nullptr;
+            if (hash == chainman.GetParams().GenesisBlock().hashMerkleRoot) {
+                // Special exception for the genesis block coinbase transaction
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "The genesis block coinbase is not considered an ordinary transaction and cannot be retrieved");
+            }
+
+            uint256 hash_block;
+            const CTransactionRef tx = GetTransaction(blockindex, node.mempool.get(), hash, hash_block, chainman.m_blockman);
+            if (!tx) {
+                std::string errmsg;
+                if (blockindex) {
+                    const bool block_has_data = WITH_LOCK(::cs_main, return blockindex->nStatus & BLOCK_HAVE_DATA);
+                    if (!block_has_data) {
+                        throw JSONRPCError(RPC_MISC_ERROR, "Block not available");
+                    }
+                    errmsg = "No such transaction found in the provided block";
+                } else {
+                    errmsg = "No such mempool or blockchain transaction";
+                }
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, errmsg);
+            }
+
+            return getAssetOutputCount(*tx,chainman.ActiveChainstate());
+        }
+    };
+
+}
+
+
+
 void RegisterRawTransactionRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -2044,6 +2116,7 @@ void RegisterRawTransactionRPCCommands(CRPCTable& t)
         {"rawtransactions", &descriptorprocesspsbt},
         {"rawtransactions", &joinpsbts},
         {"rawtransactions", &analyzepsbt},
+        {"coordinate", &getAssetOutputCountForTx}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

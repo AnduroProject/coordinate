@@ -751,7 +751,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false;
     }
 
-    if (!CheckTransaction(tx, state)) {
+    if (!CheckTransaction(tx, state, coordinateOutputs)) {
         return false; // state filled in by CheckTransaction
     }
 
