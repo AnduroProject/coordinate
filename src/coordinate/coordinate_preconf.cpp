@@ -55,6 +55,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
 }
 
 CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
+    LOCK(preconf_pool.cs);
     CAmount finalFee = 0;
     for (const CoordinatePreConfSig& coordinatePreConfSigtem : coordinatePreConfSig) {
         if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
@@ -197,6 +198,7 @@ bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedB
                 LogPrint(BCLog::NET, "signed block validity failed from network\n");
                 continue;
             }
+            LOCK(cs_main);
             if (!chainman.ActiveChainstate().ConnectSignedBlock(newFinalizedSignedBlock)) {
                 LogPrint(BCLog::NET, "signed block connect failed from network\n");
                 continue;
@@ -282,12 +284,14 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
     for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
-            finalizedSignedBlock.isBroadcasted = true;
-        } else {
-            finalizedSignedBlock.peerList.push_back(peerId);
+        if(finalizedSignedBlock.nHeight == signedBlockItem.nHeight) {
+            if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
+                finalizedSignedBlock.isBroadcasted = true;
+            } else {
+                finalizedSignedBlock.peerList.push_back(peerId);
+            }
+            break;
         }
-        break;
     }
 }
 
