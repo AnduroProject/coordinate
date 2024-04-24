@@ -130,7 +130,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     const int32_t nChainId = chainparams.GetConsensus ().nAuxpowChainId;
     const int32_t nVersion = 4;
-    pblock->SetBaseVersion(4, nChainId);
+    pblock->SetBaseVersion(nVersion, nChainId);
 
     //  pblock->nVersion = m_chainstate.m_chainman.m_versionbitscache.ComputeBlockVersion(pindexPrev, chainparams.GetConsensus());
     // -regtest only: allow overriding block.nVersion with
@@ -153,6 +153,15 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     m_last_block_num_txs = nBlockTx;
     m_last_block_weight = nBlockWeight;
+
+    pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
+    pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
+    std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
+    for (size_t i = 0; i < nextPreconfs.size(); i++)
+    {
+       pblock->preconfBlock.push_back(nextPreconfs[i]);
+    }
+    
 
     // increasing coinbase size for refunds
     CAmount minerFee = 0;
