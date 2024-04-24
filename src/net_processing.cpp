@@ -5657,7 +5657,7 @@ void PeerManagerImpl::NewSignedBlockTimer(uint32_t nTime)
         LogPrint(BCLog::NET, "signed block validity failed \n");
         return;
     }
-
+    LOCK(cs_main);
     if(m_chainman.ActiveChainstate().ConnectSignedBlock(block)) {
         insertNewSignedBlock(block);
     } else {

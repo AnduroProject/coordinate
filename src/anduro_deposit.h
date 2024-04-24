@@ -116,13 +116,13 @@ bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& cha
  * This function list all presigned pegin details for upcoming blocks by height
  * @param[in] block_height  block height to find pending pegin
  */
-std::vector<AnduroTxOut> listPendingDepositTransaction(uint32_t block_height);
+std::vector<AnduroTxOut> listPendingDepositTransaction(int32_t block_height);
 
 /**
  * This function find total pegin amount for particular block
  * @param[in] block_height  block height to find pending pegin
  */
-CAmount listPendingDepositTotal(uint32_t block_height);
+CAmount listPendingDepositTotal(int32_t block_height);
 
 /**
  * This function used to check whether presigned signature already exist when received signature through peer message
@@ -134,7 +134,7 @@ bool isSignatureAlreadyExist(AnduroTxOut txOut);
  * This function used to reset presigned signature for processed blocks
  * @param[in] block_height  block height to clear presigned signature
  */
-void resetDeposit(uint32_t block_height);
+void resetDeposit(int32_t block_height);
 
 /**
  * This function used to get current keys to be signed for upcoming block

@@ -702,8 +702,8 @@ static RPCHelpMan getblockheader()
     const CBlockIndex* pblockindex;
     const CBlockIndex* tip;
     ChainstateManager& chainman = EnsureAnyChainman(request.context);
-    LOCK(cs_main);
     {
+        LOCK(cs_main);
         pblockindex = chainman.m_blockman.LookupBlockIndex(hash);
         tip = chainman.ActiveChain().Tip();
     }

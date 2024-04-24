@@ -201,12 +201,10 @@ static RPCHelpMan listAllAssets() {
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             NodeContext& node = EnsureAnyNodeContext(request.context);
-            const CTxMemPool& mempool = EnsureMemPool(node);
             ChainstateManager& chainman = EnsureChainman(node);
-
-                UniValue result(UniValue::VOBJ);
-                UniValue assets(UniValue::VARR);
-                std::vector<CoordinateAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
+            UniValue result(UniValue::VOBJ);
+            UniValue assets(UniValue::VARR);
+            std::vector<CoordinateAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
             ;
                 for (const CoordinateAsset& asset_item : assetList) {
                     UniValue obj(UniValue::VOBJ);
@@ -255,9 +253,6 @@ static RPCHelpMan listMempoolAssets() {
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            NodeContext& node = EnsureAnyNodeContext(request.context);
-            const CTxMemPool& mempool = EnsureMemPool(node);
-            ChainstateManager& chainman = EnsureChainman(node);
 
                 UniValue result(UniValue::VOBJ);
                 UniValue assets(UniValue::VARR);
@@ -276,24 +271,6 @@ static RPCHelpMan listMempoolAssets() {
         }
     };
 
-}
-
-
-
-static std::vector<RPCArg> CreateTxDoc()
-{
-    return {
-        {"inputs", RPCArg::Type::ARR, RPCArg::Optional::NO, "The inputs",
-            {
-                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
-                    {
-                        {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "The bitcoin address"},
-                        {"amount", RPCArg::Type::NUM, RPCArg::Optional::NO, "The bitcoin amount"}
-                    },
-                },
-            },
-        }
-    };
 }
 
 void RegisterCoordinateRPCCommands(CRPCTable& t)

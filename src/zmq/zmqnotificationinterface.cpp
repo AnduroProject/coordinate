@@ -192,14 +192,10 @@ void CZMQNotificationInterface::BlockConnected(ChainstateRole role, const std::s
 
 void CZMQNotificationInterface::SignedBlockConnected(const SignedBlock& pblock)
 {
-    for (const CTransactionRef& ptx : pblock.vtx) {
-        const CTransaction& tx = *ptx;
-        TryForEachAndRemoveFailed(notifiers, [&tx](CZMQAbstractNotifier* notifier) {
-            return notifier->NotifyTransaction(tx);
-        });
-        // only coinbase notification
-        break;
-    }
+    const CTransaction& tx = *pblock.vtx[0];
+    TryForEachAndRemoveFailed(notifiers, [&tx](CZMQAbstractNotifier* notifier) {
+        return notifier->NotifyTransaction(tx);
+    });
 }
 
 void CZMQNotificationInterface::BlockDisconnected(const std::shared_ptr<const CBlock>& pblock, const CBlockIndex* pindexDisconnected)

@@ -740,7 +740,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
     }
 
-    if(m_pool.is_preconf && tx.nVersion != TRANSACTION_PRECONF_VERSION || !m_pool.is_preconf && tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+    if((m_pool.is_preconf && tx.nVersion != TRANSACTION_PRECONF_VERSION) || (!m_pool.is_preconf && tx.nVersion == TRANSACTION_PRECONF_VERSION)) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction version not supported");
     }
 
@@ -788,6 +788,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // Remove transaction from mempool if same inputs spent in preconf transaction
     if(m_pool.is_preconf) {
         CTxMemPool& pool{*m_active_chainstate.GetMempool()};
+        LOCK(pool.cs);
         for(const CTxIn &txin : tx.vin) {
             const CTransaction* ptxConflicting = pool.GetConflictTx(txin.prevout);
             if(ptxConflicting) {
@@ -799,6 +800,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // check the transaction inputs already spent in preconf transaction
     if(!m_pool.is_preconf) {
         CTxMemPool& preconf_pool{*m_active_chainstate.GetPreConfMempool()};
+        LOCK(preconf_pool.cs);
         for (const CTxIn &txin : tx.vin) {
             const CTransaction* ptxConflicting = preconf_pool.GetConflictTx(txin.prevout);
             if (ptxConflicting) {
@@ -2945,6 +2947,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     psignedblocktree->WriteLastSignedBlockHash(block.GetHash());
     removePreConfWitness();
     if(m_preconf_mempool) {
+       LOCK(m_preconf_mempool->cs);
         m_preconf_mempool->removeForPreconfBlock(block.vtx);
         m_preconf_mempool->PreconfExpire(block.nHeight);
     }

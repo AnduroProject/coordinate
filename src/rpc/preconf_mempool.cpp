@@ -128,10 +128,12 @@ static RPCHelpMan sendpreconflist()
 
             uint32_t finalized = 0;
             if(!request.params[2].isNull()) {
-                ParseUInt32(request.params[2].get_str(),&finalized);
+                if(!ParseUInt32(request.params[2].get_str(),&finalized)) {
+                    throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+                                    "Error converting block height.");
+                }
             }
  
-
             const UniValue& req_params = request.params[0].get_array();
             if (req_params.size() > 0) {
                 std::vector<CoordinatePreConfSig> preconf;
@@ -216,14 +218,17 @@ static RPCHelpMan getpreconflist()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
             uint32_t nHeight = 0;
             if (!request.params[0].isNull()) {
-                ParseUInt32(request.params[0].get_str(), &nHeight);
+                if(!ParseUInt32(request.params[0].get_str(), &nHeight)) {
+                    throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+                                    "Error converting block height.");
+                }
             }
 
             UniValue result(UniValue::VOBJ);
             UniValue block(UniValue::VARR);
             std::vector<CoordinatePreConfSig> coordinatePreConfSigs = getPreConfSig();
             for (const CoordinatePreConfSig& coordinatePreConfSig : coordinatePreConfSigs) {
-                if (coordinatePreConfSig.blockHeight == nHeight || nHeight == 0) {
+                if (coordinatePreConfSig.blockHeight == (int32_t)nHeight || nHeight == 0) {
                     UniValue voteItem(UniValue::VOBJ);
                     voteItem.pushKV("txid", coordinatePreConfSig.txid.ToString());
                     voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);

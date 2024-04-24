@@ -94,7 +94,7 @@ bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& cha
 /**
  * This function list all presigned pegin details for upcoming blocks by height
  */
-std::vector<AnduroTxOut> listPendingDepositTransaction(uint32_t block_height) {
+std::vector<AnduroTxOut> listPendingDepositTransaction(int32_t block_height) {
     if(block_height == -1) {
         return tDeposits;
     }
@@ -112,7 +112,7 @@ std::vector<AnduroTxOut> listPendingDepositTransaction(uint32_t block_height) {
 /**
  * This function find total pegin amount for particular block
  */
-CAmount listPendingDepositTotal(uint32_t block_height) {
+CAmount listPendingDepositTotal(int32_t block_height) {
     std::vector<AnduroTxOut> tDepositsNew;
     if(block_height == -1) {
         tDepositsNew = tDeposits;
@@ -135,7 +135,7 @@ CAmount listPendingDepositTotal(uint32_t block_height) {
 /**
  * Used to reset presigned signature for processed blocks
  */
-void resetDeposit(uint32_t block_height) {
+void resetDeposit(int32_t block_height) {
    std::vector<AnduroTxOut> tDepositsNew;
    for (const AnduroTxOut& tx_out : tDeposits) {
       if(tx_out.block_height > block_height) {
@@ -149,8 +149,8 @@ void resetDeposit(uint32_t block_height) {
  * Used to get current keys to be signed for upcoming block
  */
 std::string getCurrentKeys(ChainstateManager& chainman) {
-   int block_index = chainman.ActiveChain().Height();
    LOCK(cs_main);
+   int block_index = chainman.ActiveChain().Height();
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
    if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[block_index])) {
@@ -164,8 +164,8 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
  * Used to get current next index to be signed for upcoming block
  */
 int32_t getNextIndex(ChainstateManager& chainman) {
-   int blockindex = chainman.ActiveChain().Height();
    LOCK(cs_main);
+   int blockindex = chainman.ActiveChain().Height();
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
    if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {

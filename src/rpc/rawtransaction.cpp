@@ -381,6 +381,7 @@ static RPCHelpMan getrawtransaction()
             chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash,signedTxIndex);
 
             if(!signedTxIndex.signedBlockHash.IsNull()) {
+                LOCK(cs_main);
                 CChain& active_chain = chainman.ActiveChain();
                 CBlock block;
                 if (chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[signedTxIndex.blockIndex])) {

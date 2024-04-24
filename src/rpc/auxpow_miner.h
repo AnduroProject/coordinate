@@ -19,10 +19,6 @@
 #include <vector>
 
 class ChainstateManager;
-namespace node {
-class CBlockTemplate;
-} // namespace node
-
 namespace auxpow_tests
 {
 class AuxpowMinerForTest;

@@ -28,9 +28,6 @@ static constexpr uint8_t DB_COINS{'c'};
 static constexpr uint8_t DB_ASSET{'A'};
 static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 
-static constexpr uint8_t DB_ASSET_DATA{'J'};
-static constexpr uint8_t DB_ASSET_DATA_LAST_ID{'K'};
-
 static constexpr uint8_t DB_SIGNED_BLOCK_HASH{'V'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_HASH{'U'};

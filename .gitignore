@@ -9,6 +9,9 @@
 src/bitcoin
 src/coordinated
 src/coordinate-cli
+src/coordinate-tx
+src/coordinate-util
+src/coordinate-wallet
 src/bitcoin-gui
 src/bitcoin-node
 src/bitcoin-tx
