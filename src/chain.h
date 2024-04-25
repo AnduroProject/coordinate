@@ -11,11 +11,23 @@
 #include <flatfile.h>
 #include <kernel/cs_main.h>
 #include <primitives/block.h>
+#include <primitives/pureheader.h>
+#include <serialize.h>
 #include <sync.h>
 #include <uint256.h>
 #include <util/time.h>
 
+#include <algorithm>
+#include <cassert>
+#include <cstdint>
+#include <string>
 #include <vector>
+
+
+namespace node
+{
+  class BlockManager;
+}
 
 /**
  * Maximum amount of time that a block timestamp is allowed to exceed the
@@ -250,7 +262,7 @@ public:
         return block;
     }
 
-    CBlockHeader GetBlockHeader() const;
+    CBlockHeader GetBlockHeader(const node::BlockManager& blockman) const;
 
     uint256 GetBlockHash() const
     {

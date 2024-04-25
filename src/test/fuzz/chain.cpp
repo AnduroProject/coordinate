@@ -6,14 +6,26 @@
 #include <test/fuzz/FuzzedDataProvider.h>
 #include <test/fuzz/fuzz.h>
 #include <test/fuzz/util.h>
-
+#include <test/util/setup_common.h>
 #include <cstdint>
 #include <optional>
 #include <vector>
+#include <chainparams.h>
+#include <consensus/validation.h>
+#include <node/utxo_snapshot.h>
+#include <test/util/mining.h>
+#include <util/chaintype.h>
+#include <util/fs.h>
+#include <validation.h>
+#include <validationinterface.h>
 
 FUZZ_TARGET(chain)
 {
     FuzzedDataProvider fuzzed_data_provider(buffer.data(), buffer.size());
+    std::unique_ptr<const TestingSetup> setup{MakeNoLogFileContext<const TestingSetup>()};
+    const auto& node = setup->m_node;
+    auto& chainman{*node.chainman};
+
     std::optional<CDiskBlockIndex> disk_block_index = ConsumeDeserializable<CDiskBlockIndex>(fuzzed_data_provider);
     if (!disk_block_index) {
         return;
@@ -33,7 +45,7 @@ FUZZ_TARGET(chain)
         (void)disk_block_index->IsValid();
     }
 
-    const CBlockHeader block_header = disk_block_index->GetBlockHeader();
+    const CBlockHeader block_header = disk_block_index->GetBlockHeader(chainman.m_blockman);
     (void)CDiskBlockIndex{*disk_block_index};
     (void)disk_block_index->BuildSkip();
 

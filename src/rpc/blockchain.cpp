@@ -715,14 +715,14 @@ static RPCHelpMan getblockheader()
     if (!fVerbose)
     {
         DataStream ssBlock{};
-        ssBlock << pblockindex->GetBlockHeader();
+        ssBlock << pblockindex->GetBlockHeader(chainman.m_blockman);
         std::string strHex = HexStr(ssBlock);
         return strHex;
     }
 
     auto result = blockheaderToJSON(tip, pblockindex);
-    if (pblockindex->GetBlockHeader().auxpow)
-        result.pushKV("auxpow", AuxpowToJSON(*pblockindex->GetBlockHeader().auxpow, fVerbose, chainman.ActiveChainstate()));
+    if (pblockindex->GetBlockHeader(chainman.m_blockman).auxpow)
+        result.pushKV("auxpow", AuxpowToJSON(*pblockindex->GetBlockHeader(chainman.m_blockman).auxpow, fVerbose, chainman.ActiveChainstate()));
 
     return result;
 },
