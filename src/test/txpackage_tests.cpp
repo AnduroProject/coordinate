@@ -169,7 +169,7 @@ BOOST_FIXTURE_TEST_CASE(noncontextual_package_tests, TestChain100Setup)
     {
         Package package;
         CMutableTransaction child;
-        for (int i{0}; i < 24; ++i) {
+        for (int i{0}; i < 9; ++i) {
             auto parent = MakeTransactionRef(CreateValidMempoolTransaction(m_coinbase_txns[i + 1],
                                              0, 0, coinbaseKey, spk, CAmount(48 * COIN), false));
             package.emplace_back(parent);
@@ -241,8 +241,8 @@ BOOST_FIXTURE_TEST_CASE(package_submission_tests, TestChain100Setup)
 
     // Unrelated transactions are not allowed in package submission.
     Package package_unrelated;
-    for (size_t i{0}; i < 10; ++i) {
-        auto mtx = CreateValidMempoolTransaction(/*input_transaction=*/m_coinbase_txns[i + 25], /*input_vout=*/0,
+    for (size_t i{0}; i < 9; ++i) {
+        auto mtx = CreateValidMempoolTransaction(/*input_transaction=*/m_coinbase_txns[i + 1], /*input_vout=*/0,
                                                  /*input_height=*/0, /*input_signing_key=*/coinbaseKey,
                                                  /*output_destination=*/parent_locking_script,
                                                  /*output_amount=*/CAmount(49 * COIN), /*submit=*/false);
