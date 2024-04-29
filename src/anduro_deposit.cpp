@@ -59,7 +59,7 @@ bool isSpecialTxoutValid(std::vector<AnduroTxOut> txOuts, ChainstateManager& cha
    }
    // get block to find the eligible anduro keys to be signed on presigned block
    CBlock block;
-   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
 
@@ -153,7 +153,7 @@ std::string getCurrentKeys(ChainstateManager& chainman) {
    int block_index = chainman.ActiveChain().Height();
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[block_index])) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[block_index]))) {
         // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[block_index])->GetBlockHash().ToString());
    }
@@ -168,7 +168,7 @@ int32_t getNextIndex(ChainstateManager& chainman) {
    int blockindex = chainman.ActiveChain().Height();
    CChain& active_chain = chainman.ActiveChain();
    CBlock block;
-   if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
         // Log the disk read error to the user.
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
    }
@@ -215,7 +215,7 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
 
    // check for current keys for anduro
    CBlock prevblock;
-   if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[active_chain.Height()])) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[active_chain.Height()]))) {
       return false;
    }
 

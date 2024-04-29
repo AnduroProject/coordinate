@@ -32,7 +32,7 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     }
 
     CBlock block;
-    if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
         CoordinatePreConfBlock result;
         return result;
@@ -97,16 +97,12 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     CChain& active_chain = chainman.ActiveChain();
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
     LOCK(preconf_pool.cs);
-
     uint64_t signedBlockHeight = 0;
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
-    
     int currentBlockindex = active_chain.Height();
-
     if(currentBlockindex < 0) {
        return false;
     }
-
     // check preconf data is empty
     if(preconf.size()==0) {
         LogPrintf("preconf transaction sig empty \n");
@@ -154,10 +150,9 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     }
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock block;
-    if (!chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[blockindex])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
     }
-
     if(finalizedStatus == 1) {
         if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
@@ -168,7 +163,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             return false;
         }
     }
-
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         uint256 txid = preconfItem.txid;
         std::string federationKey = preconfItem.federationKey;
@@ -417,7 +411,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     }
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock minedblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(minedblock, *active_chain[blockindex])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(minedblock, *CHECK_NONFATAL(active_chain[blockindex]))) {
         removePreConfWitness();
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
         return false;
@@ -458,7 +452,7 @@ std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
         return invalidTxs;
     }
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return invalidTxs;
     } 
     InvalidTx invalidTxObj;
@@ -484,7 +478,7 @@ uint256 getReconsiledBlock(ChainstateManager& chainman) {
         return uint256();
     }
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return uint256();
     } 
 
@@ -500,7 +494,7 @@ CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return 0;
     } 
 
@@ -542,7 +536,7 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return 0;
     } 
 
@@ -618,7 +612,7 @@ CScript getMinerScript(ChainstateManager& chainman, int blockHeight) {
     if(currentHeight < 0) { 
          return scriptPubKey;
     }
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return scriptPubKey;
     } 
     return prevblock.vtx[0]->vout[0].scriptPubKey;
@@ -634,7 +628,7 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
     }
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *active_chain[currentHeight])) {
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
         return scriptPubKey;
     } 
     std::vector<unsigned char> wData(ParseHex(prevblock.currentKeys));

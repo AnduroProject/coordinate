@@ -4871,6 +4871,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             }
             incr = incr + 1;
         }
+        return;
     }
 
     // receive request from other peer to get recent anduro pre signed block information
@@ -4878,12 +4879,14 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         std::vector<CoordinatePreConfSig> vData;
         vRecv >> vData;
         includePreConfSigWitness(vData,m_chainman);
+        return;
     }
 
     if (msg_type == NetMsgType::PRECONFFINALIZEPUSH && !m_chainman.IsInitialBlockDownload()) {
         std::vector<SignedBlock> vData;
         vRecv >> vData;
         includePreConfBlockFromNetwork(vData,m_chainman);
+        return;
     }
 
     // receive response from other peer for recent anduro pre signed block information
@@ -4893,6 +4896,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         if(isSpecialTxoutValid(vData,m_chainman)) {
            includePreSignedSignature(vData);
         }
+        return;
     }
 
 
