@@ -4731,8 +4731,15 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         peer->m_last_getheaders_timestamp = {};
         
         LogPrintf("receiveing message 1 \n");
-        std::vector<CBlockHeader> headers;
+        std::vector<CBlock> headers;
+        std::vector<CBlockHeader> headersmain;
         vRecv >> headers;
+
+        for (size_t i = 0; i < headers.size(); i++)
+        {
+            headersmain.push_back(headers[i].GetBlockHeader());
+        }
+        
         LogPrintf("receiveing message 2 \n");
         // // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
         // unsigned int nCount = ReadCompactSize(vRecv);
@@ -4746,7 +4753,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         //     ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
         // }
 
-        ProcessHeadersMessage(pfrom, *peer, std::move(headers), /*via_compact_block=*/false);
+        ProcessHeadersMessage(pfrom, *peer, std::move(headersmain), /*via_compact_block=*/false);
         LogPrintf("receiveing message 3 \n");
         // Check if the headers presync progress needs to be reported to validation.
         // This needs to be done without holding the m_headers_presync_mutex lock.
