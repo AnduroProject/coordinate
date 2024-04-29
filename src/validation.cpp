@@ -2760,15 +2760,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
             }
         }
-
-        if(totalPreconfFee > 0) {
-            CAmount federationAmount = std::ceil(totalPreconfFee * 0.2);
-            CAmount totalFederationAmount = block.vtx[0]->vout[2].nValue;
-            if (totalFederationAmount > federationAmount) {
-                LogPrintf("ERROR: ConnectBlock(): coinbase pays too much for federation (actual=%d vs limit=%d)\n", federationAmount, totalFederationAmount);
-                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
-            }
-        }
     }
 
     if (!control.Wait()) {
