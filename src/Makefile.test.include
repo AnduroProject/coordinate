@@ -107,6 +107,7 @@ BITCOIN_TESTS =\
   test/multisig_tests.cpp \
   test/net_peer_eviction_tests.cpp \
   test/netbase_tests.cpp \
+  test/net_tests.cpp \
   test/orphanage_tests.cpp \
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
@@ -169,6 +170,7 @@ BITCOIN_TESTS += \
   wallet/test/walletdb_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
   wallet/test/wallet_transaction_tests.cpp \
+  wallet/test/wallet_tests.cpp \
   wallet/test/coinselector_tests.cpp \
   wallet/test/init_tests.cpp \
   wallet/test/ismine_tests.cpp \

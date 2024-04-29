@@ -51,7 +51,6 @@ BOOST_AUTO_TEST_CASE(cnode_listen_port)
 BOOST_AUTO_TEST_CASE(cnode_simple_test)
 {
     NodeId id = 0;
-
     in_addr ipv4Addr;
     ipv4Addr.s_addr = 0xa0b0c001;
 
@@ -134,7 +133,6 @@ BOOST_AUTO_TEST_CASE(cnode_simple_test)
 BOOST_AUTO_TEST_CASE(cnetaddr_basic)
 {
     CNetAddr addr;
-
     // IPv4, INADDR_ANY
     addr = LookupHost("0.0.0.0", false).value();
     BOOST_REQUIRE(!addr.IsValid());
@@ -416,6 +414,7 @@ BOOST_AUTO_TEST_CASE(cnetaddr_unserialize_v2)
                        "0102")}; // address
     BOOST_CHECK_EXCEPTION(s >> WithParams(ser_params, addr), std::ios_base::failure, HasReason("end of data"));
     BOOST_REQUIRE(!s.empty()); // The stream is not consumed on invalid input.
+
     s.clear();
 
     // Invalid IPv4, with bogus length.
@@ -424,6 +423,7 @@ BOOST_AUTO_TEST_CASE(cnetaddr_unserialize_v2)
                        "01020304")}; // address
     BOOST_CHECK_EXCEPTION(s >> WithParams(ser_params, addr), std::ios_base::failure,
                           HasReason("BIP155 IPv4 address with length 5 (should be 4)"));
+
     BOOST_REQUIRE(!s.empty()); // The stream is not consumed on invalid input.
     s.clear();
 
@@ -829,6 +829,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     in_addr peer_us_addr;
     peer_us_addr.s_addr = htonl(0x02030405);
     const CService peer_us{peer_us_addr, 20002};
+    
 
     // Create a peer with a routable IPv4 address.
     in_addr peer_in_addr;
@@ -850,27 +851,22 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     // Force ChainstateManager::IsInitialBlockDownload() to return false.
     // Otherwise PushAddress() isn't called by PeerManager::ProcessMessage().
     auto& chainman = static_cast<TestChainstateManager&>(*m_node.chainman);
-    chainman.JumpOutOfIbd();
-
     m_node.peerman->InitializeNode(peer, NODE_NETWORK);
 
     std::atomic<bool> interrupt_dummy{false};
     std::chrono::microseconds time_received_dummy{0};
-
+    
     const auto msg_version =
         msg_maker.Make(NetMsgType::VERSION, PROTOCOL_VERSION, services, time, services, CAddress::V1_NETWORK(peer_us));
     CDataStream msg_version_stream{msg_version.data, SER_NETWORK, PROTOCOL_VERSION};
-
     m_node.peerman->ProcessMessage(
         peer, NetMsgType::VERSION, msg_version_stream, time_received_dummy, interrupt_dummy);
-
     const auto msg_verack = msg_maker.Make(NetMsgType::VERACK);
     CDataStream msg_verack_stream{msg_verack.data, SER_NETWORK, PROTOCOL_VERSION};
 
     // Will set peer.fSuccessfullyConnected to true (necessary in SendMessages()).
     m_node.peerman->ProcessMessage(
         peer, NetMsgType::VERACK, msg_verack_stream, time_received_dummy, interrupt_dummy);
-
     // Ensure that peer_us_addr:bind_port is sent to the peer.
     const CService expected{peer_us_addr, bind_port};
     bool sent{false};
@@ -900,7 +896,6 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     BOOST_CHECK(sent);
 
     CaptureMessage = CaptureMessageOrig;
-    chainman.ResetIbd();
     m_node.args->ForceSetArg("-capturemessages", "0");
     m_node.args->ForceSetArg("-bind", "");
     // PeerManager::ProcessMessage() calls AddTimeData() which changes the internal state
