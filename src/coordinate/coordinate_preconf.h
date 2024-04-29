@@ -216,7 +216,7 @@ void removePreConfWitness();
  * This function remove finalized preconf block after included in mined block
  * @param[in] blockHeight block height to expire the preconf finalized block list
  */
-void removePreConfFinalizedBlock(int blockHeight);
+void removePreConfFinalizedBlock(uint64_t blockHeight);
 
 /**
  * This function return preconf minimum fee

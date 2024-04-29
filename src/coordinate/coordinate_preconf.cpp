@@ -218,7 +218,7 @@ void removePreConfWitness() {
     coordinatePreConfSig.clear();
 }
 
-void removePreConfFinalizedBlock(int blockHeight) {
+void removePreConfFinalizedBlock(uint64_t blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
         if((int)finalizedSignedBlock.nHeight > blockHeight) {

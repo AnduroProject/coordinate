@@ -2829,10 +2829,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     if(block.preconfBlock.size() > 0) {
         std::vector<uint256> signedBlockHashes;
+        uint64_t presignedHeight = 0;
         for (const SignedBlock& finalizedSignedBlock : block.preconfBlock) {
+            presignedHeight = finalizedSignedBlock.nHeight;
             signedBlockHashes.push_back(finalizedSignedBlock.GetHash());
+
         }
         psignedblocktree->WriteSignedBlockHash(signedBlockHashes,block.GetHash());
+        removePreConfFinalizedBlock(presignedHeight);
     }
 
     for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
@@ -2847,7 +2851,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
     resetDeposit(pindex->nHeight);
-    removePreConfFinalizedBlock(pindex->nHeight);
+
 
     return true;
 }
