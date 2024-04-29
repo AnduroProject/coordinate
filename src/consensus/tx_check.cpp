@@ -50,7 +50,6 @@ bool CheckTransaction(const CTransaction& tx, TxValidationState& state, int coor
 
     if (tx.IsCoinBase())
     {
-        std::cout << "size is " << tx.vin[0].scriptSig.size() << "\n";
         if (tx.vin[0].scriptSig.size() < 1 || tx.vin[0].scriptSig.size() > 100)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-cb-length");
     }

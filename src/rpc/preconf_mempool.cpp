@@ -152,8 +152,8 @@ static RPCHelpMan sendpreconflist()
                     if (receivedTx.compare("") != 0) {
                         preconfObj.txid = uint256S(receivedTx);
                     }
-                    preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int32_t>();
-                    preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int32_t>();
+                    preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
+                    preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int64_t>();
                     preconfObj.vsize =  fedParams.find_value("vsize").getInt<int32_t>();
                     preconfObj.reserve =  fedParams.find_value("reserve").getInt<int32_t>();
                     preconfObj.finalized = finalized;

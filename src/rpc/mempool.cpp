@@ -146,11 +146,11 @@ static RPCHelpMan sendrawtransaction()
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
             }
 
-            for (const auto& out : mtx.vout) {
-                if((out.scriptPubKey.IsUnspendable() || !out.scriptPubKey.HasValidOps()) && out.nValue > max_burn_amount) {
-                    throw JSONRPCTransactionError(TransactionError::MAX_BURN_EXCEEDED);
-                }
-            }
+            // for (const auto& out : mtx.vout) {
+            //     if((out.scriptPubKey.IsUnspendable() || !out.scriptPubKey.HasValidOps()) && out.nValue > max_burn_amount) {
+            //         throw JSONRPCTransactionError(TransactionError::MAX_BURN_EXCEEDED);
+            //     }
+            // }
 
             CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
 

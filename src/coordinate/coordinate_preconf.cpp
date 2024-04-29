@@ -80,12 +80,12 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         if((uint64_t)coordinatePreConfSigtem.blockHeight != signedBlockHeight) {
            continue;
         }
+        result.minedBlockHeight = coordinatePreConfSigtem.minedBlockHeight;
         result.witness = coordinatePreConfSigtem.witness;
         if(coordinatePreConfSigtem.txid.IsNull()) {
           continue;
         }
         txids.push_back(coordinatePreConfSigtem.txid);
-
     }
     result.txids = txids;
     result.fee = finalFee;
@@ -338,7 +338,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     block->currentFee = preconfList.fee;
     block->nHeight = nHeight;
     block->nTime = nTime;
-    block->blockIndex = chainman.ActiveHeight();
+    block->blockIndex = preconfList.minedBlockHeight;
     block->vtx.resize(preconfList.txids.size() + 1);
 
     unsigned int i = 1;
@@ -432,7 +432,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         LogPrintf("invalid federation fee included");
         return false;
     }
-
+    LogPrintf("validating signed block... \n");
     if(!validateAnduroSignature(witnessStr,messages.write(),minedblock.currentKeys)) {
        removePreConfWitness();
        return false;

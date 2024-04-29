@@ -9,6 +9,7 @@ inline void UnserializeCoordinatePreConfBlock(CoordinatePreConfBlockType& blockD
     s >> blockData.txids;
     s >> blockData.refunds;
     s >> blockData.witness;
+    s >> blockData.minedBlockHeight;
 }
 
 template<typename Stream, typename CoordinatePreConfBlockType>
@@ -17,6 +18,7 @@ inline void SerializeCoordinatePreConfBlock(const CoordinatePreConfBlockType& bl
     s << blockData.txids;
     s << blockData.refunds;
     s << blockData.witness;
+    s << blockData.minedBlockHeight;
 }
 
 struct CoordinatePreConfBlock {
@@ -25,6 +27,7 @@ public:
     CAmount fee; /*!< final fee for signed block*/
     std::vector<CTxOut> refunds; /*!< Preconf Mempool txout*/
     std::string witness;
+    int64_t minedBlockHeight; /*!< block height to verify witness */
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -51,6 +54,7 @@ public:
         txids.clear();
         refunds.clear();
         witness = "";
+        minedBlockHeight = -1;
     }
 };
 
@@ -88,8 +92,8 @@ inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& precon
 struct CoordinatePreConfSig {
 public:
     uint256 txid; /*!< Preconf Mempool txid*/
-    int32_t blockHeight; /*!< max block height where the preconf signature upto valid */
-    int32_t minedBlockHeight; /*!< federation public key reference in mined block height*/
+    int64_t blockHeight; /*!< max block height where the preconf signature upto valid */
+    int64_t minedBlockHeight; /*!< federation public key reference in mined block height*/
     int32_t reserve; /*!< transaction reserve */
     int32_t vsize; /*!< transaction virtula size */
     std::string witness;
