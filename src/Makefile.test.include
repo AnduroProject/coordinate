@@ -371,7 +371,15 @@ bitcoin_test_check: $(TEST_BINARY) FORCE
 bitcoin_test_clean : FORCE
 	rm -f $(CLEAN_BITCOIN_TEST) $(test_test_bitcoin_OBJECTS) $(TEST_BINARY)
 
-check-local: $(BITCOIN_TESTS:.cpp=.cpp.test)
+check-unit: $(BITCOIN_TESTS:.cpp=.cpp.test)
+
+check-local: check-unit
+if BUILD_COORDINATE_TX
+	@echo "Running test/util/test_runner.py..."
+	$(PYTHON) $(top_builddir)/test/util/test_runner.py
+endif
+	@echo "Running test/util/rpcauth-test.py..."
+	$(PYTHON) $(top_builddir)/test/util/rpcauth-test.py
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C secp256k1 check
 
 if ENABLE_TESTS
