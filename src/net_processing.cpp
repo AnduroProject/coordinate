@@ -4217,12 +4217,17 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
 
         // we must use CBlocks, as CBlockHeaders won't include the 0x00 nTx count at the end
-        std::vector<CBlock> vHeaders;
+        std::vector<CBlockHeader> vHeaders;
         int nLimit = MAX_HEADERS_RESULTS;
+        unsigned nCount = 0;
         LogPrint(BCLog::NET, "getheaders %d to %s from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.IsNull() ? "end" : hashStop.ToString(), pfrom.GetId());
         for (; pindex; pindex = m_chainman.ActiveChain().Next(pindex))
         {
             vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+            ++nCount;
+            if (nCount >= MAX_HEADERS_RESULTS)
+                break;
+
             if (--nLimit <= 0 || pindex->GetBlockHash() == hashStop)
                 break;
         }
@@ -4726,17 +4731,17 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         std::vector<CBlockHeader> headers;
 
         // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
-        unsigned int nCount = ReadCompactSize(vRecv);
-        if (nCount > MAX_HEADERS_RESULTS) {
-            Misbehaving(*peer, 20, strprintf("headers message size = %u", nCount));
-            return;
-        }
-        headers.resize(nCount);
-        for (unsigned int n = 0; n < nCount; n++) {
-            vRecv >> headers[n];
-            ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-        }
-
+        // unsigned int nCount = ReadCompactSize(vRecv);
+        // if (nCount > MAX_HEADERS_RESULTS) {
+        //     Misbehaving(*peer, 20, strprintf("headers message size = %u", nCount));
+        //     return;
+        // }
+        // headers.resize(nCount);
+        // for (unsigned int n = 0; n < nCount; n++) {
+        //     vRecv >> headers[n];
+        //     ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
+        // }
+        vRecv >> headers;
         ProcessHeadersMessage(pfrom, *peer, std::move(headers), /*via_compact_block=*/false);
 
         // Check if the headers presync progress needs to be reported to validation.
