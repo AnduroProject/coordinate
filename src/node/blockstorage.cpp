@@ -1042,6 +1042,61 @@ bool BlockManager::ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) cons
     return true;
 }
 
+namespace
+{
+
+/* Generic implementation of block reading that can handle
+   both a block and its header.  */
+
+template<typename T>
+bool ReadBlockOrHeader(T& block, const FlatFilePos& pos, const BlockManager& blockman)
+{
+    block.SetNull();
+
+    // Open history file to read
+    CAutoFile filein{blockman.OpenBlockFile(pos, true)};
+    if (filein.IsNull()) {
+        return error("ReadBlockFromDisk: OpenBlockFile failed for %s", pos.ToString());
+    }
+
+    // Read block
+    try {
+        filein >> block;
+    } catch (const std::exception& e) {
+        return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
+    }
+
+    // Check the header
+    if (!CheckProofOfWork(block, blockman.GetConsensus())) {
+        return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
+    }
+
+    // Signet only: check block solution
+    if (blockman.GetConsensus().signet_blocks && !CheckSignetBlockSolution(block, blockman.GetConsensus())) {
+        return error("ReadBlockFromDisk: Errors in block solution at %s", pos.ToString());
+    }
+
+    return true;
+}
+
+template<typename T>
+bool ReadBlockOrHeader(T& block, const CBlockIndex& index, const BlockManager& blockman)
+{
+    const FlatFilePos block_pos{WITH_LOCK(cs_main, return index.GetBlockPos())};
+
+    if (!ReadBlockOrHeader(block, block_pos, blockman)) {
+        return false;
+    }
+    if (block.GetHash() != index.GetBlockHash()) {
+        return error("ReadBlockFromDisk(CBlock&, CBlockIndex*): GetHash() doesn't match index for %s at %s",
+                     index.ToString(), block_pos.ToString());
+    }
+    return true;
+}
+
+} // anonymous namespace
+
+
 bool BlockManager::ReadBlockFromDisk(CBlock& block, const CBlockIndex& index) const
 {
     const FlatFilePos block_pos{WITH_LOCK(cs_main, return index.GetBlockPos())};
@@ -1090,6 +1145,10 @@ bool BlockManager::ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatF
     return true;
 }
 
+bool BlockManager::ReadBlockHeaderFromDisk(CBlockHeader& block, const CBlockIndex& index) const
+{
+    return ReadBlockOrHeader(block, index, *this);
+}
 
 FlatFilePos BlockManager::SaveBlockToDisk(const CBlock& block, int nHeight, const FlatFilePos* dbp)
 {

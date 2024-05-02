@@ -186,9 +186,9 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
-   // if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
-   //    return true;
-   // }
+   if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
+      return true;
+   }
    
    LOCK(cs_main);
    CChain& active_chain = chainman.ActiveChain();

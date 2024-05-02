@@ -140,7 +140,9 @@ class BlockManager
 
 private:
     const CChainParams& GetParams() const { return m_opts.chainparams; }
+public:
     const Consensus::Params& GetConsensus() const { return m_opts.chainparams.GetConsensus(); }
+private:
     /**
      * Load the blocktree off disk and into memory. Populate certain metadata
      * per index entry (nStatus, nChainWork, nTimeMax, etc.) as well as peripheral
@@ -364,6 +366,7 @@ public:
     bool ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) const;
     bool ReadBlockFromDisk(CBlock& block, const CBlockIndex& index) const;
     bool ReadRawBlockFromDisk(std::vector<uint8_t>& block, const FlatFilePos& pos) const;
+    bool ReadBlockHeaderFromDisk(CBlockHeader& block, const CBlockIndex& pindex) const;
 
     bool UndoReadFromDisk(CBlockUndo& blockundo, const CBlockIndex& index) const;
     void CleanupBlockRevFiles() const;
