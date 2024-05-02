@@ -2562,6 +2562,11 @@ void PeerManagerImpl::SendBlockTransactions(CNode& pfrom, Peer& peer, const CBlo
 
 bool PeerManagerImpl::CheckHeadersPoW(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams, Peer& peer)
 {
+    for (size_t i = 0; i < headers.size(); i++)
+    {
+       LogPrintf("testing chain id %i",headers[0].GetChainId());
+    }
+    
     // Do these headers have proof-of-work matching what's claimed?
     if (!HasValidProofOfWork(headers, consensusParams)) {
         Misbehaving(peer, 100, "header with invalid proof of work");
