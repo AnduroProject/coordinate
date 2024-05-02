@@ -262,6 +262,12 @@ public:
         return block;
     }
 
+    inline int GetBaseVersion() const
+    {
+        return CPureBlockHeader::GetBaseVersion(nVersion);
+    }
+
+
     CBlockHeader GetBlockHeader(const node::BlockManager& blockman) const;
 
     uint256 GetBlockHash() const
@@ -437,7 +443,7 @@ public:
 
     uint256 ConstructBlockHash() const
     {
-        CBlockHeader block;
+        CPureBlockHeader block;
         block.nVersion = nVersion;
         block.hashPrevBlock = hashPrev;
         block.hashMerkleRoot = hashMerkleRoot;

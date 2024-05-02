@@ -4,5 +4,5 @@
 
 uint256 SignedBlock::GetHash() const
 {
-    return SerializeHash(*this);
+    return (CHashWriter{PROTOCOL_VERSION} << *this).GetHash();
 }
