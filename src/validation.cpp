@@ -1762,7 +1762,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
                          __func__);
 
         if (!CheckProofOfWork(block.GetHash(), block.nBits, params))
-            return error("%s : non-AUX proof of work failed 123", __func__);
+            return error("%s : non-AUX proof of work failed", __func__);
 
         return true;
     }
