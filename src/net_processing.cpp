@@ -5985,6 +5985,28 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                             vInv.clear();
                         }
                     }
+                  
+                  
+                    auto preconfvtxinfo = m_preconf_mempool.infoAll();
+                    for (const auto& txinfo : preconfvtxinfo) {
+                        const uint256& hash = peer->m_wtxid_relay ? txinfo.tx->GetWitnessHash() : txinfo.tx->GetHash();
+                        CInv inv(peer->m_wtxid_relay ? MSG_WTX : MSG_TX, hash);
+                        tx_relay->m_tx_inventory_to_send.erase(hash);
+                        // Don't send transactions that peers will not put into their mempool
+                        if (txinfo.fee < filterrate.GetFee(txinfo.vsize)) {
+                            continue;
+                        }
+                        if (tx_relay->m_bloom_filter) {
+                            if (!tx_relay->m_bloom_filter->IsRelevantAndUpdate(*txinfo.tx)) continue;
+                        }
+                        tx_relay->m_tx_inventory_known_filter.insert(hash);
+                        vInv.push_back(inv);
+                        if (vInv.size() == MAX_INV_SZ) {
+                            m_connman.PushMessage(pto, msgMaker.Make(NetMsgType::INV, vInv));
+                            vInv.clear();
+                        }
+                    }
+                  
                 }
 
                 // Determine transactions to relay
