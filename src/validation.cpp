@@ -1781,8 +1781,8 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     if (!CheckProofOfWork(block.auxpow->getParentBlockHash(), block.nBits, params))
         return error("%s : AUX proof of work failed 123 1", __func__);
 
-    // if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
-    //     return error("%s : AUX POW is not valid", __func__);
+    if (!block.auxpow->check(block.GetHash(), block.GetChainId(), params))
+        return error("%s : AUX POW is not valid", __func__);
 
     return true;
 }
@@ -2747,7 +2747,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              Ticks<SecondsDouble>(time_connect),
              Ticks<MillisecondsDouble>(time_connect) / num_blocks_total);
 
-    CAmount blockReward = nFees + GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
+    CAmount blockReward = GetBlockSubsidy(pindex->nHeight, params.GetConsensus());
     if(block.vtx[0]->vout.size()>0) {
         CAmount totalAmount = block.vtx[0]->vout[0].nValue;
         if (totalAmount > blockReward) {
