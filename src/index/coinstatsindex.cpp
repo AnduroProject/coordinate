@@ -348,6 +348,7 @@ std::optional<CCoinsStats> CoinStatsIndex::LookUpStats(const CBlockIndex& block_
     stats.nTransactionOutputs = entry.transaction_output_count;
     stats.nBogoSize = entry.bogo_size;
     stats.total_amount = entry.total_amount;
+    stats.total_assets = entry.total_assets;
     stats.total_subsidy = entry.total_subsidy;
     stats.total_unspendable_amount = entry.total_unspendable_amount;
     stats.total_prevout_spent_amount = entry.total_prevout_spent_amount;
@@ -469,7 +470,13 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
             }
 
             --m_transaction_output_count;
-            m_total_amount -= coin.out.nValue;
+            if(!coin.IsBitAsset()) {
+               m_total_amount -= coin.out.nValue;
+            } else {
+                if(!coin.IsBitAssetController()) {
+                   m_total_assets -= coin.out.nValue;
+                }
+            }
             m_bogo_size -= GetBogoSize(coin.out.scriptPubKey);
         }
 
