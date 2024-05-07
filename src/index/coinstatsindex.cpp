@@ -202,10 +202,10 @@ bool CoinStatsIndex::CustomAppend(const interfaces::BlockInfo& block)
 
                     --m_transaction_output_count;
                     if(!coin.IsBitAsset()) {
-                        m_total_amount += coin.out.nValue;
+                       m_total_amount -= coin.out.nValue;
                     } else {
                         if(!coin.IsBitAssetController()) {
-                                m_total_assets += coin.out.nValue;
+                            m_total_assets -= coin.out.nValue;
                         }
                     }
                     m_bogo_size -= GetBogoSize(coin.out.scriptPubKey);
