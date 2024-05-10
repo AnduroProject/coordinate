@@ -1762,7 +1762,7 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
                          __func__);
 
         if (!CheckProofOfWork(block.GetHash(), block.nBits, params))
-            return error("%s : non-AUX proof of work failed 123", __func__);
+            return error("%s : non-AUX proof of work failed", __func__);
 
         return true;
     }
@@ -4346,13 +4346,13 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     }
 
     // No witness data is allowed in blocks that don't commit to witness data, as this would otherwise leave room for spam
-    if (!fHaveWitness) {
-      for (const auto& tx : block.vtx) {
-            if (tx->HasWitness()) {
-                return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "unexpected-witness", strprintf("%s : unexpected witness data found", __func__));
-            }
-        }
-    }
+    // if (!fHaveWitness) {
+    //   for (const auto& tx : block.vtx) {
+    //         if (tx->HasWitness()) {
+    //             return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "unexpected-witness", strprintf("%s : unexpected witness data found", __func__));
+    //         }
+    //     }
+    // }
 
     // After the coinbase witness reserved value and commitment are verified,
     // we can check if the block weight passes (before we've checked the
