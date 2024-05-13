@@ -2754,17 +2754,20 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
            LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
         }
-        CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainman, pindex->nHeight);
-        CAmount minerFee = getFeeForBlock(m_chainman, pindex->nHeight);
+        if(m_chainman.GetParams().GetChainType() != ChainType::REGTEST) {
+            CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainman, pindex->nHeight);
+            CAmount minerFee = getFeeForBlock(m_chainman, pindex->nHeight);
 
-        if(minerFee > 0) {
-            minerFee = minerFee + std::ceil(totalPreconfFee * 0.8);
-            CAmount totalMinerAmount = block.vtx[0]->vout[1].nValue;
-            if (totalMinerAmount > minerFee) {
-                LogPrintf("ERROR: ConnectBlock(): coinbase pays too much(actual=%d vs limit=%d)\n", totalAmount, totalMinerAmount);
-                return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+            if(minerFee > 0) {
+                minerFee = minerFee + std::ceil(totalPreconfFee * 0.8);
+                CAmount totalMinerAmount = block.vtx[0]->vout[block.vtx[0]->vout.size()-3].nValue;
+                if (totalMinerAmount > minerFee) {
+                    LogPrintf("ERROR: ConnectBlock(): coinbase pays too much(actual=%d vs limit=%d)\n", totalAmount, totalMinerAmount);
+                    return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
+                }
             }
         }
+
     }
 
     if (!control.Wait()) {
