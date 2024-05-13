@@ -2426,20 +2426,10 @@ CTransactionRef PeerManagerImpl::FindTxForGetData(const Peer::TxRelay& tx_relay,
 CTransactionRef PeerManagerImpl::FindPreConfTxForGetData(const Peer::TxRelay& tx_relay, const GenTxid& gtxid)
 {
     // If a tx was in the mempool prior to the last INV for this peer, permit the request.
-    auto txinfo = m_preconf_mempool.info_for_relay(gtxid, tx_relay.m_last_inv_sequence);
+    auto txinfo = m_preconf_mempool.info(gtxid);
     if (txinfo.tx) {
         return std::move(txinfo.tx);
     }
-
-    // Or it might be from the most recent block
-    {
-        LOCK(m_most_recent_block_mutex);
-        if (m_most_recent_block_txs != nullptr) {
-            auto it = m_most_recent_block_txs->find(gtxid.GetHash());
-            if (it != m_most_recent_block_txs->end()) return it->second;
-        }
-    }
-
     return {};
 }
 
@@ -2464,15 +2454,12 @@ void PeerManagerImpl::ProcessGetData(CNode& pfrom, Peer& peer, const std::atomic
         if (pfrom.fPauseSend) break;
 
         const CInv &inv = *it++;
-
         if (tx_relay == nullptr) {
             // Ignore GETDATA requests for transactions from block-relay-only
             // peers and peers that asked us not to announce transactions.
             continue;
         }
-
         CTransactionRef tx = FindTxForGetData(*tx_relay, ToGenTxid(inv));
-
         bool is_preconfirm = false;
         if(!tx) {
             tx = FindPreConfTxForGetData(*tx_relay, ToGenTxid(inv));
