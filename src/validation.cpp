@@ -2583,20 +2583,24 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             includedSignedBlock.push_back(finalizedSignedBlock.GetHash());
         }
     }
-
-    for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
-        if(std::find(includedSignedBlock.begin(), includedSignedBlock.end(), finalizedSignedBlock.GetHash()) == includedSignedBlock.end()){
-            for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
-                CTransactionRef ptx = finalizedSignedBlock.vtx[i];
-                const CTransaction &tx = *ptx;
-                CTxUndo undoDummy;
-                CAmount amountAssetIn = CAmount(0);
-                int nControlN = -1;
-                uint32_t nAssetID = 0;
-                UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+    if(includedSignedBlock.size() > 0) {
+        for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
+            if(std::find(includedSignedBlock.begin(), includedSignedBlock.end(), finalizedSignedBlock.GetHash()) == includedSignedBlock.end()){
+                for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+                    CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+                    const CTransaction &tx = *ptx;
+                    CTxUndo undoDummy;
+                    CAmount amountAssetIn = CAmount(0);
+                    int nControlN = -1;
+                    uint32_t nAssetID = 0;
+                    UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+                }
             }
         }
+    } else {
+        UpdatedCoinsTip(view,pindex->nHeight);
     }
+
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
