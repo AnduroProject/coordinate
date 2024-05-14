@@ -170,10 +170,6 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 }
 
 bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
-    if(tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
-       return true;
-    }
-
     CAmount amountAssetInOut = CAmount(0); 
     uint32_t currentAssetID = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
@@ -193,7 +189,10 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
         } else {
             // check input is unspent
             bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
-            if(is_asset) {
+            if(!is_asset) {
+                LogPrintf("Invalid inputs \n");
+                return false;
+            } else {
                 coinValue = coin.out.nValue;
             }
         }
