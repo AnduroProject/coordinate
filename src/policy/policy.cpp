@@ -170,7 +170,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
 }
 
 bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
-    if(tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+    if(tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
        return true;
     }
 
