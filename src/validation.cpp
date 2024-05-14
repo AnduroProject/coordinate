@@ -2571,14 +2571,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (!checkSignedBlock(finalizedSignedBlock, m_chainman)) {
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Invalid signed block");
         } else {
-            CTransactionRef ptx = finalizedSignedBlock.vtx[i];
-            const CTransaction &tx = *ptx;
-            CTxUndo undoDummy;
-            CAmount amountAssetIn = CAmount(0);
-            int nControlN = -1;
-            uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
-            includedSigned.push_back(finalizedSignedBlock.GetHash());
+            for (unsigned int i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+                CTransactionRef ptx = finalizedSignedBlock.vtx[i];
+                const CTransaction &tx = *ptx;
+                CTxUndo undoDummy;
+                CAmount amountAssetIn = CAmount(0);
+                int nControlN = -1;
+                uint32_t nAssetID = 0;
+                UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+            }
+            includedSignedBlock.push_back(finalizedSignedBlock.GetHash());
         }
     }
 
