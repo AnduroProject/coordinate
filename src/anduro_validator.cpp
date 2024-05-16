@@ -22,7 +22,7 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
         allKeysArray.push_back(allKeysArrayRequest[i].get_str());
     }
-    int thresold =  std::ceil(allKeysArray.size() * 0.6);
+    int thresold =  ((allKeysArray.size()-(allKeysArray.size() % 2))/2) + 1;
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
     UniValue allSignatures(UniValue::VARR);
@@ -40,13 +40,11 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
         std::string redeemPath =  o.find_value("redeempath").get_str();
         std::string signature =  o.find_value("signature").get_str();
 
-
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
-
             uint256 message = prepareMessageHash(messageIn);
             XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
-               LogPrintf("failed verfication \n");
+                LogPrintf("failed verfication \n");
             } else {
                 LogPrintf("success verfication \n");
                 thresold -= 1;
