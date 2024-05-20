@@ -89,6 +89,7 @@ BITCOIN_TESTS =\
   test/cuckoocache_tests.cpp \
   test/dbwrapper_tests.cpp \
   test/descriptor_tests.cpp \
+  test/denialofservice_tests.cpp \
   test/flatfile_tests.cpp \
   test/fs_tests.cpp \
   test/getarg_tests.cpp \
@@ -97,6 +98,7 @@ BITCOIN_TESTS =\
   test/httpserver_tests.cpp \
   test/i2p_tests.cpp \
   test/key_tests.cpp \
+  test/key_io_tests.cpp \
   test/logging_tests.cpp \
   test/mempool_tests.cpp \
   test/miniminer_tests.cpp \
@@ -105,11 +107,13 @@ BITCOIN_TESTS =\
   test/multisig_tests.cpp \
   test/net_peer_eviction_tests.cpp \
   test/netbase_tests.cpp \
+  test/net_tests.cpp \
   test/orphanage_tests.cpp \
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
   test/policyestimator_tests.cpp \
   test/pool_tests.cpp \
+  test/pow_tests.cpp \
   test/prevector_tests.cpp \
   test/raii_event_tests.cpp \
   test/random_tests.cpp \
@@ -142,6 +146,7 @@ BITCOIN_TESTS =\
   test/transaction_tests.cpp \
   test/translation_tests.cpp \
   test/txindex_tests.cpp \
+  test/txpackage_tests.cpp \
   test/txreconciliation_tests.cpp \
   test/txrequest_tests.cpp \
   test/txvalidation_tests.cpp \
@@ -154,6 +159,7 @@ BITCOIN_TESTS =\
   test/validation_flush_tests.cpp \
   test/validation_tests.cpp \
   test/validationinterface_tests.cpp \
+  test/versionbits_tests.cpp \
   test/xoroshiro128plusplus_tests.cpp
 
 if ENABLE_WALLET
@@ -164,6 +170,7 @@ BITCOIN_TESTS += \
   wallet/test/walletdb_tests.cpp \
   wallet/test/wallet_crypto_tests.cpp \
   wallet/test/wallet_transaction_tests.cpp \
+  wallet/test/wallet_tests.cpp \
   wallet/test/coinselector_tests.cpp \
   wallet/test/init_tests.cpp \
   wallet/test/ismine_tests.cpp \
@@ -364,7 +371,15 @@ bitcoin_test_check: $(TEST_BINARY) FORCE
 bitcoin_test_clean : FORCE
 	rm -f $(CLEAN_BITCOIN_TEST) $(test_test_bitcoin_OBJECTS) $(TEST_BINARY)
 
-check-local: $(BITCOIN_TESTS:.cpp=.cpp.test)
+check-unit: $(BITCOIN_TESTS:.cpp=.cpp.test)
+
+check-local: check-unit
+if BUILD_COORDINATE_TX
+	@echo "Running test/util/test_runner.py..."
+	$(PYTHON) $(top_builddir)/test/util/test_runner.py
+endif
+	@echo "Running test/util/rpcauth-test.py..."
+	$(PYTHON) $(top_builddir)/test/util/rpcauth-test.py
 	$(AM_V_at)$(MAKE) $(AM_MAKEFLAGS) -C secp256k1 check
 
 if ENABLE_TESTS
