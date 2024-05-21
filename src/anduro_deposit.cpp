@@ -185,22 +185,31 @@ bool isAnduroValidationActive() {
 /**
  * Validate the anduro signature on confirmed blocks
  */
-bool verifyAnduro(ChainstateManager& chainman, const CBlock& block, int currentHeight) {
+bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
       return true;
    }
-   
+
    LOCK(cs_main);
+   const CBlockIndex* pblockindex;
+   pblockindex = chainman.m_blockman.LookupBlockIndex(block.GetHash());
+   if (!pblockindex) {
+      return false
+   }
+   int currentHeight = pblockindex->nHeight;
+   if(currentHeight == 0) {
+      LogPrintf("verifyAnduro: gensis block ignored");
+      return true;
+   }
    CChain& active_chain = chainman.ActiveChain();
    // activate presigned signature checker after blocks fully synced in node
-   if(listPendingDepositTransaction(currentHeight+1).size()>0) {
+   if(listPendingDepositTransaction(currentHeight).size()>0) {
          isValidationActivate = true;
    }
 
    if(!isAnduroValidationActive()) {
       return true;
    }
-
 
    // check coinbase should have five output
    //  0 - fee reward for merge mine
@@ -215,7 +224,7 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block, int currentH
 
    // check for current keys for anduro
    CBlock prevblock;
-   if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+   if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight - 1]))) {
       return false;
    }
 
@@ -235,13 +244,13 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block, int currentH
    if(block.vtx[0]->vout.size() == 4) {
       const CTxDestination coinbaseScript = DecodeDestination(witnessVal.get_obj().find_value("current_address").get_str());
       const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-      AnduroTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, currentHeight + 1,block.nextIndex,block.currentKeys, "", "");
+      AnduroTxOut out(AmountFromValue(0), scriptPubKey, witnessStr, currentHeight,block.nextIndex,block.currentKeys, "", "");
       tOuts.push_back(out);
    } else {
       // if more than 3 output in coinbase should be considered as pegin and recreating presigned signature for pegin to verify with anduro current keys
       for (size_t i = 1; i < block.vtx[0]->vout.size()-3; i=i+1) {
          CTxOut pegTx = block.vtx[0]->vout[i];
-         AnduroTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, currentHeight + 1,block.nextIndex,block.currentKeys, "", "");
+         AnduroTxOut out(pegTx.nValue, pegTx.scriptPubKey, witnessStr, currentHeight,block.nextIndex,block.currentKeys, "", "");
          tOuts.push_back(out);
       }
    }
