@@ -2557,6 +2557,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
+    bool verifyAnduroCheck = verifyAnduro(m_chainman,*block);
+    if (!verifyAnduroCheck) {
+         return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Anduro witness failed");
+    }
+
     std::vector<int> prevheights;
     CAmount nFees = 0;
     int nInputs = 0;
@@ -4679,13 +4684,6 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         // not very expensive, the anti-DoS benefits of caching failure (of a definitely-invalid block) are not substantial.
         bool ret = CheckBlock(*block, state, GetConsensus());
         if (ret) {
-
-            // anduro check block
-            bool verifyAnduroCheck = verifyAnduro(m_active_chainstate->m_chainman,*block);
-            if (!verifyAnduroCheck) {
-                GetMainSignals().BlockChecked(*block, state);
-                return error("%s: AcceptBlock FAILED (%s)", __func__, "Anduro witness failed");
-            }
 
             // Store to disk
             ret = AcceptBlock(block, state, &pindex, force_processing, nullptr, new_block, min_pow_checked);
