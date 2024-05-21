@@ -103,7 +103,7 @@ bool isAnduroValidationActive();
  * @param[in] chainman  used to find previous blocks based on active chain state to find anduro current keys
  * @param[in] block  current block received from connectblock
  */
-bool verifyAnduro(ChainstateManager& chainman, const CBlock& block, int currentHeight);
+bool verifyAnduro(ChainstateManager& chainman, const CBlock& block);
 
 /**
  * This function check presigned signatures are valid
