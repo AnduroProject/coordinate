@@ -185,18 +185,12 @@ bool isAnduroValidationActive() {
 /**
  * Validate the anduro signature on confirmed blocks
  */
-bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
+bool verifyAnduro(ChainstateManager& chainman, const CBlock& block, int currentHeight) {
    if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
       return true;
    }
 
    LOCK(cs_main);
-   const CBlockIndex* pblockindex;
-   pblockindex = chainman.m_blockman.LookupBlockIndex(block.GetHash());
-   if (!pblockindex) {
-      return false;
-   }
-   int currentHeight = pblockindex->nHeight;
    if(currentHeight == 0) {
       LogPrintf("verifyAnduro: gensis block ignored");
       return true;
