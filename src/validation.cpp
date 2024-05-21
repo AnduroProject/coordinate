@@ -2557,7 +2557,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
-    bool verifyAnduroCheck = verifyAnduro(m_chainman,*block);
+    bool verifyAnduroCheck = verifyAnduro(m_chainman,block);
     if (!verifyAnduroCheck) {
          return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Anduro witness failed");
     }
