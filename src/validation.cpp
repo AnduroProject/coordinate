@@ -4681,7 +4681,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         if (ret) {
 
             // anduro check block
-            bool verifyAnduroCheck = verifyAnduro(m_active_chainstate->m_chainman,*block);
+            bool verifyAnduroCheck = verifyAnduro(m_active_chainstate->m_chainman,*block, ActiveHeight());
             if (!verifyAnduroCheck) {
                 GetMainSignals().BlockChecked(*block, state);
                 return error("%s: AcceptBlock FAILED (%s)", __func__, "Anduro witness failed");
