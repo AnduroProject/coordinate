@@ -194,7 +194,7 @@ bool verifyAnduro(ChainstateManager& chainman, const CBlock& block) {
    const CBlockIndex* pblockindex;
    pblockindex = chainman.m_blockman.LookupBlockIndex(block.GetHash());
    if (!pblockindex) {
-      return false
+      return false;
    }
    int currentHeight = pblockindex->nHeight;
    if(currentHeight == 0) {
