@@ -79,7 +79,9 @@ void CCoinsViewCache::AddCoin(const COutPoint &outpoint, Coin&& coin, bool possi
     }
     if (!possible_overwrite) {
         if (!it->second.coin.IsSpent()) {
-            throw std::logic_error("Attempted to overwrite an unspent coin (when possible_overwrite is false)");
+            // throw std::logic_error("Attempted to overwrite an unspent coin (when possible_overwrite is false)");
+            // #TODO: Handle preconf network txs
+            return;
         }
         // If the coin exists in this cache as a spent coin and is DIRTY, then
         // its spentness hasn't been flushed to the parent cache. We're
