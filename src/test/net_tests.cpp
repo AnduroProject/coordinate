@@ -851,6 +851,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     // Force ChainstateManager::IsInitialBlockDownload() to return false.
     // Otherwise PushAddress() isn't called by PeerManager::ProcessMessage().
     auto& chainman = static_cast<TestChainstateManager&>(*m_node.chainman);
+    chainman.JumpOutOfIbd();
     m_node.peerman->InitializeNode(peer, NODE_NETWORK);
 
     std::atomic<bool> interrupt_dummy{false};
@@ -896,6 +897,7 @@ BOOST_AUTO_TEST_CASE(initial_advertise_from_version_message)
     BOOST_CHECK(sent);
 
     CaptureMessage = CaptureMessageOrig;
+    chainman.ResetIbd();
     m_node.args->ForceSetArg("-capturemessages", "0");
     m_node.args->ForceSetArg("-bind", "");
     // PeerManager::ProcessMessage() calls AddTimeData() which changes the internal state
