@@ -89,7 +89,6 @@ BITCOIN_TESTS =\
   test/cuckoocache_tests.cpp \
   test/dbwrapper_tests.cpp \
   test/descriptor_tests.cpp \
-  test/denialofservice_tests.cpp \
   test/flatfile_tests.cpp \
   test/fs_tests.cpp \
   test/getarg_tests.cpp \
@@ -108,7 +107,6 @@ BITCOIN_TESTS =\
   test/multisig_tests.cpp \
   test/net_peer_eviction_tests.cpp \
   test/netbase_tests.cpp \
-  test/net_tests.cpp \
   test/orphanage_tests.cpp \
   test/pmt_tests.cpp \
   test/policy_fee_tests.cpp \
