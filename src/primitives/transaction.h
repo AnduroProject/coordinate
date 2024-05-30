@@ -224,6 +224,7 @@ inline void UnserializeTransaction(TxType& tx, Stream& s) {
     s >> tx.nVersion;
     if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         s >> tx.assetType;
+        s >> tx.precision;
         s >> tx.ticker;
         s >> tx.headline;
         s >> tx.payload;
@@ -270,6 +271,7 @@ inline void SerializeTransaction(const TxType& tx, Stream& s) {
     s << tx.nVersion;
     if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         s << tx.assetType;
+        s << tx.precision;
         s << tx.ticker;
         s << tx.headline;
         s << tx.payload;
@@ -328,6 +330,10 @@ public:
     // 1 - Non-Fungible
     // 2 - Non-Fungible collection
     const int32_t assetType;
+    // precision
+    // 0 - if asset type is 1 and 2
+    // 1 to 8 for asset type 0
+    const int32_t precision;
     const std::string ticker;
     const std::string headline;
     const uint256 payload;
@@ -410,6 +416,7 @@ struct CMutableTransaction
     int32_t nVersion;
     uint32_t nLockTime;
     int32_t assetType;
+    int32_t precision;
     std::string ticker;
     std::string headline;
     uint256 payload;

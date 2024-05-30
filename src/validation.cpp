@@ -725,11 +725,18 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     int coordinateOutputs = 0;
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+
         if (tx.vout.size() < 2) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
         }
-       if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+
+        if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction payload missing");
+        }
+
+        // validate asset precision
+        if((tx.assetType == 0 && (tx.precision < 1 || tx.precision > 8)) || (tx.assetType != 0 && tx.precision != 0)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset Asset Precision");
         }
         coordinateOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
@@ -2703,10 +2710,16 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Maxium asset count reacheds");
             }
             nIDLast = nIDLast + 1;
+
+            // validate asset precision
+            if((tx.assetType == 0 && (tx.precision < 1 || tx.precision > 8)) || (tx.assetType != 0 && tx.precision != 0)) {
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset Asset Precision");
+            }
+
             // addtional mint for tokens
             if (tx.assetType == 0) {
                 if (tx.vin.size() == 0) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input spciefied");
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input specified");
                 }
 
                 bool fBitAssetControl = false;
@@ -2723,6 +2736,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             if(nAssetID == 0) {
                 asset.nID = nIDLast;
                 asset.assetType = tx.assetType;
+                asset.precision = tx.precision;
                 asset.strTicker = tx.ticker;
                 asset.strHeadline = tx.headline;
                 asset.payload = tx.payload;

@@ -171,6 +171,7 @@ static std::vector<RPCArg> CreateTxDoc()
         {"assetInfo", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "Additional parameters for asset creation",
             {
                 {"assettype", RPCArg::Type::NUM, RPCArg::Optional::NO, "The asset type"},
+                {"precision", RPCArg::Type::NUM, RPCArg::Optional::NO, "Precision number for token"},
                 {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "The ticker symbol"},
                 {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "The headline"},
                 {"payload", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The payload"},
@@ -487,6 +488,7 @@ static RPCHelpMan createrawtransaction()
         if (assetParams.isObject()) {
             rawTx.nVersion = 10;
             rawTx.assetType = assetParams["assettype"].getInt<int>();
+            rawTx.precision = assetParams["precision"].getInt<int>();
             rawTx.ticker = assetParams["ticker"].get_str();
             rawTx.headline = assetParams["headline"].get_str();
             rawTx.payload = uint256S(assetParams["payload"].get_str());

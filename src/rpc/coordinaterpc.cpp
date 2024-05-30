@@ -183,6 +183,7 @@ static RPCHelpMan listAllAssets() {
                         {
                             {RPCResult::Type::NUM, "id", "AssetID"},
                             {RPCResult::Type::NUM, "assettype", "Asset Type"},
+                            {RPCResult::Type::NUM, "precision", "Precision Number"},
                             {RPCResult::Type::STR, "ticker", "Asset Ticker"},
                             {RPCResult::Type::NUM, "supply", "Asset supply"},
                             {RPCResult::Type::STR, "headline", "Asset title"},
@@ -210,6 +211,7 @@ static RPCHelpMan listAllAssets() {
                     UniValue obj(UniValue::VOBJ);
                     obj.pushKV("id", (uint64_t)asset_item.nID);
                     obj.pushKV("assettype", asset_item.assetType);
+                    obj.pushKV("precision", asset_item.precision);
                     obj.pushKV("ticker", asset_item.strTicker);
                     obj.pushKV("supply", asset_item.nSupply);
                     obj.pushKV("headline", asset_item.strHeadline);

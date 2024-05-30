@@ -182,6 +182,7 @@ void TxToUniv(const CTransaction& tx, const uint256& block_hash, UniValue& entry
     entry.pushKV("weight", GetTransactionWeight(tx));
     entry.pushKV("locktime", (int64_t)tx.nLockTime);
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        entry.pushKV("precision",tx.precision);
         entry.pushKV("assettype",tx.assetType);
         entry.pushKV("ticker",tx.ticker);
         entry.pushKV("headline",tx.headline);

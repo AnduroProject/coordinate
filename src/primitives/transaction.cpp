@@ -63,7 +63,7 @@ std::string CTxOut::ToString() const
 }
 
 CMutableTransaction::CMutableTransaction() : nVersion(CTransaction::CURRENT_VERSION), nLockTime(0) {}
-CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), assetType(tx.assetType), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData) {}
+CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), nLockTime(tx.nLockTime), assetType(tx.assetType), precision(tx.precision), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData) {}
 
 uint256 CMutableTransaction::GetHash() const
 {
@@ -83,8 +83,8 @@ uint256 CTransaction::ComputeWitnessHash() const
     return (CHashWriter{0} << *this).GetHash();
 }
 
-CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), assetType(tx.assetType), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
-CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), assetType(tx.assetType), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), assetType(tx.assetType), precision(tx.precision), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
+CTransaction::CTransaction(CMutableTransaction&& tx) : vin(std::move(tx.vin)), vout(std::move(tx.vout)), nVersion(tx.nVersion), assetType(tx.assetType), precision(tx.precision), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
 
 CAmount CTransaction::GetValueOut() const
 {
