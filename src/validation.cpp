@@ -4654,7 +4654,18 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
     // Write block to history file
     if (fNewBlock) *fNewBlock = true;
     try {
-        FlatFilePos blockPos{m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp)};
+        FlatFilePos blockPos;
+        if(ActiveChainstate().isAssetPrune) {
+            CBlock m_block(block);
+            for (size_t i = 0; i < m_block.vtx.size(); i++) {
+                if(m_block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && m_block.vtx[i]->assetType == 2) {
+                    m_block.vtx[i]->payloadData = "";
+                }
+            }
+            blockPos = m_blockman.SaveBlockToDisk(m_block, pindex->nHeight, dbp);
+        } else {
+            blockPos = m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp);
+        }
         if (blockPos.IsNull()) {
             state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
             return false;
@@ -4877,7 +4888,7 @@ VerifyDBResult CVerifyDB::VerifyDB(
         if (pindex->nHeight <= chainstate.m_chain.Height() - nCheckDepth) {
             break;
         }
-        if ((chainstate.m_blockman.IsPruneMode() || is_snapshot_cs) && !(pindex->nStatus & BLOCK_HAVE_DATA)) {
+        if (((chainstate.m_blockman.IsPruneMode() || is_snapshot_cs) && !(pindex->nStatus & BLOCK_HAVE_DATA)) || chainstate.isAssetPrune) {
             // If pruning or running under an assumeutxo snapshot, only go
             // back as far as we have data.
             LogPrintf("VerifyDB(): block verification stopping at height %d (no data). This could be due to pruning or use of an assumeutxo snapshot.\n", pindex->nHeight);

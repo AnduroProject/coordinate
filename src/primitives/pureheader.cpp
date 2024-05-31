@@ -11,6 +11,7 @@ uint256 CPureBlockHeader::GetHash() const
 {
     return (CHashWriter{PROTOCOL_VERSION} << *this).GetHash();
 }
+
 void CPureBlockHeader::SetBaseVersion(int32_t nBaseVersion, int32_t nChainId)
 {
     assert(nBaseVersion >= 1 && nBaseVersion < VERSION_AUXPOW);

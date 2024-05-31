@@ -2315,6 +2315,9 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         pfrom.fDisconnect = true;
         return;
     }
+    if(m_chainman.ActiveChainstate().isAssetPrune) {
+        return;
+    }
     // Pruned nodes may have deleted the block, so check whether
     // it's available before trying to send.
     if (!(pindex->nStatus & BLOCK_HAVE_DATA)) {
@@ -4039,6 +4042,11 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         if (locator.vHave.size() > MAX_LOCATOR_SZ) {
             LogPrint(BCLog::NET, "getblocks locator size %lld > %d, disconnect peer=%d\n", locator.vHave.size(), MAX_LOCATOR_SZ, pfrom.GetId());
             pfrom.fDisconnect = true;
+            return;
+        }
+
+        if(m_chainman.ActiveChainstate().isAssetPrune) {
+            LogPrint(BCLog::NET, "Node enabled with asset prune option");
             return;
         }
 

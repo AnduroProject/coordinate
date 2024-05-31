@@ -67,12 +67,16 @@ CMutableTransaction::CMutableTransaction(const CTransaction& tx) : vin(tx.vin), 
 
 uint256 CMutableTransaction::GetHash() const
 {
-    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << *this).GetHash();
+    CMutableTransaction tx(*this);
+    tx.payloadData = "";
+    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << tx).GetHash();
 }
 
 uint256 CTransaction::ComputeHash() const
 {
-    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << *this).GetHash();
+    CTransaction tx(*this);
+    tx.payloadData = "";
+    return (CHashWriter{SERIALIZE_TRANSACTION_NO_WITNESS} << tx).GetHash();
 }
 
 uint256 CTransaction::ComputeWitnessHash() const
@@ -80,7 +84,9 @@ uint256 CTransaction::ComputeWitnessHash() const
     if (!HasWitness()) {
         return hash;
     }
-    return (CHashWriter{0} << *this).GetHash();
+    CTransaction tx(*this);
+    tx.payloadData = "";
+    return (CHashWriter{0} << tx).GetHash();
 }
 
 CTransaction::CTransaction(const CMutableTransaction& tx) : vin(tx.vin), vout(tx.vout), nVersion(tx.nVersion), assetType(tx.assetType), precision(tx.precision), ticker(tx.ticker), headline(tx.headline), payload(tx.payload), payloadData(tx.payloadData), nLockTime(tx.nLockTime), hash{ComputeHash()}, m_witness_hash{ComputeWitnessHash()} {}
