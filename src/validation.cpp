@@ -2622,7 +2622,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         bool isValidTx = true;
         if (!tx.IsCoinBase())
         {
-            if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+            if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && !m_chainman.ActiveChainstate().isAssetPrune) {
                 if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
                 }
