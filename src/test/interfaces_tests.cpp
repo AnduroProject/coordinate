@@ -141,19 +141,19 @@ BOOST_AUTO_TEST_CASE(hasBlocks)
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), -1000, 1000));
     active[6]->nStatus &= ~BLOCK_HAVE_DATA;
     BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 10, 90));
-    BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 10, {}));
+    BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 6, {}));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 0, 90));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 0, {}));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), -1000, 1000));
     active[7]->nStatus &= ~BLOCK_HAVE_DATA;
-    BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 10, 90));
-    BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 10, {}));
+    BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 7, 90));
+    BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 7, {}));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 0, 90));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 0, {}));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), -1000, 1000));
 
     // Test edge cases
-    BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 10, 49));
+    BOOST_CHECK(chain->hasBlocks(active.Tip()->GetBlockHash(), 9 , 49));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 5, 49));
     BOOST_CHECK(!chain->hasBlocks(active.Tip()->GetBlockHash(), 6, 50));
 }
