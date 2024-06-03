@@ -26,6 +26,7 @@ static constexpr uint8_t DB_HEAD_BLOCKS{'H'};
 static constexpr uint8_t DB_COINS{'c'};
 
 static constexpr uint8_t DB_ASSET{'A'};
+static constexpr uint8_t DB_MINED_ASSET{'D'};
 static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 
 static constexpr uint8_t DB_SIGNED_BLOCK_HASH{'V'};
@@ -295,6 +296,20 @@ bool CoordinateAssetDB::GetAsset(const uint32_t nID, CoordinateAsset& asset)
     return Read(std::make_pair(DB_ASSET, nID), asset);
 }
 
+bool CoordinateAssetDB::WriteAssetMinedBlock(uint256 blockHash) {
+    CDBBatch batch(*this);
+    std::pair<uint8_t, uint256> key = std::make_pair(DB_MINED_ASSET, blockHash);
+    batch.Write(key, blockHash);
+    return WriteBatch(batch, true);
+}
+
+bool CoordinateAssetDB::getAssetMinedBlock(uint256 blockHash) {
+    uint256 hash;
+    if(Read(std::make_pair(DB_MINED_ASSET, blockHash), hash)) {
+        return true;
+    }
+    return false;
+}
 
 SignedBlocksDB::SignedBlocksDB(DBParams db_params)
     : CDBWrapper(db_params) { }

@@ -2315,7 +2315,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         pfrom.fDisconnect = true;
         return;
     }
-    if(m_chainman.ActiveChainstate().isAssetPrune) {
+    if(m_chainman.ActiveChainstate().isAssetPrune && !m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
         return;
     }
     // Pruned nodes may have deleted the block, so check whether

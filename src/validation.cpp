@@ -4655,7 +4655,7 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
     if (fNewBlock) *fNewBlock = true;
     try {
         FlatFilePos blockPos;
-        if(ActiveChainstate().isAssetPrune) {
+        if(ActiveChainstate().isAssetPrune && !fNewBlock) {
             CBlock m_block(block);
             for (size_t i = 0; i < m_block.vtx.size(); i++) {
                 if(m_block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && m_block.vtx[i]->assetType == 2) {
@@ -4663,6 +4663,7 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
                 }
             }
             blockPos = m_blockman.SaveBlockToDisk(m_block, pindex->nHeight, dbp);
+            m_active_chainstate->passettree->WriteAssetMinedBlock(m_block.GetHash());
         } else {
             blockPos = m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp);
         }
