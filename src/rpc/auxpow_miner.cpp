@@ -186,9 +186,9 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
   ss >> *pow;
   shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
-
+  bool new_block{true};
   return chainman.ProcessNewBlock (shared_block, /*force_processing=*/true,
-                                   /*min_pow_checked=*/true, nullptr);
+                                   /*min_pow_checked=*/true, &new_block);
 }
 
 AuxpowMiner&

@@ -4589,7 +4589,7 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
 {
     const CBlock& block = *pblock;
 
-    if (fNewBlock) *fNewBlock = false;
+    // if (fNewBlock) *fNewBlock = false;
     AssertLockHeld(cs_main);
 
     CBlockIndex *pindexDummy = nullptr;
@@ -4652,18 +4652,20 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
         GetMainSignals().NewPoWValidBlock(pindex, pblock);
 
     // Write block to history file
-    if (fNewBlock) *fNewBlock = true;
+    // if (fNewBlock) *fNewBlock = true;
     try {
         FlatFilePos blockPos;
-        if(ActiveChainstate().isAssetPrune && !fNewBlock) {
+        if(ActiveChainstate().isAssetPrune) {
             CBlock m_block(block);
             for (size_t i = 0; i < m_block.vtx.size(); i++) {
-                if(m_block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && m_block.vtx[i]->assetType == 2) {
+                if(m_block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && m_block.vtx[i]->assetType == 2 && !fNewBlock) {
                     m_block.vtx[i]->payloadData = "";
                 }
             }
             blockPos = m_blockman.SaveBlockToDisk(m_block, pindex->nHeight, dbp);
-            m_active_chainstate->passettree->WriteAssetMinedBlock(m_block.GetHash());
+            if(fNewBlock) {
+               m_active_chainstate->passettree->WriteAssetMinedBlock(m_block.GetHash());
+            }
         } else {
             blockPos = m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp);
         }
@@ -4696,7 +4698,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
 
     {
         CBlockIndex *pindex = nullptr;
-        if (new_block) *new_block = false;
+        // if (new_block) *new_block = false;
         BlockValidationState state;
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.
