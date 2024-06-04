@@ -28,6 +28,7 @@ static constexpr uint8_t DB_COINS{'c'};
 static constexpr uint8_t DB_ASSET{'A'};
 static constexpr uint8_t DB_MINED_ASSET{'D'};
 static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
+static constexpr uint8_t DB_ASSET_LAST_PRUNE_HEIGHT{'E'};
 
 static constexpr uint8_t DB_SIGNED_BLOCK_HASH{'V'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
@@ -284,6 +285,20 @@ bool CoordinateAssetDB::WriteLastAssetID(const uint32_t nID)
 {
     return Write(DB_ASSET_LAST_ID, nID);
 }
+
+bool CoordinateAssetDB::GetLastAssetPruneHeight(uint32_t& nID)
+{
+    if (!Read(DB_ASSET_LAST_PRUNE_HEIGHT, nID))
+        return false;
+
+    return true;
+}
+
+bool CoordinateAssetDB::WriteLastAssetPruneHeight(const uint32_t nID)
+{
+    return Write(DB_ASSET_LAST_PRUNE_HEIGHT, nID);
+}
+
 
 bool CoordinateAssetDB::RemoveAsset(const uint32_t nID)
 {

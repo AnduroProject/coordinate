@@ -126,6 +126,7 @@ public:
         pchMessageStart[3] = 0xd5;
         nDefaultPort = 8337;
         nPruneAfterHeight = 100000;
+        nAssetPruneAfterHeight = 300000;
         m_assumed_blockchain_size = 590;
         m_assumed_chain_state_size = 9;
 
@@ -232,6 +233,7 @@ public:
         pchMessageStart[3] = 0xd5;
         nDefaultPort = 18333;
         nPruneAfterHeight = 1000;
+        nAssetPruneAfterHeight = 3000;
         m_assumed_blockchain_size = 42;
         m_assumed_chain_state_size = 3;
 
@@ -374,7 +376,7 @@ public:
 
         nDefaultPort = 38333;
         nPruneAfterHeight = 1000;
-
+        nAssetPruneAfterHeight = 3000;
         consensus.nAuxpowStartHeight = 0;
         consensus.nAuxpowChainId = 0x0001;
         consensus.fStrictChainId = true;
@@ -463,6 +465,7 @@ public:
         pchMessageStart[3] = 0xd5;
         nDefaultPort = 18444;
         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
+        nAssetPruneAfterHeight = 3;
         m_assumed_blockchain_size = 0;
         m_assumed_chain_state_size = 0;
 

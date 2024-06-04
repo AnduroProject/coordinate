@@ -3058,6 +3058,12 @@ bool Chainstate::FlushStateToDisk(
 
     try {
     {
+
+        // asset prune
+        if(this->isAssetPrune) {
+            m_blockman.FindFilesToAssetPrune(*this, m_chainman);
+        }
+    
         bool fFlushForPrune = false;
         bool fDoFullFlush = false;
 
@@ -3096,6 +3102,8 @@ bool Chainstate::FlushStateToDisk(
                 m_blockman.FindFilesToPrune(setFilesToPrune, last_prune, *this, m_chainman);
                 m_blockman.m_check_for_pruning = false;
             }
+          
+            
             if (!setFilesToPrune.empty()) {
                 fFlushForPrune = true;
                 if (!m_blockman.m_have_pruned) {
@@ -4589,7 +4597,7 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
 {
     const CBlock& block = *pblock;
 
-    // if (fNewBlock) *fNewBlock = false;
+    if (fNewBlock) *fNewBlock = false;
     AssertLockHeld(cs_main);
 
     CBlockIndex *pindexDummy = nullptr;
@@ -4652,23 +4660,10 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
         GetMainSignals().NewPoWValidBlock(pindex, pblock);
 
     // Write block to history file
-    // if (fNewBlock) *fNewBlock = true;
+    if (fNewBlock) *fNewBlock = true;
     try {
         FlatFilePos blockPos;
-        if(ActiveChainstate().isAssetPrune) {
-            CBlock m_block(block);
-            for (size_t i = 0; i < m_block.vtx.size(); i++) {
-                if(m_block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && m_block.vtx[i]->assetType == 2 && !fNewBlock) {
-                    m_block.vtx[i]->payloadData = "";
-                }
-            }
-            blockPos = m_blockman.SaveBlockToDisk(m_block, pindex->nHeight, dbp);
-            if(fNewBlock) {
-               m_active_chainstate->passettree->WriteAssetMinedBlock(m_block.GetHash());
-            }
-        } else {
-            blockPos = m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp);
-        }
+        blockPos = m_blockman.SaveBlockToDisk(block, pindex->nHeight, dbp);
         if (blockPos.IsNull()) {
             state.Error(strprintf("%s: Failed to find position to write new block to disk", __func__));
             return false;
@@ -4698,7 +4693,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
 
     {
         CBlockIndex *pindex = nullptr;
-        // if (new_block) *new_block = false;
+        if (new_block) *new_block = false;
         BlockValidationState state;
 
         // CheckBlock() does not support multi-threaded block validation because CBlock::fChecked can cause data race.

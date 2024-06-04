@@ -94,6 +94,8 @@ public:
     bool RemoveAsset(const uint32_t nID);
     bool WriteAssetMinedBlock(uint256 blockHash);
     bool getAssetMinedBlock(uint256 blockHash);
+    bool GetLastAssetPruneHeight(uint32_t& nID);
+    bool WriteLastAssetPruneHeight(const uint32_t nID);
 };
 
 /** Access to the signed blocks database (blocks/signedblocks/) */

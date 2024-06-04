@@ -2315,6 +2315,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         pfrom.fDisconnect = true;
         return;
     }
+    
     if(m_chainman.ActiveChainstate().isAssetPrune && !m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
         return;
     }
@@ -4045,11 +4046,6 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             return;
         }
 
-        if(m_chainman.ActiveChainstate().isAssetPrune) {
-            LogPrint(BCLog::NET, "Node enabled with asset prune option");
-            return;
-        }
-
         // We might have announced the currently-being-connected tip using a
         // compact block, which resulted in the peer sending a getblocks
         // request, which we would otherwise respond to without the new block.
@@ -4081,11 +4077,16 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         LogPrint(BCLog::NET, "getblocks %d to %s limit %d from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.IsNull() ? "end" : hashStop.ToString(), nLimit, pfrom.GetId());
         for (; pindex; pindex = m_chainman.ActiveChain().Next(pindex))
         {
-            if (pindex->GetBlockHash() == hashStop)
-            {
+            if (pindex->GetBlockHash() == hashStop) {
                 LogPrint(BCLog::NET, "  getblocks stopping at %d %s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
                 break;
             }
+
+            if(m_chainman.ActiveChainstate().isAssetPrune && !m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
+                LogPrint(BCLog::NET, "Node enabled with asset prune option");
+                break;
+            }
+
             // If pruning, don't inv blocks unless we have on disk and are likely to still have
             // for some reasonable time window (1 hour) that block relay might require.
             const int nPrunedBlocksLikelyToHave = MIN_BLOCKS_TO_KEEP - 3600 / m_chainparams.GetConsensus().nPowTargetSpacing;
