@@ -165,6 +165,7 @@ private:
     CAutoFile OpenUndoFile(const FlatFilePos& pos, bool fReadOnly = false) const;
 
     bool WriteBlockToDisk(const CBlock& block, FlatFilePos& pos) const;
+    bool UpdateBlockToDisk(const CBlock& block, FlatFilePos& pos) const;
     bool UndoWriteToDisk(const CBlockUndo& blockundo, FlatFilePos& pos, const uint256& hashBlock) const;
 
     /* Calculate the block/rev files to delete based on height specified by user with RPC command pruneblockchain */
