@@ -2316,7 +2316,7 @@ void PeerManagerImpl::ProcessGetBlockData(CNode& pfrom, Peer& peer, const CInv& 
         return;
     }
     
-    if(m_chainman.ActiveChainstate().isAssetPrune && !m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
+    if(m_chainman.ActiveChainstate().isAssetPrune && m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
         return;
     }
     // Pruned nodes may have deleted the block, so check whether
@@ -4082,7 +4082,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
                 break;
             }
 
-            if(m_chainman.ActiveChainstate().isAssetPrune && !m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
+            if(m_chainman.ActiveChainstate().isAssetPrune && m_chainman.ActiveChainstate().passettree->getAssetMinedBlock(pindex->GetBlockHash())) {
                 LogPrint(BCLog::NET, "Node enabled with asset prune option");
                 break;
             }
