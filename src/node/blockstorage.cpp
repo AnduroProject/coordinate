@@ -387,13 +387,11 @@ void BlockManager::FindFilesToAssetPrune(
     while (pruneHeight > lastAsssetPrune)
     {
         lastAsssetPrune = lastAsssetPrune + 1;
-        LogPrintf("asset prune logic================= %i \n", lastAsssetPrune);
         CBlock block;
         bool isRequireUpdate = false;
         if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[lastAsssetPrune]))) {
                 LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[lastAsssetPrune])->GetBlockHash().ToString());
         }
-        LogPrintf("asset prune logic 1 ================= %s \n", block.GetHash().ToString());
         const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(block.GetHash());
         for (size_t i = 0; i < block.vtx.size(); i++) {
             if(block.vtx[i]->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && block.vtx[i]->assetType == 2) {
@@ -403,17 +401,13 @@ void BlockManager::FindFilesToAssetPrune(
         }
         if(isRequireUpdate) {
             FlatFilePos block_pos{WITH_LOCK(cs_main, return pindex->GetBlockPos())};
-            LogPrintf("block posistion %i \n",block_pos.nPos);
             if (!UpdateBlockToDisk(block, block_pos)) {
                 LogPrintf("asset prune block overwrite fails \n");
-            } else {
-                LogPrintf("asset prune logic 2 ================= \n");
-            }
+            } 
             chain.passettree->WriteAssetMinedBlock(block.GetHash());
         }
     }
       chain.passettree->WriteLastAssetPruneHeight(lastAsssetPrune);
-    LogPrintf("asset prune end================= \n");
 }
 
 
@@ -1037,18 +1031,6 @@ bool BlockManager::UpdateBlockToDisk(const CBlock& block, FlatFilePos& pos) cons
     if (fileout.IsNull()) {
         return error("WriteBlockToDisk: OpenBlockFile failed");
     }
-
-    // // Write index header
-    // unsigned int nSize = GetSerializeSize(block, fileout.GetVersion());
-    // fileout << GetParams().MessageStart() << nSize;
-
-    // // Write block
-    // long fileOutPos = ftell(fileout.Get());
-    // if (fileOutPos < 0) {
-    //     return error("WriteBlockToDisk: ftell failed");
-    // }
-    // pos.nPos = (unsigned int)fileOutPos;
-    // LogPrintf("current posistion %i \n",pos.nPos);
 
     fileout << block;
 
