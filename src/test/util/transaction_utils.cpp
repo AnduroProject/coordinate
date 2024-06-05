@@ -66,7 +66,6 @@ std::vector<CMutableTransaction> SetupDummyInputs(FillableSigningProvider& keyst
     dummyTransactions[1].vout[0].scriptPubKey = GetScriptForDestination(PKHash(key[2].GetPubKey()));
     dummyTransactions[1].vout[1].nValue = nValues[3];
     dummyTransactions[1].vout[1].scriptPubKey = GetScriptForDestination(PKHash(key[3].GetPubKey()));
-
     AddCoins(coinsRet, CTransaction(dummyTransactions[1]), 0, 0, amountAssetIn, nControlN);
 
     return dummyTransactions;

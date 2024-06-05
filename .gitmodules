@@ -1,3 +1,0 @@
-[submodule "cliapp"]
-	path = cliapp
-	url = git@github.com:MarathonDH/mara-federation-sig-app.git
