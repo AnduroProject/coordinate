@@ -1,3 +1,4 @@
+
 [submodule "cliapp"]
 	path = cliapp
-	url = git@github.com:MarathonDH/mara-federation-sig-app.git
+	url = git@github.com:AnduroProject/anduro-federation-sig-app.git
