@@ -1,4 +1,0 @@
-
-[submodule "cliapp"]
-	path = cliapp
-	url = git@github.com:AnduroProject/anduro-federation-sig-app.git
