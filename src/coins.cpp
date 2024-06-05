@@ -162,6 +162,41 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const
     }
 }
 
+
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) {
+
+    if(ptx.nVersion != TRANSACTION_PRECONF_VERSION) {
+        return 0;
+    }
+    CAmount refund = 0;
+    CAmount fee = blockFee *  GetVirtualTransactionSize(ptx);;
+
+    CAmount nValueIn = 0;
+    for (unsigned int i = 0; i < ptx.vin.size(); ++i) {
+        const COutPoint &prevout = ptx.vin[i].prevout;
+
+        const Coin& coin = inputs.AccessCoin(prevout);
+        if(!coin.IsSpent()) {
+            continue;
+        }
+
+        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
+            continue;
+        }
+        nValueIn += coin.out.nValue;
+    }
+    const CAmount value_out = ptx.GetValueOut();
+    if (nValueIn < value_out) { 
+        return refund;
+    }
+    refund = (nValueIn - value_out) - fee;
+    if(refund < 0) {
+        return 0;
+    }
+    return refund;
+}
+
+
 bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, bool& isPreconf, uint32_t& nAssetID, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);
     if (it == cacheCoins.end()) return false;

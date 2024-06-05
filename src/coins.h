@@ -411,6 +411,15 @@ private:
 // (pre-BIP34) cases.
 void AddCoins(CCoinsViewCache& cache, const CTransaction& tx, int nHeight, const CAmount preconfCurrentFee, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN = -1, uint32_t nNewAssetID = 0, bool check = false);
 
+/**
+ * This function will calculate refund for particular tx in signed block
+ * @param[in] ptx  used to find previous blocks based on active chain state
+ * @param[in] blockFee signed block current fee
+ * @param[in] inputs active coin tip
+ */
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) ;
+
+
 //! Utility function to find any unspent output with a given txid.
 //! This function can be quite expensive because in the event of a transaction
 //! which is not found in the cache, it can cause up to MAX_OUTPUTS_PER_BLOCK
