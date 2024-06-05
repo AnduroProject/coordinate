@@ -349,9 +349,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
            LogPrintf("Signed block invalid tx \n");
            return nullptr;
         }
-        CAmount totalFee = preconfList.fee * info.vsize;
-        CTxOut refund(info.fee - totalFee, info.tx->vout[0].scriptPubKey);
-        coinBaseOuts.push_back(refund);
         block->vtx[i] = info.tx;
         i = i + 1;
     }
@@ -642,17 +639,17 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
     return GetScriptForDestination(coinbaseScript);
 }
 
-CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) {
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) {
 
-    if(ptx->nVersion != TRANSACTION_PRECONF_VERSION) {
+    if(ptx.nVersion != TRANSACTION_PRECONF_VERSION) {
         return 0;
     }
     CAmount refund = 0;
-    CAmount fee = block.currentFee * ::GetSerializeSize(ptx, SERIALIZE_TRANSACTION_NO_WITNESS);
+    CAmount fee = blockFee *  GetVirtualTransactionSize(ptx);;
 
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < ptx->vin.size(); ++i) {
-        const COutPoint &prevout = ptx->vin[i].prevout;
+    for (unsigned int i = 0; i < ptx.vin.size(); ++i) {
+        const COutPoint &prevout = ptx.vin[i].prevout;
 
         const Coin& coin = inputs.AccessCoin(prevout);
         if(!coin.IsSpent()) {
@@ -664,7 +661,7 @@ CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, con
         }
         nValueIn += coin.out.nValue;
     }
-    const CAmount value_out = ptx->GetValueOut();
+    const CAmount value_out = ptx.GetValueOut();
     if (nValueIn < value_out) { 
         return refund;
     }

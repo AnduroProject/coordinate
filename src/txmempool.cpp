@@ -778,6 +778,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         assert(!tx.IsCoinBase());
         assert(Consensus::CheckTxInputs(tx, dummy_state, mempoolDuplicate, spendheight, txfee));
         CAmount amountAssetIn = CAmount(0);
+        CAmount preconfCurrentFee = CAmount(0);
         int nControlN = -1;
         for (size_t x = 0; x < tx.vin.size(); x++) {
             bool fBitAsset = false;
@@ -791,7 +792,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
             if (fBitAssetControl)
                 nControlN = x;
         } 
-        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), amountAssetIn, nControlN, true);
+        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), preconfCurrentFee, amountAssetIn, nControlN, true);
     }
     for (auto it = mapNextTx.cbegin(); it != mapNextTx.cend(); it++) {
         uint256 hash = it->second->GetHash();

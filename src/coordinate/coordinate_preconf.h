@@ -253,11 +253,10 @@ uint256 getReconsiledBlock(ChainstateManager& chainman);
 /**
  * This function will calculate refund for particular tx in signed block
  * @param[in] ptx  used to find previous blocks based on active chain state
- * @param[in] block signed block details
+ * @param[in] blockFee signed block current fee
  * @param[in] inputs active coin tip
  */
-CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) ;
-
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) ;
 
 /**
  * This function will get preconf fee for block based on signed block height
