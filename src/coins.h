@@ -409,15 +409,7 @@ private:
 //! an overwrite.
 // TODO: pass in a boolean to limit these possible overwrites to known
 // (pre-BIP34) cases.
-void AddCoins(CCoinsViewCache& cache, const CTransaction& tx, int nHeight, const CAmount preconfCurrentFee, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN = -1, uint32_t nNewAssetID = 0, bool check = false);
-
-/**
- * This function will calculate refund for particular tx in signed block
- * @param[in] ptx  used to find previous blocks based on active chain state
- * @param[in] blockFee signed block current fee
- * @param[in] inputs active coin tip
- */
-CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) ;
+void AddCoins(CCoinsViewCache& cache, const CTransaction& tx, int nHeight, const CAmount preconfRefund, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN = -1, uint32_t nNewAssetID = 0, bool check = false);
 
 
 //! Utility function to find any unspent output with a given txid.

@@ -328,8 +328,8 @@ BOOST_AUTO_TEST_CASE(AreInputsStandard)
     
     CAmount amountAssetIn = CAmount(0);
     int nControlN = -1;
-    CAmount preconfCurrentFee = CAmount(0);
-    AddCoins(coins, CTransaction(txFrom), 0, preconfCurrentFee, 0, amountAssetIn, nControlN);
+    CAmount preconfRefund = CAmount(0);
+    AddCoins(coins, CTransaction(txFrom), 0, preconfRefund, 0, amountAssetIn, nControlN);
 
     CMutableTransaction txTo;
     txTo.vout.resize(1);

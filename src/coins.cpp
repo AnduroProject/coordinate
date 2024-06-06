@@ -10,6 +10,7 @@
 #include <util/trace.h>
 #include <version.h>
 #include <coordinate/coordinate_preconf.h>
+#include <policy/policy.h>
 
 bool CCoinsView::GetCoin(const COutPoint &outpoint, Coin &coin) const { return false; }
 uint256 CCoinsView::GetBestBlock() const { return uint256(); }
@@ -118,7 +119,7 @@ void CCoinsViewCache::EmplaceCoinInternalDANGER(COutPoint&& outpoint, Coin&& coi
         std::forward_as_tuple(std::move(coin), CCoinsCacheEntry::DIRTY));
 }
 
-void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const CAmount preconfCurrentFee, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN, uint32_t nNewAssetID, bool check_for_overwrite) {
+void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const CAmount preconfRefund, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN, uint32_t nNewAssetID, bool check_for_overwrite) {
     bool fCoinbase = tx.IsCoinBase();
     const uint256& txid = tx.GetHash();
     if (amountAssetIn > 0) {
@@ -144,56 +145,21 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const
         // 0: controller output
         // 1: genesis output
         // The rest are normal outputs
-        
         bool fNewAsset = tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION;
         for (size_t i = 0; i < tx.vout.size(); ++i) {
             bool fAsset = fNewAsset && i < 2;
             bool fControl = fNewAsset && i == 0;
             uint32_t nID = nNewAssetID ? nNewAssetID : nAssetID;
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-            if(tx.nVersion == TRANSACTION_PRECONF_VERSION && i == 0) {
-                CTxOut refund(getRefundForPreconfTx(tx, preconfCurrentFee,cache), tx.vout[i].scriptPubKey);
-                LogPrintf("refund going to be write %i", refund.nValue);
+            if(tx.nVersion == TRANSACTION_PRECONF_VERSION && i == 0 && !tx.IsCoinBase()) {
+                CTxOut refund(preconfRefund, tx.vout[i].scriptPubKey);
+                LogPrintf("refund going to be write %i \n", refund.nValue);
                 cache.AddCoin(COutPoint(txid, i), Coin(refund, nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
             } else {
                 cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
             }
         }
     }
-}
-
-
-CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) {
-
-    if(ptx.nVersion != TRANSACTION_PRECONF_VERSION) {
-        return 0;
-    }
-    CAmount refund = 0;
-    CAmount fee = blockFee *  GetVirtualTransactionSize(ptx);;
-
-    CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < ptx.vin.size(); ++i) {
-        const COutPoint &prevout = ptx.vin[i].prevout;
-
-        const Coin& coin = inputs.AccessCoin(prevout);
-        if(!coin.IsSpent()) {
-            continue;
-        }
-
-        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
-            continue;
-        }
-        nValueIn += coin.out.nValue;
-    }
-    const CAmount value_out = ptx.GetValueOut();
-    if (nValueIn < value_out) { 
-        return refund;
-    }
-    refund = (nValueIn - value_out) - fee;
-    if(refund < 0) {
-        return 0;
-    }
-    return refund;
 }
 
 

@@ -193,7 +193,6 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         }
         // Check for negative or overflow input values
         if(!coin.IsBitAssetController()) { 
-           LogPrintf("CheckTxInputs input index %i value %i", i, coin.out.nValue);
            nValueIn += coin.out.nValue;
         }
         if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {

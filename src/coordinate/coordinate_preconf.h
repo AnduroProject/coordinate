@@ -295,3 +295,12 @@ void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock);
  * @param[in] currentFee current signed block fee
  */
 CAmount getPreconfFeeForFederation(std::vector<CTransactionRef> vtx, CAmount currentFee);
+
+/**
+ * This function will calculate refund for particular tx in signed block
+ * @param[in] ptx  used to find previous blocks based on active chain state
+ * @param[in] blockFee signed block current fee
+ * @param[in] inputs active coin tip
+ */
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) ;
+
