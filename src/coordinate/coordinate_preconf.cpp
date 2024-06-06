@@ -650,23 +650,15 @@ CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsV
     if(ptx.IsCoinBase()) {
         return 0;
     }
-    LogPrintf("tx id is %s \n", ptx.GetHash().ToString());
-    LogPrintf("block fee is %i \n", blockFee);
-    LogPrintf("tx size is %i \n", GetVirtualTransactionSize(ptx));
     CAmount refund = 0;
     CAmount fee = blockFee *  GetVirtualTransactionSize(ptx);
-    LogPrintf("final fee is %i \n", fee);
     CAmount nValueIn = 0;
     for (unsigned int i = 0; i < ptx.vin.size(); ++i) {
         const COutPoint &prevout = ptx.vin[i].prevout;
-        LogPrintf("input index %i \n", i);
-        LogPrintf("input txid %s \n", prevout.hash.ToString());
-        LogPrintf("input vout %i \n", prevout.n);
         const Coin& coin = inputs.AccessCoin(prevout);
         if(coin.IsSpent()) {
             continue;
         }
-        LogPrintf("coin index %i \n", coin.out.nValue);
 
         if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
             continue;
@@ -677,8 +669,6 @@ CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsV
     for (size_t i = 1; i < ptx.vout.size(); ++i) {
         value_out = value_out + ptx.vout[i].nValue;
     }
-    LogPrintf("total value in %i \n", nValueIn);
-    LogPrintf("total value out %i \n", value_out);
 
     if (nValueIn < value_out) { 
         return refund;
