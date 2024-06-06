@@ -27,7 +27,7 @@ public:
     // header
     std::shared_ptr<CAuxPow> auxpow;
     std::string currentKeys;
-    int32_t nextIndex;
+    int32_t currentIndex;
 
 
     CBlockHeader()
@@ -48,14 +48,14 @@ public:
             SER_READ(obj, obj.auxpow.reset());
         }
         READWRITE(obj.currentKeys);
-        READWRITE(obj.nextIndex);
+        READWRITE(obj.currentIndex);
     }
 
     void SetNull()
     {
         CPureBlockHeader::SetNull();
         currentKeys = "";
-        nextIndex = 0;
+        currentIndex = 0;
         auxpow.reset();
     }
 

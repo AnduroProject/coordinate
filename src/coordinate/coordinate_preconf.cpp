@@ -173,9 +173,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         if (it == coordinatePreConfSig.end()) {
             coordinatePreConfSig.push_back(preconfItem);
         }
-      
     }
-
     return true;
 }
 

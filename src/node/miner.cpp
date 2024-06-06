@@ -188,39 +188,32 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     CMutableTransaction coinbaseTx;
     if(Params().GetChainType() != ChainType::REGTEST) {
         // get next block presigned data
-        std::vector<AnduroTxOut> pending_deposits = listPendingDepositTransaction(nHeight);
-        LogPrintf("peg queue count %i\n", pending_deposits.size());
+        std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
+        LogPrintf("peg queue count %i\n", pending_commitments.size());
         // prevent to get block template if not presigned signature available for next block
-        if(pending_deposits.size() == 0) {
+        if(pending_commitments.size() == 0) {
             LogPrintf("peg queue unavailable\n");
             return nullptr;
         }
 
         // increase transaction out size based on available pegin 
-        if(isSpecialTxoutValid(pending_deposits,m_chainstate.m_chainman)) {
-            int tIndex = 1;
-            for (const AnduroTxOut& tx_out : pending_deposits) {
-                if (tx_out.nValue > 0) {
-                    resize = resize + 1;
-                    tIndex = tIndex + 1;
-                }
-            }
-        } else {
-            LogPrintf("special txsetout invalid \n");
+        if(!isPreCommitmentValid(pending_commitments,m_chainstate.m_chainman)) {
+            LogPrintf("anduro commitment invalid \n");
             return nullptr;
         }
+
         // increase transaction out size by one for include witness
         resize = resize + 1;
 
-        if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
+        if(nHeight < 3) {
             // if no new pegin included, then existing anduro key added in next block 
             pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-            pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+            pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
         } else {
             // if new pegin included, then existing anduro key replaced in next block 
-            AnduroTxOut& tx_out = pending_deposits[0];
-            pblock->currentKeys = tx_out.currentKeys;
-            pblock->nextIndex = tx_out.nextIndex;
+            AnduroPreCommitment& commtiment = pending_commitments[0];
+            pblock->currentKeys = commtiment.nextKeys;
+            pblock->currentIndex = commtiment.nextIndex;
         }
 
         coinbaseTx.vin.resize(1);
@@ -230,31 +223,24 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
 
 
-        int oIncr = 1;
-
-        if(pending_deposits.size() == 1 &&  pending_deposits[0].nValue == 0) {
-        } else {
-            // include new pegin in transaction output
-            for (const AnduroTxOut& tx_out : pending_deposits) {
-                coinbaseTx.vout[oIncr].nValue = tx_out.nValue;
-                coinbaseTx.vout[oIncr].scriptPubKey =tx_out.scriptPubKey;
-                oIncr = oIncr + 1;
-            }
-        }
+      
 
         // miner fee for preconf
+        int oIncr = 1;
         coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
         coinbaseTx.vout[oIncr].nValue = minerFee;
-        oIncr = oIncr + 1;
+    
         
         // including anduro signature information
-        std::vector<unsigned char> data = ParseHex(pending_deposits[0].witness);
-        CTxOut out(0, CScript() << OP_RETURN << data);
-        coinbaseTx.vout[oIncr] = out;
-
+        if(nHeight > 2) {
+            oIncr = oIncr + 1;
+            std::vector<unsigned char> data = ParseHex(pending_commitments[0].witness);
+            CTxOut out(0, CScript() << OP_RETURN << data);
+            coinbaseTx.vout[oIncr] = out;
+        }
     } else {
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->nextIndex = getNextIndex(m_chainstate.m_chainman);
+        pblock->currentIndex = getNextIndex(m_chainstate.m_chainman);
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
         coinbaseTx.vout.resize(resize);

@@ -708,7 +708,7 @@ class CAuxPow(CTransaction):
         return r
 
 class CBlockHeader:
-    __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce", "auxpow", "nTime", "nVersion", "sha256", "nextIndex", "currentKeys")
+    __slots__ = ("hash", "hashMerkleRoot", "hashPrevBlock", "nBits", "nNonce", "auxpow", "nTime", "nVersion", "sha256", "currentIndex", "currentKeys")
 
     def __init__(self, header=None):
         if header is None:
@@ -723,7 +723,7 @@ class CBlockHeader:
             self.sha256 = header.sha256
             self.auxpow = header.auxpow
             self.hash = header.hash
-            self.nextIndex = header.nextIndex
+            self.currentIndex = header.currentIndex
             self.currentKeys = header.currentKeys
             self.calc_sha256()
 
@@ -734,7 +734,7 @@ class CBlockHeader:
         self.nTime = 0
         self.nBits = 0
         self.nNonce = 0
-        self.nextIndex = 0
+        self.currentIndex = 0
         self.currentKeys = ""
         self.auxpow = None
         self.sha256 = None

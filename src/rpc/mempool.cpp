@@ -47,30 +47,6 @@ static RPCHelpMan sendrawtransaction()
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
              "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
                  "/kvB.\nSet to 0 to accept any fee rate."},
-            {"signatures",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pre signed block signature details from anduro",
-              {
-                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
-                    {
-                    {"inputs", RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pegin input details",
-                        {
-                            {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
-                                {
-                                    {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address which will get deposit as pegin"},
-                                    {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
-                                    {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Pegin witness which hold leaf and signature for particular pegin"},
-                                    {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
-                                    {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro deposit address"},
-                                    {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro burn address"},
-                                },
-                            },
-                        },
-                    },
-                    {"currentkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
-                    {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from anduro"},
-                    }
-                }
-              }
-            },
             {"maxburnamount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)},
              "Reject transactions with provably unspendable outputs (e.g. 'datacarrier' outputs that use the OP_RETURN opcode) greater than the specified value, expressed in " + CURRENCY_UNIT + ".\n"
              "If burning funds through unspendable outputs is desired, increase this value.\n"
@@ -91,66 +67,12 @@ static RPCHelpMan sendrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-
-            if(!request.params[2].isNull()) {
-                ChainstateManager& chainman = EnsureAnyChainman(request.context);
-                const UniValue& main_params = request.params[2].get_array();
-                if(main_params.size() > 0) {
-                    std::vector<AnduroTxOut> tOuts;
-                    std::vector<AnduroTxOut> mainOuts;
-                    for (unsigned int idx = 0; idx < main_params.size(); idx++) {
-                        const UniValue& fedParams = main_params[idx].get_obj();
-                        RPCTypeCheckObj(fedParams,
-                        {
-                            {"inputs", UniValueType(UniValue::VARR)},
-                            {"nextindex", UniValueType(UniValue::VNUM)},
-                            {"currentkeys", UniValueType(UniValue::VSTR)},
-                        });
-                        const UniValue output_params = fedParams.find_value("inputs").get_array();
-        
-                        for (unsigned int idx = 0; idx < output_params.size(); idx++) {
-                            const UniValue& o = output_params[idx].get_obj();
-                            RPCTypeCheckObj(o,
-                            {
-                                {"address", UniValueType(UniValue::VSTR)},
-                                {"amount", UniValueType(UniValue::VNUM)},
-                                {"witness", UniValueType(UniValue::VSTR)},
-                                {"block_height", UniValueType(UniValue::VNUM)},
-                                {"deposit_address", UniValueType(UniValue::VSTR)},
-                                {"burn_address", UniValueType(UniValue::VSTR)},
-                            });
-                            const CTxDestination coinbaseScript = DecodeDestination( o.find_value("address").get_str());
-                            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                            AnduroTxOut out(AmountFromValue(o.find_value("amount")), scriptPubKey, o.find_value( "witness").get_str(), o.find_value("block_height").getInt<int32_t>(),fedParams.find_value("nextindex").getInt<int32_t>(),fedParams.find_value("currentkeys").get_str(),o.find_value("deposit_address").get_str(),o.find_value("burn_address").get_str());
-
-                            tOuts.push_back(out);
-                        }
-                        if(!isSpecialTxoutValid(tOuts,chainman)) {
-                            throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
-                        }
-                        for (const AnduroTxOut& txOut : tOuts) {
-                            mainOuts.push_back(txOut);
-                        }
-                        tOuts.clear();
-                    }
-                    includePreSignedSignature(mainOuts);
-                    return "success";
-                }
-            }
-            
-
-            const CAmount max_burn_amount = request.params[3].isNull() ? 0 : AmountFromValue(request.params[3]);
+            const CAmount max_burn_amount = request.params[2].isNull() ? 0 : AmountFromValue(request.params[3]);
 
             CMutableTransaction mtx;
             if (!DecodeHexTx(mtx, request.params[0].get_str())) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
             }
-
-            // for (const auto& out : mtx.vout) {
-            //     if((out.scriptPubKey.IsUnspendable() || !out.scriptPubKey.HasValidOps()) && out.nValue > max_burn_amount) {
-            //         throw JSONRPCTransactionError(TransactionError::MAX_BURN_EXCEEDED);
-            //     }
-            // }
 
             CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
 
@@ -173,6 +95,69 @@ static RPCHelpMan sendrawtransaction()
         },
     };
 }
+
+
+static RPCHelpMan sendprecommitment()
+{
+    return RPCHelpMan{"sendprecommitment",
+        "\nThis is the rpc call used to send precommitment from anduro federation to coordinate node \n",
+        {
+
+            {"precommitment",RPCArg::Type::ARR, RPCArg::Optional::NO, "precommitment block signature details from anduro",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                    {
+                        {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Witness which hold leaf and signature for particular precommitment"},
+                        {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
+                        {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro deposit address"},
+                        {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro burn address"},
+                        {"nextkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
+                        {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from anduro"},
+                    }
+                }
+              }
+            },
+        },
+        RPCResult{
+            RPCResult::Type::STR_HEX, "", "The transaction hash in hex"
+        },
+        RPCExamples{
+            "\nSend precommitment from anduro\n"
+            + HelpExampleCli("sendprecommitment", "\"[{\\\"witness\\\"}]\" \"depositaddress\" \"burnaddress\" \"nextkeys\" \"nextindex\" ")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            const UniValue& main_params = request.params[2].get_array();
+            if(main_params.size() > 0) {
+                std::vector<AnduroPreCommitment> commitments;
+                for (unsigned int idx = 0; idx < main_params.size(); idx++) {
+                    const UniValue& fedParams = main_params[idx].get_obj();
+                    RPCTypeCheckObj(fedParams,
+                    {
+                        {"witness", UniValueType(UniValue::VSTR)},
+                        {"block_height", UniValueType(UniValue::VNUM)},
+                        {"nextindex", UniValueType(UniValue::VNUM)},
+                        {"nextkeys", UniValueType(UniValue::VSTR)},
+                        {"deposit_address", UniValueType(UniValue::VSTR)},
+                        {"burn_address", UniValueType(UniValue::VSTR)},
+                    });
+                    const UniValue output_params = fedParams.find_value("inputs").get_array();
+                    AnduroPreCommitment commitment(fedParams.find_value( "witness").get_str(), 
+                    fedParams.find_value("block_height").getInt<int32_t>(),fedParams.find_value("nextindex").getInt<int32_t>(),fedParams.find_value("nextkeys").get_str(),fedParams.find_value("deposit_address").get_str(),fedParams.find_value("burn_address").get_str());
+                    commitments.push_back(commitment);
+                }
+                if(!isPreCommitmentValid(commitments,chainman)) {
+                        throw JSONRPCError(RPC_WALLET_ERROR, "Coinbase Special Txout is invalid");
+                }
+                includePreCommitmentSignature(commitments);
+                return "success";
+            }
+        
+        },
+    };
+}
+
 
 static RPCHelpMan testmempoolaccept()
 {
