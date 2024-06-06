@@ -139,9 +139,9 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
 
-        vSeeds.emplace_back("seed4.mara.technology."); // Mara
-        vSeeds.emplace_back("seed5.mara.technology."); // Mara
-        vSeeds.emplace_back("seed6.mara.technology."); // Mara
+        vSeeds.emplace_back("seed4.mara.technology."); 
+        vSeeds.emplace_back("seed5.mara.technology."); 
+        vSeeds.emplace_back("seed6.mara.technology."); 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -251,9 +251,9 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed1.mara.technology."); // Mara
-        vSeeds.emplace_back("seed2.mara.technology."); // Mara
-        vSeeds.emplace_back("seed3.mara.technology."); // Mara
+        vSeeds.emplace_back("seed1.mara.technology."); 
+        vSeeds.emplace_back("seed2.mara.technology."); 
+        vSeeds.emplace_back("seed3.mara.technology."); 
 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
