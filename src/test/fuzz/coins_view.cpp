@@ -220,8 +220,8 @@ FUZZ_TARGET(coins_view, .init = initialize_coins_view)
                 try {
                     CAmount amountAssetIn = CAmount(0);
                     int nControlN = -1;
-                    CAmount preconfCurrentFee = CAmount(0);
-                    AddCoins(coins_view_cache, transaction, height, preconfCurrentFee, amountAssetIn, nControlN, possible_overwrite);
+                    CAmount preconfRefund = CAmount(0);
+                    AddCoins(coins_view_cache, transaction, height, preconfRefund, amountAssetIn, nControlN, possible_overwrite);
                     expected_code_path = true;
                 } catch (const std::logic_error& e) {
                     if (e.what() == std::string{"Attempted to overwrite an unspent coin (when possible_overwrite is false)"}) {
