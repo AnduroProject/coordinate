@@ -9,8 +9,6 @@
 #include <random.h>
 #include <util/trace.h>
 #include <version.h>
-#include <coordinate/coordinate_preconf.h>
-#include <policy/policy.h>
 
 bool CCoinsView::GetCoin(const COutPoint &outpoint, Coin &coin) const { return false; }
 uint256 CCoinsView::GetBestBlock() const { return uint256(); }
@@ -153,7 +151,6 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
             if(tx.nVersion == TRANSACTION_PRECONF_VERSION && i == 0 && !tx.IsCoinBase()) {
                 CTxOut refund(preconfRefund, tx.vout[i].scriptPubKey);
-                LogPrintf("refund going to be write %i \n", refund.nValue);
                 cache.AddCoin(COutPoint(txid, i), Coin(refund, nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
             } else {
                 cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
