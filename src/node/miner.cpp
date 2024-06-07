@@ -240,7 +240,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         }
     } else {
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->currentIndex = getNextIndex(m_chainstate.m_chainman);
+        pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
         coinbaseTx.vin.resize(1);
         coinbaseTx.vin[0].prevout.SetNull();
         coinbaseTx.vout.resize(resize);

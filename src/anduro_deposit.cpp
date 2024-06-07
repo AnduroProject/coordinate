@@ -29,7 +29,7 @@ void includePreCommitmentSignature(std::vector<AnduroPreCommitment> commitments)
    if (commitments.size() == 0) {
       return;
    }
-   if(!isPreCommitmentValid(commitments[0])) {
+   if(!isSignatureAlreadyExist(commitments[0])) {
       for (const AnduroPreCommitment& commitment : commitments) {
             tCommitments.push_back(commitment);
             depositAddress = commitment.depositAddress;
@@ -62,14 +62,14 @@ bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, Chainsta
    // preparing message for signature verification
    for (const AnduroPreCommitment& commitment : commitments) {
       if(commitment.block_height <= active_chain.Height()) {
-         LogPrintf("precommitment witness hold old block information \n")
+         LogPrintf("precommitment witness hold old block information \n");
          isValid = false;
          break;
       }
       int blockindex = commitment.block_height - 3;
       
       if (blockindex < 2) {
-         LogPrintf("precommitment witness hold invalid block information %d\n")
+         LogPrintf("precommitment witness hold invalid block information %d\n");
          isValid = false;
          break;
       }
@@ -113,7 +113,7 @@ void resetCommitment(int32_t block_height) {
    std::vector<AnduroPreCommitment> tCommitmentsNew;
    for (const AnduroPreCommitment& commitment : tCommitments) {
       if(commitment.block_height > block_height) {
-         tCommitmentsNew.push_back(tx_out);
+         tCommitmentsNew.push_back(commitment);
       }
    }
     tCommitments = tCommitmentsNew;
@@ -166,7 +166,7 @@ bool verifyPreCommitment(ChainstateManager& chainman, const CBlock& block, int c
 
    LOCK(cs_main);
    if(currentHeight < 3) {
-      LogPrintf("verifyAnduro: gensis block ignored");
+      LogPrintf("verifyCommitment: gensis block ignored");
       return true;
    }
    CChain& active_chain = chainman.ActiveChain();

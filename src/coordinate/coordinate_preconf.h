@@ -7,7 +7,7 @@ template<typename Stream, typename CoordinatePreConfBlockType>
 inline void UnserializeCoordinatePreConfBlock(CoordinatePreConfBlockType& blockData, Stream& s) {
     s >> blockData.fee;
     s >> blockData.txids;
-    s >> blockData.refunds;
+    s >> blockData.pegins;
     s >> blockData.witness;
     s >> blockData.minedBlockHeight;
 }
@@ -16,7 +16,7 @@ template<typename Stream, typename CoordinatePreConfBlockType>
 inline void SerializeCoordinatePreConfBlock(const CoordinatePreConfBlockType& blockData, Stream& s) {
     s << blockData.fee;
     s << blockData.txids;
-    s << blockData.refunds;
+    s << blockData.pegins;
     s << blockData.witness;
     s << blockData.minedBlockHeight;
 }
@@ -25,7 +25,7 @@ struct CoordinatePreConfBlock {
 public:
     std::vector<uint256> txids; /*!< Preconf Mempool txid*/
     CAmount fee; /*!< final fee for signed block*/
-    std::vector<CTxOut> refunds; /*!< Preconf Mempool txout*/
+    std::vector<CTxOut> pegins; /*!< pegin information */
     std::string witness;
     int64_t minedBlockHeight; /*!< block height to verify witness */
 
@@ -52,7 +52,7 @@ public:
     {
         fee = -1;
         txids.clear();
-        refunds.clear();
+        pegins.clear();
         witness = "";
         minedBlockHeight = -1;
     }
@@ -73,6 +73,7 @@ inline void UnserializeCoordinatePreConfSig(CoordinatePreConfSigType& preconfDat
     s >> preconfData.peerList;
     s >> preconfData.federationKey;
     s >> preconfData.finalized;
+    s >> preconfData.pegins;
 }
 
 template<typename Stream, typename CoordinatePreConfSigType>
@@ -87,6 +88,7 @@ inline void SerializeCoordinatePreConfSig(const CoordinatePreConfSigType& precon
     s << preconfData.peerList;
     s << preconfData.federationKey;
     s << preconfData.finalized;
+    s << preconfData.pegins;
 }
 
 struct CoordinatePreConfSig {
@@ -101,6 +103,7 @@ public:
     uint32_t finalized; /*!< 0 - not finalized by federation, 1 - finalized by federation */
     bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
     std::vector<int64_t> peerList;  /*!< connected peer array that federation signed list sent through network*/
+    std::vector<CTxOut> pegins;  /*!< pegin list from anduro federation*/
 
     template <typename Stream>
     inline void Serialize(Stream& s) const {
@@ -132,6 +135,7 @@ public:
         isBroadcasted = false;
         peerList.clear();
         federationKey = "";
+        pegins.clear();
     }
 };
 

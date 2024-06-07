@@ -70,7 +70,7 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
         }
     } 
     // check and set preconf fee if mempool size is greator than 1MB
-    return preconf_pool.GetTotalTxSize() > 1048576 ? finalFee : preconfMinFee;
+    return preconf_pool.GetTotalTxSize() > 256000 ? finalFee : preconfMinFee;
 }
 
 CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee, uint64_t signedBlockHeight) {
@@ -83,6 +83,9 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         result.minedBlockHeight = coordinatePreConfSigtem.minedBlockHeight;
         result.witness = coordinatePreConfSigtem.witness;
         if(coordinatePreConfSigtem.txid.IsNull()) {
+          for (size_t i = 0; i < coordinatePreConfSigtem.pegins.size(); i++) {
+             result.pegins.push_back(coordinatePreConfSigtem.pegins[i]);
+          }
           continue;
         }
         txids.push_back(coordinatePreConfSigtem.txid);
@@ -120,30 +123,38 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
-    if(!preconf[0].txid.IsNull()) {
+
         for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
-            if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
-                    LogPrintf("preconf txid not avilable in mempool \n");
-                    return false;
+             UniValue message(UniValue::VOBJ);
+            if(!coordinatePreConfSigItem.txid.IsNull()) {
+                if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
+                        LogPrintf("preconf txid not avilable in mempool \n");
+                        return false;
+                }
+                message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
+            } else {
+                message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
             }
-        }
-        //check signature is valid and include to queue
-        for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
-            UniValue message(UniValue::VOBJ);
-            message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
             message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
             message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
+            if(coordinatePreConfSigItem.txid.IsNull()) {
+                    UniValue pegmessages(UniValue::VARR);
+                    // preparing message for signature verification
+                    for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
+                        CTxDestination address;
+                        ExtractDestination(pegin.scriptPubKey, address);
+                        std::string addressStr = EncodeDestination(address);
+
+                        UniValue pegmessage(UniValue::VOBJ);
+                        pegmessage.pushKV("address", addressStr);
+                        pegmessage.pushKV("amount", pegin.nValue);
+                        pegmessages.push_back(pegmessage);
+                    }
+                    message.pushKV("pegins", pegmessages);
+            }
             messages.push_back(message);
         }
-    } else {
-        //check signature is valid and include to queue if empty signature from federation
-        UniValue message(UniValue::VOBJ);
-        message.pushKV("txid", "");
-        message.pushKV("signed_block_height", preconf[0].blockHeight);
-        message.pushKV("mined_block_height", preconf[0].minedBlockHeight);
-        messages.push_back(message);
-    }
-
+ 
 
     if(blockindex<0) {
           return false;
@@ -355,6 +366,10 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
     coinBaseOuts.push_back(federationFeeOut);
 
+    for (size_t i = 0; i < preconfList.pegins.size(); i++) {
+        coinBaseOuts.push_back(preconfList.pegins[i]);
+    }
+    
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
@@ -380,26 +395,37 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
-    if(block.vtx.size() > 1) {
         //check signature is valid and include to queue
         for (unsigned int i = 0; i < block.vtx.size(); i++) {
-            if(i == 0) {
-                continue;
-            }
             UniValue message(UniValue::VOBJ);
-            message.pushKV("txid", block.vtx[i]->GetHash().ToString());
+            if(i == 0) {
+                message.pushKV("txid", "");
+            } else {
+               message.pushKV("txid", block.vtx[i]->GetHash().ToString());
+            }
             message.pushKV("signed_block_height", block.nHeight);
             message.pushKV("mined_block_height", block.blockIndex);
             messages.push_back(message);
+
+            if(i == 0) {
+                UniValue pegmessages(UniValue::VARR);
+                // preparing message for signature verification
+                if(block.vtx[i]->vout.size() > 3) {
+                    for (size_t idx = 2; idx < block.vtx[i]->vout.size()-1; i++)
+                    {
+                        CTxDestination address;
+                        ExtractDestination(block.vtx[i]->vout[idx].scriptPubKey, address);
+                        std::string addressStr = EncodeDestination(address);
+                        UniValue pegmessage(UniValue::VOBJ);
+                        pegmessage.pushKV("address", addressStr);
+                        pegmessage.pushKV("amount", block.vtx[i]->vout[idx].nValue);
+                        pegmessages.push_back(pegmessage);
+                    }
+                }
+                message.pushKV("pegins", pegmessages);
+            }
         }
-    } else {
-        //check signature is valid and include to queue if empty signature from federation
-        UniValue message(UniValue::VOBJ);
-        message.pushKV("txid", "");
-        message.pushKV("signed_block_height", block.nHeight);
-        message.pushKV("mined_block_height", block.blockIndex);
-        messages.push_back(message);
-    }
+
 
     if(blockindex < 0) {
         return false;
@@ -426,7 +452,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
        removePreConfWitness();
        return false;
     }
-
     return true;
 }
 

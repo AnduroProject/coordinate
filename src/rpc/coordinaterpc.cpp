@@ -147,11 +147,11 @@ static RPCHelpMan getPendingCommitments() {
         {
                 UniValue result(UniValue::VOBJ);
                 UniValue commitments(UniValue::VARR);
-                std::vector<AnduroPreCommitment> cList = listPendingDepositTransaction(-1);
+                std::vector<AnduroPreCommitment> cList = listPendingCommitment(-1);
                 for (const AnduroPreCommitment& cItem : cList) {
                     UniValue tresult(UniValue::VOBJ);
                     tresult.pushKV("block_height", cItem.block_height);
-                    commitments.push_back(cItem);
+                    commitments.push_back(tresult);
                 }
                 result.pushKV("commitments", commitments);
                 return result;

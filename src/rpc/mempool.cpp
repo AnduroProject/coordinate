@@ -1123,6 +1123,7 @@ void RegisterMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"rawtransactions", &sendrawtransaction},
+        {"rawtransactions", &sendprecommitment},
         {"rawtransactions", &testmempoolaccept},
         {"blockchain", &getmempoolancestors},
         {"blockchain", &getmempooldescendants},
