@@ -128,7 +128,12 @@ static RPCHelpMan sendprecommitment()
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
             ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            const UniValue& main_params = request.params[2].get_array();
+            const UniValue& main_params = request.params[0].get_array();
+
+            if(main_params.size() == 0) {
+                    throw JSONRPCError(RPC_WALLET_ERROR, "no commitment summited");
+            }
+
             if(main_params.size() > 0) {
                 std::vector<AnduroPreCommitment> commitments;
                 for (unsigned int idx = 0; idx < main_params.size(); idx++) {
@@ -142,7 +147,6 @@ static RPCHelpMan sendprecommitment()
                         {"deposit_address", UniValueType(UniValue::VSTR)},
                         {"burn_address", UniValueType(UniValue::VSTR)},
                     });
-                    const UniValue output_params = fedParams.find_value("inputs").get_array();
                     AnduroPreCommitment commitment(fedParams.find_value( "witness").get_str(), 
                     fedParams.find_value("block_height").getInt<int32_t>(),fedParams.find_value("nextindex").getInt<int32_t>(),fedParams.find_value("nextkeys").get_str(),fedParams.find_value("deposit_address").get_str(),fedParams.find_value("burn_address").get_str());
                     commitments.push_back(commitment);

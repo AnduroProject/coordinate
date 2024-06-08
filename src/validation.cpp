@@ -1800,9 +1800,9 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    if(Params().GetChainType() != ChainType::REGTEST) {
+    // if(Params().GetChainType() != ChainType::REGTEST) {
         return 0;
-    }
+    // }
 
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
@@ -2806,7 +2806,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
            LogPrintf("ERROR: ConnectBlock(): coinbase pays too much (actual=%d vs limit=%d)\n", totalAmount, blockReward);
            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
         }
-        if(m_chainman.GetParams().GetChainType() != ChainType::REGTEST) {
+        // if(m_chainman.GetParams().GetChainType() != ChainType::REGTEST) {
             CAmount totalPreconfFee = getPreconfFeeForBlock(m_chainman, pindex->nHeight);
             CAmount minerFee = getFeeForBlock(m_chainman, pindex->nHeight);
 
@@ -2818,7 +2818,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-cb-amount");
                 }
             }
-        }
+        // }
 
     }
 

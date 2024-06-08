@@ -133,7 +133,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
                 }
                 message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
             } else {
-                message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
+                message.pushKV("txid", "");
             }
             message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
             message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
@@ -400,13 +400,13 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         for (unsigned int i = 0; i < block.vtx.size(); i++) {
             UniValue message(UniValue::VOBJ);
             if(i == 0) {
-                message.pushKV("txid", "");
+               message.pushKV("txid", "");
             } else {
                message.pushKV("txid", block.vtx[i]->GetHash().ToString());
             }
             message.pushKV("signed_block_height", block.nHeight);
             message.pushKV("mined_block_height", block.blockIndex);
-            messages.push_back(message);
+    
             UniValue pegmessages(UniValue::VARR);
             if(i == 0) {
                 // preparing message for signature verification
@@ -424,6 +424,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
                 } 
             }
             message.pushKV("pegins", pegmessages);
+            messages.push_back(message);
         }
 
 
