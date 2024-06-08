@@ -167,7 +167,8 @@ static RPCHelpMan sendpreconflist()
                             });
                             const CTxDestination coinbaseScript = DecodeDestination(peginParams.find_value("address").get_str());
                             const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                            CTxOut pegin(AmountFromValue(peginParams.find_value("amount")), scriptPubKey);
+                            CAmount peg_amount = CAmount(peginParams.find_value("amount").getInt<int64_t>());
+                            CTxOut pegin(peg_amount, scriptPubKey);
                             pegins.push_back(pegin);
                         }
                    }
@@ -201,7 +202,8 @@ static RPCHelpMan sendpreconflist()
                 }
                 preconf.push_back(preconfObj);
             }
-            return includePreConfSigWitness(preconf, chainman);
+
+             return includePreConfSigWitness(preconf, chainman);
     
 
             return false;

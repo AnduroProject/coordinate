@@ -50,6 +50,7 @@ bool isSignatureAlreadyExist(AnduroPreCommitment commitment) {
 bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, ChainstateManager& chainman) {
 
    if(commitments.size()==0) {
+      LogPrintf("isPreCommitmentValid no size");
       return false;
    }
    LOCK(cs_main);
