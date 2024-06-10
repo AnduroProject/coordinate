@@ -128,10 +128,10 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
              UniValue message(UniValue::VOBJ);
             if(!coordinatePreConfSigItem.txid.IsNull()) {
-                if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
-                        LogPrintf("preconf txid not avilable in mempool \n");
-                        return false;
-                }
+                // if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
+                //         LogPrintf("preconf txid not avilable in mempool \n");
+                //         return false;
+                // }
                 message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
             } else {
                 message.pushKV("txid", "");
@@ -170,14 +170,12 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
-        LogPrintf("testing 1 \n");
         removePreConfWitness();
     } else {
         if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
     }
-    LogPrintf("testing 2 \n");
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         uint256 txid = preconfItem.txid;
         std::string federationKey = preconfItem.federationKey;
@@ -189,7 +187,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             coordinatePreConfSig.push_back(preconfItem);
         }
     }
-    LogPrintf("testing 3 \n");
     return true;
 }
 
@@ -315,7 +312,6 @@ CAmount getPreConfMinFee() {
  */
 std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, uint32_t nTime) {
     LOCK(cs_main);
-    LogPrintf("testing 4 \n");
     std::unique_ptr<SignedBlock> pblocktemplate;
     pblocktemplate.reset(new SignedBlock());
     SignedBlock *block = pblocktemplate.get();
@@ -323,7 +319,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CCoinsViewCache view(&chainman.ActiveChainstate().CoinsTip());
     uint64_t nIDLast = 0;
     CoordinatePreConfBlock preconfList = getNextPreConfSigList(chainman);
-    LogPrintf("testing 5 \n");
     if(preconfList.witness.compare("")==0) {
         removePreConfWitness();
         LogPrintf("Signed block witness not exist \n");
@@ -334,7 +329,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         LogPrintf("Coordinate is downloading blocks... \n");
         return nullptr;
     }
-    LogPrintf("testing 6 \n");
     chainman.ActiveChainstate().psignedblocktree->GetLastSignedBlockID(nIDLast);
     if(nIDLast > 0) {
         uint256 lastHash;
@@ -342,14 +336,12 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         block->hashPrevSignedBlock = lastHash;
     }
     CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
-    LogPrintf("testing 7 \n");
     uint64_t nHeight = nIDLast + 1;
     block->currentFee = preconfList.fee;
     block->nHeight = nHeight;
     block->nTime = nTime;
     block->blockIndex = preconfList.minedBlockHeight;
     block->vtx.resize(preconfList.txids.size() + 1);
-    LogPrintf("testing 8 \n");
     unsigned int i = 1;
     std::vector<CTxOut> coinBaseOuts;
 
@@ -367,7 +359,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
         block->vtx[i] = info.tx;
         i = i + 1;
     }
-    LogPrintf("testing 9 \n");
     CAmount federationFee = std::ceil(getPreconfFeeForFederation(block->vtx, block->currentFee) * 0.20);
     CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
     coinBaseOuts.push_back(federationFeeOut);
@@ -375,7 +366,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     for (size_t i = 0; i < preconfList.pegins.size(); i++) {
         coinBaseOuts.push_back(preconfList.pegins[i]);
     }
-    LogPrintf("testing 10 \n");
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
@@ -391,7 +381,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     }
     block->vtx[0] = MakeTransactionRef(std::move(signedCoinbaseTx));
     block->hashMerkleRoot = SignedBlockMerkleRoot(*block);
-    LogPrintf("testing 11 \n");
     return pblocktemplate;
 }
 
@@ -399,8 +388,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int blockindex = block.blockIndex;
-
-    LogPrintf("testing 12 \n");
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
@@ -417,32 +404,22 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 
         UniValue pegmessages(UniValue::VARR);
         if(i == 0) {
-            LogPrintf("testing 13 %i \n", block.vtx[i]->vout.size());
             // preparing message for signature verification
             if(block.vtx[i]->vout.size() > 3) {
                 for (size_t idx = 2; idx < block.vtx[i]->vout.size()-1; idx++) {
-                    LogPrintf("testing 13 1 %i \n", idx);
                     CTxDestination address;
                     ExtractDestination(block.vtx[i]->vout[idx].scriptPubKey, address);
                     std::string addressStr = EncodeDestination(address);
-                    LogPrintf("testing 13 2 %s \n", addressStr);
                     UniValue pegmessage(UniValue::VOBJ);
                     pegmessage.pushKV("address", addressStr);
                     pegmessage.pushKV("amount", block.vtx[i]->vout[idx].nValue);
-                    LogPrintf("testing 13 2 %i \n",  block.vtx[i]->vout[idx].nValue);
                     pegmessages.push_back(pegmessage);
-                    LogPrintf("testing 13 3 \n");
                 }
-                LogPrintf("testing 13 4 \n");
             } 
-                    LogPrintf("testing 13 5 \n");
         }
-                    LogPrintf("testing 14 \n");
         message.pushKV("pegins", pegmessages);
         messages.push_back(message);
     }
-
-    LogPrintf("testing 15 \n");
     
     if(blockindex < 0) {
         return false;
@@ -454,10 +431,8 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
         return false;
     }
-    LogPrintf("testing 16 \n");
     CTxOut witnessOut = block.vtx[0]->vout[0];
     const std::string witnessStr = ScriptToAsmStr(witnessOut.scriptPubKey).replace(0,10,"");
-            LogPrintf("testing 17 \n");
     CAmount federationFee = std::ceil(getPreconfFeeForFederation(block.vtx, block.currentFee) * 0.20);
     CTxOut federationOut = block.vtx[0]->vout[1];
     if(federationOut.nValue != federationFee) {
