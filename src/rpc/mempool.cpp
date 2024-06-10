@@ -47,6 +47,20 @@ static RPCHelpMan sendrawtransaction()
             {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
              "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
                  "/kvB.\nSet to 0 to accept any fee rate."},
+            {"precommitment",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "precommitment block signature details from anduro",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                    {
+                        {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "Witness which hold leaf and signature for particular precommitment"},
+                        {"block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "pegin block height used to sign"},
+                        {"deposit_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro deposit address"},
+                        {"burn_address", RPCArg::Type::STR, RPCArg::Optional::NO, "The anduro burn address"},
+                        {"nextkeys", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "the next current keys to sign the pegin and pegout receipts"},
+                        {"nextindex", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "the next index to be signed which refer back from anduro"},
+                    }
+                }
+              }
+            },
             {"maxburnamount", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(0)},
              "Reject transactions with provably unspendable outputs (e.g. 'datacarrier' outputs that use the OP_RETURN opcode) greater than the specified value, expressed in " + CURRENCY_UNIT + ".\n"
              "If burning funds through unspendable outputs is desired, increase this value.\n"
@@ -67,7 +81,7 @@ static RPCHelpMan sendrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            const CAmount max_burn_amount = request.params[2].isNull() ? 0 : AmountFromValue(request.params[2]);
+            const CAmount max_burn_amount = request.params[3].isNull() ? 0 : AmountFromValue(request.params[3]);
 
             CMutableTransaction mtx;
             if (!DecodeHexTx(mtx, request.params[0].get_str())) {
