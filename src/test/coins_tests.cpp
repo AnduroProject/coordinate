@@ -752,13 +752,13 @@ BOOST_AUTO_TEST_CASE(ccoins_add)
     CheckAddCoin(SPENT , VALUE3, VALUE3, DIRTY      , DIRTY      , true );
     CheckAddCoin(SPENT , VALUE3, VALUE3, DIRTY|FRESH, DIRTY|FRESH, false);
     CheckAddCoin(SPENT , VALUE3, VALUE3, DIRTY|FRESH, DIRTY|FRESH, true );
-    CheckAddCoin(VALUE2, VALUE3, VALUE2  , 3         , DIRTY|FRESH   , false);
-    CheckAddCoin(VALUE2, VALUE3, VALUE2, 1          , DIRTY      , true );
-    CheckAddCoin(VALUE2, VALUE3, VALUE2  , 3      , DIRTY|FRESH   , false);
+    CheckAddCoin(VALUE2, VALUE3, FAIL  , 0          , NO_ENTRY   , false);
+    CheckAddCoin(VALUE2, VALUE3, VALUE3, 0          , DIRTY      , true );
+    CheckAddCoin(VALUE2, VALUE3, FAIL  , FRESH      , NO_ENTRY   , false);
     CheckAddCoin(VALUE2, VALUE3, VALUE3, FRESH      , DIRTY|FRESH, true );
-    CheckAddCoin(VALUE2, VALUE3, VALUE2  , 3      , DIRTY|FRESH   , false);
+    CheckAddCoin(VALUE2, VALUE3, FAIL  , DIRTY      , NO_ENTRY   , false);
     CheckAddCoin(VALUE2, VALUE3, VALUE3, DIRTY      , DIRTY      , true );
-    CheckAddCoin(VALUE2, VALUE3, VALUE2  , DIRTY|FRESH, DIRTY|FRESH   , false);
+    CheckAddCoin(VALUE2, VALUE3, FAIL  , DIRTY|FRESH, NO_ENTRY   , false);
     CheckAddCoin(VALUE2, VALUE3, VALUE3, DIRTY|FRESH, DIRTY|FRESH, true );
 }
 
@@ -954,9 +954,9 @@ void TestFlushBehavior(
 
     // Can't overwrite an entry without specifying that an overwrite is
     // expected.
-    // BOOST_CHECK(
-        view->AddCoin(outp, Coin(coin), /*possible_overwrite=*/ false);
-    //    );
+    BOOST_CHECK_THROW(
+        view->AddCoin(outp, Coin(coin), /*possible_overwrite=*/ false),
+        std::logic_error);
 
     // --- 6. Spend the coin.
     //
