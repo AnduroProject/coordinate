@@ -2001,9 +2001,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool isPreconf = false;
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &txundo.vprevout.back());
-            if(!is_spent) {
-                continue;
-            }
+            assert(is_spent);
 
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
             if (nAssetID)
