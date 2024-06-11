@@ -161,9 +161,9 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyPreCommitment(ChainstateManager& chainman, const CBlock& block, int currentHeight) {
-   // if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
-   //    return true;
-   // }
+   if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
+      return true;
+   }
 
    LOCK(cs_main);
    if(currentHeight < 3) {

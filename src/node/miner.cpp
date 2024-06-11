@@ -154,15 +154,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     m_last_block_num_txs = nBlockTx;
     m_last_block_weight = nBlockWeight;
 
-    // pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
-    // pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
-    // std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
-    // for (size_t i = 0; i < nextPreconfs.size(); i++)
-    // {
-    //    pblock->preconfBlock.push_back(nextPreconfs[i]);
-    // }
-    
-
     // increasing coinbase size for refunds
     CAmount minerFee = 0;
     CAmount totalPreconfFee = 0;
@@ -179,14 +170,13 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
     pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
     std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
-    for (size_t i = 0; i < nextPreconfs.size(); i++)
-    {
-    pblock->preconfBlock.push_back(nextPreconfs[i]);
+    for (size_t i = 0; i < nextPreconfs.size(); i++) {
+        pblock->preconfBlock.push_back(nextPreconfs[i]);
     }
 
     int resize = 2;
     CMutableTransaction coinbaseTx;
-    // if(Params().GetChainType() != ChainType::REGTEST) {
+    if(Params().GetChainType() != ChainType::REGTEST) {
         // get next block presigned data
         std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
         LogPrintf("commitment queue count %i\n", pending_commitments.size());
@@ -203,7 +193,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
                 return nullptr;
             }
         }
-
 
         // increase transaction out size by one for include witness
         resize = resize + 1;
@@ -225,9 +214,6 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
         coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
 
-
-      
-
         // miner fee for preconf
         int oIncr = 1;
         coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
@@ -243,19 +229,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         std::vector<unsigned char> data = ParseHex(preCommitmentWitness);
         CTxOut out(0, CScript() << OP_RETURN << data);
         coinbaseTx.vout[oIncr] = out;
-    // } else {
-    //     pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-    //     pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
-    //     coinbaseTx.vin.resize(1);
-    //     coinbaseTx.vin[0].prevout.SetNull();
-    //     coinbaseTx.vout.resize(resize);
-    //     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-    //     coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-    //     int oIncr = 1;
-    //     // miner fee for preconf
-    //     coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
-    //     coinbaseTx.vout[oIncr].nValue = minerFee;
-    // }
+    } else {
+        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
+        pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
+        coinbaseTx.vin.resize(1);
+        coinbaseTx.vin[0].prevout.SetNull();
+        coinbaseTx.vout.resize(resize);
+        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+        coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+        int oIncr = 1;
+        // miner fee for preconf
+        coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
+        coinbaseTx.vout[oIncr].nValue = minerFee;
+    }
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
