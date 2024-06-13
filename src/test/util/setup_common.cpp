@@ -372,7 +372,8 @@ CMutableTransaction TestChain100Setup::CreateValidMempoolTransaction(CTransactio
     CCoinsViewCache coins_cache(&coins_view);
     CAmount amountAssetIn = CAmount(0);
     int nControlN = -1;
-    AddCoins(coins_cache, *input_transaction.get(), input_height, 0, amountAssetIn, nControlN);
+    CAmount preconfRefund = CAmount(0);
+    AddCoins(coins_cache, *input_transaction.get(), input_height, preconfRefund, 0, amountAssetIn, nControlN);
     // - Use GetCoin to properly populate utxo_to_spend,
     Coin utxo_to_spend;
     assert(coins_cache.GetCoin(outpoint_to_spend, utxo_to_spend));

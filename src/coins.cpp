@@ -117,7 +117,7 @@ void CCoinsViewCache::EmplaceCoinInternalDANGER(COutPoint&& outpoint, Coin&& coi
         std::forward_as_tuple(std::move(coin), CCoinsCacheEntry::DIRTY));
 }
 
-void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN, uint32_t nNewAssetID, bool check_for_overwrite) {
+void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const CAmount preconfRefund, uint32_t nAssetID, const CAmount amountAssetIn, int nControlN, uint32_t nNewAssetID, bool check_for_overwrite) {
     bool fCoinbase = tx.IsCoinBase();
     const uint256& txid = tx.GetHash();
     if (amountAssetIn > 0) {
@@ -143,19 +143,22 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, uint3
         // 0: controller output
         // 1: genesis output
         // The rest are normal outputs
-        
         bool fNewAsset = tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION;
-        size_t starting_value = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
-        for (size_t i = starting_value; i < tx.vout.size(); ++i) {
+        for (size_t i = 0; i < tx.vout.size(); ++i) {
             bool fAsset = fNewAsset && i < 2;
             bool fControl = fNewAsset && i == 0;
             uint32_t nID = nNewAssetID ? nNewAssetID : nAssetID;
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
-            cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
+            if(tx.nVersion == TRANSACTION_PRECONF_VERSION && i == 0 && !tx.IsCoinBase()) {
+                CTxOut refund(preconfRefund, tx.vout[i].scriptPubKey);
+                cache.AddCoin(COutPoint(txid, i), Coin(refund, nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
+            } else {
+                cache.AddCoin(COutPoint(txid, i), Coin(tx.vout[i], nHeight, fCoinbase, fAsset, fControl, tx.nVersion == TRANSACTION_PRECONF_VERSION ? true : false, fAsset ? nID : 0), overwrite);
+            }
         }
     }
-
 }
+
 
 bool CCoinsViewCache::SpendCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, bool& isPreconf, uint32_t& nAssetID, Coin* moveout) {
     CCoinsMap::iterator it = FetchCoin(outpoint);

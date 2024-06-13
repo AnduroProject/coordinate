@@ -13,6 +13,7 @@
 #include <script/interpreter.h>
 #include <util/check.h>
 #include <util/moneystr.h>
+#include <logging.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -191,10 +192,10 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             }
         }
         // Check for negative or overflow input values
-        if(!coin.IsBitAssetController()) {
+        if(!coin.IsBitAssetController()) { 
            nValueIn += coin.out.nValue;
         }
-        if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
+        if (!MoneyRange(coin.out.nValue)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
         }
     }

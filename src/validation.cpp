@@ -1985,7 +1985,7 @@ void Chainstate::InvalidBlockFound(CBlockIndex* pindex, const BlockValidationSta
     }
 }
 
-void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight, CAmount& amountAssetInOut, int& nControlNOut, uint32_t& nAssetIDOut, uint32_t nNewAssetIDIn)
+void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txundo, int nHeight, CAmount& amountAssetInOut, int& nControlNOut, uint32_t& nAssetIDOut, uint32_t nNewAssetIDIn, CAmount& preconfRefund)
 {
     amountAssetInOut = CAmount(0); // Track asset inputs
     nControlNOut = -1; // Track asset controller outputs
@@ -2017,7 +2017,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     }
 
     // add outputs
-    AddCoins(inputs, tx, nHeight, nAssetIDOut, amountAssetInOut, nControlNOut, nNewAssetIDIn);
+    AddCoins(inputs, tx, nHeight, preconfRefund, nAssetIDOut, amountAssetInOut, nControlNOut, nNewAssetIDIn);
 }
 
 bool CScriptCheck::operator()() {
@@ -2590,7 +2590,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 CAmount amountAssetIn = CAmount(0);
                 int nControlN = -1;
                 uint32_t nAssetID = 0;
-                UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+                CAmount refund = getRefundForPreconfTx(tx,finalizedSignedBlock.currentFee,view);
+                UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0, refund);
             }
             includedSignedBlock.push_back(finalizedSignedBlock.GetHash());
         }
@@ -2605,7 +2606,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     CAmount amountAssetIn = CAmount(0);
                     int nControlN = -1;
                     uint32_t nAssetID = 0;
-                    UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0);
+                    CAmount refund = getRefundForPreconfTx(tx,finalizedSignedBlock.currentFee,view);
+                    UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0, refund);
                 }
             }
         }
@@ -2786,8 +2788,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID);
+       CAmount preconfCurrentFee = CAmount(0);
+        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID, preconfCurrentFee);
     }
     const auto time_3{SteadyClock::now()};
     time_connect += time_3 - time_2;
@@ -2923,7 +2925,8 @@ CCoinsViewCache& Chainstate::UpdatedCoinsTip(CCoinsViewCache& view, int blockHei
             CAmount amountAssetIn = CAmount(0);
             int nControlN = -1;
             uint32_t nAssetID = 0;
-            UpdateCoins(tx, view, undoDummy, blockHeight, amountAssetIn, nControlN, nAssetID, 0);
+            CAmount refund = getRefundForPreconfTx(tx,finalizedSignedBlock.currentFee,view);
+            UpdateCoins(tx, view, undoDummy, blockHeight, amountAssetIn, nControlN, nAssetID, 0, refund);
         }
     }
 
@@ -2993,7 +2996,8 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0);
+        CAmount refund = getRefundForPreconfTx(tx,block.currentFee,view);
+        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), m_chainman.ActiveHeight(), amountAssetIn, nControlN, nAssetID, 0, refund);
     }
 
     psignedblocktree->WriteLastSignedBlockID(block.nHeight);
@@ -4994,6 +4998,7 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
         return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
     }
     CAmount amountAssetIn = CAmount(0);
+    CAmount preconfRefund = CAmount(0);
     int nControlN = -1;
 
     for (size_t x = 0; x < block.vtx.size(); x++) {
@@ -5015,7 +5020,7 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
             }
         }
         // Pass check = true as every addition may be an overwrite.
-        AddCoins(inputs, *tx, pindex->nHeight, amountAssetIn, nControlN, true);
+        AddCoins(inputs, *tx, pindex->nHeight, preconfRefund, amountAssetIn, nControlN, true);
     }
     
     return true;

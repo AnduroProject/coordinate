@@ -349,9 +349,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
            LogPrintf("Signed block invalid tx \n");
            return nullptr;
         }
-        CAmount totalFee = preconfList.fee * info.vsize;
-        CTxOut refund(info.fee - totalFee, info.tx->vout[0].scriptPubKey);
-        coinBaseOuts.push_back(refund);
         block->vtx[i] = info.tx;
         i = i + 1;
     }
@@ -642,20 +639,24 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
     return GetScriptForDestination(coinbaseScript);
 }
 
-CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, const CCoinsViewCache& inputs) {
+/**
+ * This is the function which used to get all finalized signed block
+ */
+std::vector<SignedBlock> getFinalizedSignedBlocks() {
+    return finalizedSignedBlocks;
+}
 
-    if(ptx->nVersion != TRANSACTION_PRECONF_VERSION) {
+CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) {
+    if(ptx.IsCoinBase()) {
         return 0;
     }
     CAmount refund = 0;
-    CAmount fee = block.currentFee * ::GetSerializeSize(ptx, SERIALIZE_TRANSACTION_NO_WITNESS);
-
+    CAmount fee = blockFee *  GetVirtualTransactionSize(ptx);
     CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < ptx->vin.size(); ++i) {
-        const COutPoint &prevout = ptx->vin[i].prevout;
-
+    for (unsigned int i = 0; i < ptx.vin.size(); ++i) {
+        const COutPoint &prevout = ptx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
-        if(!coin.IsSpent()) {
+        if(coin.IsSpent()) {
             continue;
         }
 
@@ -664,20 +665,18 @@ CAmount getRefundForTx(const CTransactionRef& ptx, const SignedBlock& block, con
         }
         nValueIn += coin.out.nValue;
     }
-    const CAmount value_out = ptx->GetValueOut();
+    CAmount value_out = 0;
+    for (size_t i = 1; i < ptx.vout.size(); ++i) {
+        value_out = value_out + ptx.vout[i].nValue;
+    }
+
     if (nValueIn < value_out) { 
         return refund;
     }
+
     refund = (nValueIn - value_out) - fee;
     if(refund < 0) {
         return 0;
     }
     return refund;
-}
-
-/**
- * This is the function which used to get all finalized signed block
- */
-std::vector<SignedBlock> getFinalizedSignedBlocks() {
-    return finalizedSignedBlocks;
 }

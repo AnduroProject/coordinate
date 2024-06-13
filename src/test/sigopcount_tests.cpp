@@ -107,7 +107,8 @@ static void BuildTxs(CMutableTransaction& spendingTx, CCoinsViewCache& coins, CM
 
     CAmount amountAssetIn = CAmount(0);
     int nControlN = -1;
-    AddCoins(coins, CTransaction(creationTx), 0, 0, amountAssetIn, nControlN);
+    CAmount preconfRefund = CAmount(0);
+    AddCoins(coins, CTransaction(creationTx), 0, preconfRefund, 0, amountAssetIn, nControlN);
 }
 
 BOOST_AUTO_TEST_CASE(GetTxSigOpCost)

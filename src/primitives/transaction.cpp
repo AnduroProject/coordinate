@@ -105,11 +105,10 @@ CAmount CTransaction::GetValueOut() const
      
     CAmount nValueOut = 0;
     for (; it != vout.end(); it++) {
-        if (!MoneyRange(it->nValue) || !MoneyRange(nValueOut + it->nValue))
+        if (!MoneyRange(it->nValue))
             throw std::runtime_error(std::string(__func__) + ": value out of range");
         nValueOut += it->nValue;
     }
-    assert(MoneyRange(nValueOut));
     return nValueOut;
 }
 
