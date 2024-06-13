@@ -241,7 +241,7 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 {
     UniValue result = blockheaderToJSON(tip, blockindex);
     result.pushKV("currentkeys", block.currentKeys.empty() ? "" : block.currentKeys);
-    result.pushKV("nextindex", block.nextIndex);
+    result.pushKV("currentindex", block.currentIndex);
     result.pushKV("strippedsize", (int)::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS));
     result.pushKV("size", (int)::GetSerializeSize(block, PROTOCOL_VERSION));
     result.pushKV("weight", (int)::GetBlockWeight(block));

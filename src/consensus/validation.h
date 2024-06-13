@@ -151,7 +151,11 @@ static inline int32_t GetTransactionWeight(const CTransaction& tx)
 }
 static inline int64_t GetBlockWeight(const CBlock& block)
 {
-    return ::GetSerializeSize(block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(block, PROTOCOL_VERSION);
+    CBlock m_block(block);
+    m_block.preconfBlock.clear();
+    m_block.currentKeys="";
+    m_block.invalidTx.empty();
+    return ::GetSerializeSize(m_block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(block, PROTOCOL_VERSION);
 }
 static inline int64_t GetTransactionInputWeight(const CTxIn& txin)
 {

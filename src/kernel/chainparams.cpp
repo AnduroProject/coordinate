@@ -44,7 +44,7 @@ static CBlock CreateGenesisBlock(const char* pszTimestamp, const CScript& genesi
     genesis.vtx.push_back(MakeTransactionRef(std::move(txNew)));
     genesis.hashPrevBlock.SetNull();
     genesis.hashMerkleRoot = BlockMerkleRoot(genesis);
-    genesis.nextIndex=0;
+    genesis.currentIndex=0;
     genesis.currentKeys=currentKeys;
     return genesis;
 }
@@ -120,10 +120,10 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xf5;
+        pchMessageStart[0] = 0xf7;
         pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xd5;
+        pchMessageStart[2] = 0xb7;
+        pchMessageStart[3] = 0xd7;
         nDefaultPort = 8337;
         nPruneAfterHeight = 100000;
         nAssetPruneAfterHeight = 300000;
@@ -139,9 +139,9 @@ public:
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
 
-        vSeeds.emplace_back("seed4.mara.technology."); 
-        vSeeds.emplace_back("seed5.mara.technology."); 
-        vSeeds.emplace_back("seed6.mara.technology."); 
+        vSeeds.emplace_back("seed4.coordinate.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed5.coordinate.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed6.coordinate.mara.technology."); // Coordinate
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -227,10 +227,10 @@ public:
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000100010001");
         consensus.defaultAssumeValid = uint256S("0xadf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab"); // 2344474
 
-        pchMessageStart[0] = 0xf5;
+        pchMessageStart[0] = 0xf7;
         pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xd5;
+        pchMessageStart[2] = 0xb7;
+        pchMessageStart[3] = 0xd7;
         nDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         nAssetPruneAfterHeight = 3000;
@@ -251,9 +251,9 @@ public:
         vFixedSeeds.clear();
         vSeeds.clear();
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed1.mara.technology."); 
-        vSeeds.emplace_back("seed2.mara.technology."); 
-        vSeeds.emplace_back("seed3.mara.technology."); 
+        vSeeds.emplace_back("seed1.coordinate.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed2.coordinate.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed3.coordinate.mara.technology."); // Coordinate
 
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
@@ -459,10 +459,10 @@ public:
         consensus.nLegacyBlocksBefore = 0;
         consensus.currentKeys = "7b2263757272656e745f61646472657373223a22636372743170306c71713963397863647476356e3575753470736674353268676e6c7030756832656a657a703079776c73677a30763734793773796434326838222c22616c6c5f6b657973223a5b22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d7d";
 
-        pchMessageStart[0] = 0xf5;
+        pchMessageStart[0] = 0xf7;
         pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb5;
-        pchMessageStart[3] = 0xd5;
+        pchMessageStart[2] = 0xb7;
+        pchMessageStart[3] = 0xd7;
         nDefaultPort = 18444;
         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
         nAssetPruneAfterHeight = 3000;

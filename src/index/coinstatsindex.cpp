@@ -493,7 +493,13 @@ bool CoinStatsIndex::ReverseBlock(const CBlock& block, const CBlockIndex* pindex
                 m_total_prevout_spent_amount -= coin.out.nValue;
 
                 m_transaction_output_count++;
-                m_total_amount += coin.out.nValue;
+                if(!coin.IsBitAsset()) {
+                   m_total_amount += coin.out.nValue;
+                } else {
+                   if(!coin.IsBitAssetController()) {
+                        m_total_assets += coin.out.nValue;
+                   }
+                }
                 m_bogo_size += GetBogoSize(coin.out.scriptPubKey);
             }
         }

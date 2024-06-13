@@ -94,8 +94,11 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
 
 
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
-
             uint256 message = prepareMessageHash(messageIn);
+            LogPrintf("message %s \n",HexStr(message));
+            LogPrintf("redeemPath %s \n",redeemPath);
+            LogPrintf("signature %s \n",signature);
+     
             XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                 LogPrintf("failed verfication \n");

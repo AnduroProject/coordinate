@@ -121,47 +121,39 @@ static RPCHelpMan anduroWithdrawAddress()
 
 }
 
-static RPCHelpMan getPendingDeposit() {
+static RPCHelpMan getPendingCommitments() {
         return RPCHelpMan{
-        "getpendingdeposit",
-        "get all pending pegins and presign signature for next block",
+        "getpendingcommitment",
+        "get all pending precommitment signature for next block",
         {
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
             {
-                {RPCResult::Type::ARR, "deposits", "",
+                {RPCResult::Type::ARR, "commitments", "",
                 {
                      {RPCResult::Type::OBJ, "", "",
                         {
-                            {RPCResult::Type::STR_AMOUNT, "value", "The value in " + CURRENCY_UNIT},
-                            {RPCResult::Type::NUM, "n", "index"},
                             {RPCResult::Type::NUM, "n", "block_height"},
                         }
                      }
                 }},
-                {RPCResult::Type::STR_AMOUNT, "total", /*optional=*/true, "return total pending balance"},
             },
         },
         RPCExamples{
-           HelpExampleCli("getpendingdeposit", "")
+           HelpExampleCli("getpendingcommitment", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
                 UniValue result(UniValue::VOBJ);
-                result.pushKV("total", ValueFromAmount(listPendingDepositTotal(-1)));
-                UniValue deposits(UniValue::VARR);
-                std::vector<AnduroTxOut> txList = listPendingDepositTransaction(-1);
-                uint64_t index = 0;
-                for (const AnduroTxOut& eout : txList) {
-                    UniValue toutresult(UniValue::VOBJ);
-                    toutresult.pushKV("index", index);
-                    toutresult.pushKV("value", ValueFromAmount(eout.nValue));
-                    toutresult.pushKV("block_height", eout.block_height);
-                    index = index + 1;
-                    deposits.push_back(toutresult);
+                UniValue commitments(UniValue::VARR);
+                std::vector<AnduroPreCommitment> cList = listPendingCommitment(-1);
+                for (const AnduroPreCommitment& cItem : cList) {
+                    UniValue tresult(UniValue::VOBJ);
+                    tresult.pushKV("block_height", cItem.block_height);
+                    commitments.push_back(tresult);
                 }
-                result.pushKV("deposits", deposits);
+                result.pushKV("commitments", commitments);
                 return result;
         }
     };
@@ -280,7 +272,7 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
     static const CRPCCommand commands[]{
         {"coordinate", &createAuxBlock},
         {"coordinate", &submitAuxBlock},
-        {"coordinate", &getPendingDeposit},
+        {"coordinate", &getPendingCommitments},
         {"coordinate", &anduroDepositAddress},
         {"coordinate", &anduroWithdrawAddress},
         {"coordinate", &listAllAssets},

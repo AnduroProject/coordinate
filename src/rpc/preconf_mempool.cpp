@@ -87,22 +87,33 @@ static RPCHelpMan sendpreconflist()
         "sendpreconflist",
         "\nSubmit a preconf block submission from anduro federation \n",
         {
-            {"block", RPCArg::Type::ARR, RPCArg::Optional::NO, "pre signed preconf signature details from anduro", {{
-                                                                                                                       "",
-                                                                                                                       RPCArg::Type::OBJ,
-                                                                                                                       RPCArg::Optional::NO,
-                                                                                                                       "",
-                                                                                                                       {
-                                                                                                                           {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
-                                                                                                                           {"signed_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
-                                                                                                                           {"mined_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the mined block height where the federation is refer to for sig validation"},
-                                                                                                                           {"reserve", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction reserve amount"},
-                                                                                                                           {"vsize", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction virtual size"},
-                                                                                                                       },
-                                                                                                                   }}},
+            {"block", RPCArg::Type::ARR, RPCArg::Optional::NO, "pre signed preconf signature details from anduro", 
+            {{
+                "",
+                RPCArg::Type::OBJ,
+                RPCArg::Optional::NO,
+                "",
+                {
+                    {"txid", RPCArg::Type::STR, RPCArg::Optional::NO, "Transaction id which is in preconf mempool"},
+                    {"signed_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the block height where the signatures get invalidated. the signature will be deleted after the block height"},
+                    {"mined_block_height", RPCArg::Type::NUM, RPCArg::Optional::NO, "the mined block height where the federation is refer to for sig validation"},
+                    {"reserve", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction reserve amount"},
+                    {"vsize", RPCArg::Type::NUM, RPCArg::Optional::NO, "Transaction virtual size"},
+                },
+            }}},
             {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "preconf witness for block"},
             {"finalized", RPCArg::Type::STR, RPCArg::Optional::NO, "Finalized list from federation leader or not"},
             {"federationkey", RPCArg::Type::STR, RPCArg::Optional::NO, "Federation identification"},
+            {"pegins",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pegin list",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                    {
+                        {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address which will get deposit as pegin"},
+                        {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
+                    }
+                }
+              }
+            },
         },
         RPCResult{
             RPCResult::Type::BOOL, "", "the result for preconf block submission from anduro federation"},
@@ -126,6 +137,8 @@ static RPCHelpMan sendpreconflist()
                 }
             }
 
+
+
             uint32_t finalized = 0;
             if(!request.params[2].isNull()) {
                 if(!ParseUInt32(request.params[2].get_str(),&finalized)) {
@@ -133,36 +146,65 @@ static RPCHelpMan sendpreconflist()
                                     "Error converting block height.");
                 }
             }
- 
             const UniValue& req_params = request.params[0].get_array();
-            if (req_params.size() > 0) {
-                std::vector<CoordinatePreConfSig> preconf;
-                for (unsigned int idx = 0; idx < req_params.size(); idx++) {
-                    const UniValue& fedParams = req_params[idx].get_obj();
-                    RPCTypeCheckObj(fedParams,
-                                    {
-                                        {"txid", UniValueType(UniValue::VSTR)},
-                                        {"signed_block_height", UniValueType(UniValue::VNUM)},
-                                        {"mined_block_height", UniValueType(UniValue::VNUM)},
-                                        {"vsize", UniValueType(UniValue::VNUM)},
-                                        {"reserve", UniValueType(UniValue::VNUM)},
-                                    });
-                    std::string receivedTx = fedParams.find_value("txid").get_str();
-                    CoordinatePreConfSig preconfObj;
-                    if (receivedTx.compare("") != 0) {
-                        preconfObj.txid = uint256S(receivedTx);
-                    }
-                    preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
-                    preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int64_t>();
-                    preconfObj.vsize =  fedParams.find_value("vsize").getInt<int32_t>();
-                    preconfObj.reserve =  fedParams.find_value("reserve").getInt<int32_t>();
-                    preconfObj.finalized = finalized;
-                    preconfObj.witness =  request.params[1].get_str();
-                    preconfObj.federationKey = request.params[3].get_str();
-                    preconf.push_back(preconfObj);
-                }
-                return includePreConfSigWitness(preconf, chainman);
+            if (req_params.size() == 0) {
+                return false;
             }
+
+            std::vector<CTxOut> pegins;
+            std::vector<CoordinatePreConfSig> preconf;
+     
+
+            if(!request.params[4].isNull()) {
+                const UniValue& pegin_params = request.params[4].get_array();
+                   if (pegin_params.size() > 0) {
+                        for (unsigned int idx = 0; idx < pegin_params.size(); idx++) {
+                            const UniValue& peginParams = pegin_params[idx].get_obj();
+                            RPCTypeCheckObj(peginParams,
+                            {
+                                {"address", UniValueType(UniValue::VSTR)},
+                                {"amount", UniValueType(UniValue::VNUM)},
+                            });
+                            const CTxDestination coinbaseScript = DecodeDestination(peginParams.find_value("address").get_str());
+                            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+                            CAmount peg_amount = CAmount(peginParams.find_value("amount").getInt<int64_t>());
+                            CTxOut pegin(peg_amount, scriptPubKey);
+                            pegins.push_back(pegin);
+                        }
+                   }
+            }
+ 
+            
+            for (unsigned int idx = 0; idx < req_params.size(); idx++) {
+                const UniValue& fedParams = req_params[idx].get_obj();
+                RPCTypeCheckObj(fedParams,
+                                {
+                                    {"txid", UniValueType(UniValue::VSTR)},
+                                    {"signed_block_height", UniValueType(UniValue::VNUM)},
+                                    {"mined_block_height", UniValueType(UniValue::VNUM)},
+                                    {"vsize", UniValueType(UniValue::VNUM)},
+                                    {"reserve", UniValueType(UniValue::VNUM)},
+                                });
+                std::string receivedTx = fedParams.find_value("txid").get_str();
+                CoordinatePreConfSig preconfObj;
+                if (receivedTx.compare("") != 0) {
+                    preconfObj.txid = uint256S(receivedTx);
+                }
+                preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
+                preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int64_t>();
+                preconfObj.vsize =  fedParams.find_value("vsize").getInt<int32_t>();
+                preconfObj.reserve =  fedParams.find_value("reserve").getInt<int32_t>();
+                preconfObj.finalized = finalized;
+                preconfObj.witness =  request.params[1].get_str();
+                preconfObj.federationKey = request.params[3].get_str();
+                if(idx == 0 && pegins.size() > 0) {
+                    preconfObj.pegins = pegins;
+                }
+                preconf.push_back(preconfObj);
+            }
+
+             return includePreConfSigWitness(preconf, chainman);
+    
 
             return false;
         },

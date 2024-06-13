@@ -2001,8 +2001,12 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool isPreconf = false;
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &txundo.vprevout.back());
-            assert(is_spent);
-
+            if(tx.nVersion == TRANSACTION_PRECONF_VERSION && !is_spent) {
+               return;
+            } else {
+               assert(is_spent);
+            }
+    
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
             if (nAssetID)
                 nAssetIDOut = nAssetID;
@@ -2564,8 +2568,8 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     CCheckQueueControl<CScriptCheck> control(fScriptChecks && parallel_script_checks ? &scriptcheckqueue : nullptr);
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
 
-    bool verifyAnduroCheck = verifyAnduro(m_chainman,block, pindex->nHeight);
-    if (!verifyAnduroCheck) {
+    bool verifyPreCommitmentCheck = verifyPreCommitment(m_chainman,block, pindex->nHeight);
+    if (!verifyPreCommitmentCheck) {
          return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Anduro witness failed");
     }
 
@@ -2721,18 +2725,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             // addtional mint for tokens
             if (tx.assetType == 0) {
                 if (tx.vin.size() == 0) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input specified");
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - no input spciefied");
                 }
-
+                bool fBitAsset = false;
                 bool fBitAssetControl = false;
                 Coin coin;
-
+                // check first input is asset controller
+                bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
                 if(fBitAssetControl) {
                    nIDLast = nAssetID;
+                   bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
                 }
             }
-
-
 
             // additional mint not available for current minting
             if(nAssetID == 0) {
@@ -2910,7 +2914,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
     }
 
-    resetDeposit(pindex->nHeight);
+    resetCommitment(pindex->nHeight);
 
 
     return true;

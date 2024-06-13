@@ -4866,9 +4866,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         vRecv >> currentHeight;
         int incr = 0;
         while(incr<3) {
-            std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight + incr);
-            if(pending_pegs.size()>0) {
-            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PREBLOCKSIGNREPONSE, pending_pegs));
+            std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(currentHeight + incr);
+            if(pending_commitments.size()>0) {
+            m_connman.PushMessage(&pfrom, msgMaker.Make(NetMsgType::PREBLOCKSIGNREPONSE, pending_commitments));
             }
             incr = incr + 1;
         }
@@ -4892,10 +4892,10 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
     // receive response from other peer for recent anduro pre signed block information
     if (msg_type == NetMsgType::PREBLOCKSIGNREPONSE) {
-        std::vector<AnduroTxOut> vData;
+        std::vector<AnduroPreCommitment> vData;
         vRecv >> vData;
-        if(isSpecialTxoutValid(vData,m_chainman)) {
-           includePreSignedSignature(vData);
+        if(isPreCommitmentValid(vData,m_chainman)) {
+           includePreCommitmentSignature(vData);
         }
         return;
     }
@@ -5412,9 +5412,9 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
         peer.m_last_peg_req_timestamp = current_time;
         LOCK(cs_main);
         int32_t currentHeight = m_chainman.ActiveChain().Height() + 1;
-        std::vector<AnduroTxOut> pending_pegs = listPendingDepositTransaction(currentHeight);
+        std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(currentHeight);
         // Every 5 second node will check and request if no presigned block data exist
-        if (pending_pegs.size() == 0) {
+        if (pending_commitments.size() == 0) {
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PREBLOCKSIGNREQUEST, currentHeight));
         }
