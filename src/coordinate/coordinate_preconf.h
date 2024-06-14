@@ -51,8 +51,8 @@ public:
     void SetNull()
     {
         fee = -1;
-        txids.empty();
-        pegins.empty();
+        static_cast<void>(txids.empty());
+        static_cast<void>(pegins.empty());
         witness = "";
         minedBlockHeight = -1;
     }
@@ -133,9 +133,9 @@ public:
         txid.SetNull();
         witness = "";
         isBroadcasted = false;
-        peerList.empty();
+        static_cast<void>(peerList.empty());
         federationKey = "";
-        pegins.empty();
+        static_cast<void>(pegins.empty());
     }
 };
 
