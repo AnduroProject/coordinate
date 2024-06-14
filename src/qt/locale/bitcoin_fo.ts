@@ -946,7 +946,7 @@
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Ávaring: Ógildig Bitcoin adressa</translation>
     </message>
     <message>

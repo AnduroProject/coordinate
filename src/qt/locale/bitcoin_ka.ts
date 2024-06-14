@@ -1545,7 +1545,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">„bitcoin://“ არ არის სწორი URI. ამის ნაცვლად გამოიყენეთ „bitcoin:“.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI შეუძლებელია გაანალიზდეს! ეს შეიძლება გამოწვეული იყოს არასწორი Bitcoin მისამართით ან ცუდად ფორმირებული URI პარამეტრებით.</translation>
     </message>
     <message>
@@ -2192,7 +2192,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">ყურადღება: არასწორია Bitcoin-მისამართი</translation>
     </message>
     <message>
