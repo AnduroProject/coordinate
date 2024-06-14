@@ -2731,10 +2731,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 bool fBitAssetControl = false;
                 Coin coin;
                 // check first input is asset controller
-                bool is_asset = view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+                view.getAssetCoin(tx.vin[0].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
                 if(fBitAssetControl) {
                    nIDLast = nAssetID;
-                   bool is_asset_detail = passettree->GetAsset(nIDLast,asset);
+                   passettree->GetAsset(nIDLast,asset);
                 }
             }
 
@@ -4394,7 +4394,7 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
     // * There must be at least one output whose scriptPubKey is a single 36-byte push, the first 4 bytes of which are
     //   {0xaa, 0x21, 0xa9, 0xed}, and the following 32 bytes are SHA256^2(witness root, witness reserved value). In case there are
     //   multiple, the last one is used.
-    bool fHaveWitness = false;
+
     if (DeploymentActiveAfter(pindexPrev, chainman, Consensus::DEPLOYMENT_SEGWIT)) {
         int commitpos = GetWitnessCommitmentIndex(block);
         if (commitpos != NO_WITNESS_COMMITMENT) {
@@ -4410,7 +4410,6 @@ static bool ContextualCheckBlock(const CBlock& block, BlockValidationState& stat
             if (memcmp(hashWitness.begin(), &block.vtx[0]->vout[commitpos].scriptPubKey[6], 32)) {
                 return state.Invalid(BlockValidationResult::BLOCK_MUTATED, "bad-witness-merkle-match", strprintf("%s : witness merkle commitment mismatch", __func__));
             }
-            fHaveWitness = true;
         }
     }
 

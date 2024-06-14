@@ -226,7 +226,7 @@ void removePreConfWitness() {
 void removePreConfFinalizedBlock(uint64_t blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
-        if((int)finalizedSignedBlock.nHeight > blockHeight) {
+        if(static_cast<uint64_t>(finalizedSignedBlock.nHeight) > blockHeight) {
             newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
         }
     }

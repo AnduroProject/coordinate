@@ -59,7 +59,6 @@ bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, Chainsta
    bool isValid = true;
    
    UniValue messages(UniValue::VARR);
-   int tIndex = 1;
    // preparing message for signature verification
    for (const AnduroPreCommitment& commitment : commitments) {
       if(commitment.block_height <= active_chain.Height()) {
