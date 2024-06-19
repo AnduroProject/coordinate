@@ -276,7 +276,7 @@ static RPCHelpMan getpreconflist()
                     for (size_t i = 0; i < coordinatePreConfSig.txids.size(); i++)
                     {
                         UniValue voteItem(UniValue::VOBJ);
-                        voteItem.pushKV("txids",  coordinatePreConfSig.txids[i].ToString());
+                        voteItem.pushKV("txid",  coordinatePreConfSig.txids[i].ToString());
                         voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
                         voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
                         voteItem.pushKV("reserve", 0);
