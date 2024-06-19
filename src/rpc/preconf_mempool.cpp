@@ -188,12 +188,12 @@ static RPCHelpMan sendpreconflist()
                 std::string receivedTx = fedParams.find_value("txid").get_str();
                 CoordinatePreConfSig preconfObj;
                 if (receivedTx.compare("") != 0) {
-                    preconfObj.txid = uint256S(receivedTx);
+                    preconfObj.txids.push_back(uint256S(receivedTx));
+                } else {
+                     preconfObj.txids.push_back(uint256().SetNull());
                 }
                 preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
                 preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int64_t>();
-                preconfObj.vsize =  fedParams.find_value("vsize").getInt<int32_t>();
-                preconfObj.reserve =  fedParams.find_value("reserve").getInt<int32_t>();
                 preconfObj.finalized = finalized;
                 preconfObj.witness =  request.params[1].get_str();
                 preconfObj.federationKey = request.params[3].get_str();
