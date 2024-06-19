@@ -190,7 +190,8 @@ static RPCHelpMan sendpreconflist()
                 if (receivedTx.compare("") != 0) {
                     preconfObj.txids.push_back(uint256S(receivedTx));
                 } else {
-                     preconfObj.txids.push_back(uint256().SetNull());
+
+                    preconfObj.txids.push_back(uint256::ZERO);
                 }
                 preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
                 preconfObj.minedBlockHeight =  fedParams.find_value("mined_block_height").getInt<int64_t>();
@@ -272,11 +273,15 @@ static RPCHelpMan getpreconflist()
             for (const CoordinatePreConfSig& coordinatePreConfSig : coordinatePreConfSigs) {
                 if (coordinatePreConfSig.blockHeight == (int32_t)nHeight || nHeight == 0) {
                     UniValue voteItem(UniValue::VOBJ);
-                    voteItem.pushKV("txid", coordinatePreConfSig.txid.ToString());
+                    UniValue txids(UniValue::VARR);
+                    for (size_t i = 0; i < coordinatePreConfSig.txids.size(); i++)
+                    {
+                        txids.push_back(coordinatePreConfSig.txids[i].ToString());
+                    }
+                    
+                    voteItem.pushKV("txids", txids);
                     voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
                     voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
-                    voteItem.pushKV("reserve", coordinatePreConfSig.reserve);
-                    voteItem.pushKV("vsize", coordinatePreConfSig.vsize);
                     voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
                     voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
                     block.push_back(voteItem);

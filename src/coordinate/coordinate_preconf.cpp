@@ -62,7 +62,7 @@ CAmount nextBlockFee(CTxMemPool& preconf_pool, uint64_t signedBlockHeight) {
            continue;
         }
         for (size_t i = 0; i < coordinatePreConfSigtem.txids.size(); i++) {
-            if(coordinatePreConfSigtem.txids[i].IsNull()) {
+            if(coordinatePreConfSigtem.txids[i] == uint256::ZERO) {
                continue;
             }
             CTransactionRef tx = preconf_pool.get(coordinatePreConfSigtem.txids[i]);
@@ -92,7 +92,7 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
           }
         }
         for (size_t i = 0; i < coordinatePreConfSigtem.txids.size(); i++) {
-            if(!coordinatePreConfSigtem.txids[i].IsNull()) {
+            if(coordinatePreConfSigtem.txids[i] != uint256::ZERO) {
                 txids.push_back(coordinatePreConfSigtem.txids[i]);
             }
         }
@@ -150,7 +150,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
         for (size_t i = 0; i < coordinatePreConfSigItem.txids.size(); i++){
             UniValue message(UniValue::VOBJ);
-            if(! coordinatePreConfSigItem.txids[i].IsNull()) {
+            if(coordinatePreConfSigItem.txids[i] != uint256::ZERO) {
                 if(!preconf_pool.exists(GenTxid::Txid( coordinatePreConfSigItem.txids[i]))) {
                     LogPrintf("preconf txid not avilable in mempool \n");
                     return false;
