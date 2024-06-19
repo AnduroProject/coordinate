@@ -259,6 +259,11 @@ static RPCHelpMan getpreconflist()
         },
         RPCExamples{"\nGet current preconf block in queue\n" + HelpExampleCli("getpreconflist", "height")},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+
+            const NodeContext& node{EnsureAnyNodeContext(request.context)};
+            ChainstateManager& chainman = EnsureChainman(node);
+            CTxMemPool& preconf_pool{*chainman.ActiveChainstate().GetPreConfMempool()};
+
             uint32_t nHeight = 0;
             if (!request.params[0].isNull()) {
                 if(!ParseUInt32(request.params[0].get_str(), &nHeight)) {
@@ -276,14 +281,17 @@ static RPCHelpMan getpreconflist()
                     for (size_t i = 0; i < coordinatePreConfSig.txids.size(); i++)
                     {
                         UniValue voteItem(UniValue::VOBJ);
-                        voteItem.pushKV("txid",  coordinatePreConfSig.txids[i].ToString());
-                        voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
-                        voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
-                        voteItem.pushKV("reserve", 0);
-                        voteItem.pushKV("vsize", 0);
-                        voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
-                        voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
-                        block.push_back(voteItem);
+                        TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(coordinatePreConfSig.txids[i]));
+                        if(info.tx) {
+                            voteItem.pushKV("txids",  coordinatePreConfSig.txids[i].ToString());
+                            voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
+                            voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
+                            voteItem.pushKV("reserve", info.tx->vout[0].nValue);
+                            voteItem.pushKV("vsize", info.vsize);
+                            voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
+                            voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
+                            block.push_back(voteItem);
+                        }
                     }
                     
 
