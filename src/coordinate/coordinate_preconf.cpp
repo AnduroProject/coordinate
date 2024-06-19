@@ -121,41 +121,52 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
 
     int blockindex = preconf[0].minedBlockHeight;
     int finalizedStatus = preconf[0].finalized;
+    uint256 txid = preconf[0].txid;
+    std::string federationKey = preconf[0].federationKey;
+   
+    auto it = std::find_if(coordinatePreConfSig.begin(), coordinatePreConfSig.end(), 
+        [txid, federationKey] (const CoordinatePreConfSig& d) { 
+            return d.txid == txid && d.federationKey.compare(federationKey) == 0;
+    });
+    if (it != coordinatePreConfSig.end()) {
+        LogPrintf("preconf transaction list already exist \n");
+        return false;
+    }
 
     // check txid exist in preconf mempool
     UniValue messages(UniValue::VARR);
 
-        for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
-             UniValue message(UniValue::VOBJ);
-            if(!coordinatePreConfSigItem.txid.IsNull()) {
-                // if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
-                //         LogPrintf("preconf txid not avilable in mempool \n");
-                //         return false;
-                // }
-                message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
-            } else {
-                message.pushKV("txid", "");
+    for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
+        UniValue message(UniValue::VOBJ);
+        if(!coordinatePreConfSigItem.txid.IsNull()) {
+            if(!preconf_pool.exists(GenTxid::Txid(coordinatePreConfSigItem.txid))) {
+                    LogPrintf("preconf txid not avilable in mempool \n");
+                    return false;
             }
-            message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
-            message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
-            UniValue pegmessages(UniValue::VARR);
-            if(coordinatePreConfSigItem.pegins.size() > 0) {
-                    // preparing message for signature verification
-                    for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
-                        CTxDestination address;
-                        ExtractDestination(pegin.scriptPubKey, address);
-                        std::string addressStr = EncodeDestination(address);
-
-                        UniValue pegmessage(UniValue::VOBJ);
-                        pegmessage.pushKV("address", addressStr);
-                        pegmessage.pushKV("amount", pegin.nValue);
-                        pegmessages.push_back(pegmessage);
-                    }
-                  
-            }
-            message.pushKV("pegins", pegmessages);
-            messages.push_back(message);
+            message.pushKV("txid", coordinatePreConfSigItem.txid.ToString());
+        } else {
+            message.pushKV("txid", "");
         }
+        message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
+        message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
+        UniValue pegmessages(UniValue::VARR);
+        if(coordinatePreConfSigItem.pegins.size() > 0) {
+                // preparing message for signature verification
+                for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
+                    CTxDestination address;
+                    ExtractDestination(pegin.scriptPubKey, address);
+                    std::string addressStr = EncodeDestination(address);
+
+                    UniValue pegmessage(UniValue::VOBJ);
+                    pegmessage.pushKV("address", addressStr);
+                    pegmessage.pushKV("amount", pegin.nValue);
+                    pegmessages.push_back(pegmessage);
+                }
+                
+        }
+        message.pushKV("pegins", pegmessages);
+        messages.push_back(message);
+    }
  
 
     if(blockindex<0) {
@@ -167,6 +178,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
     }
     if(finalizedStatus == 1) {
+        LogPrintf("validateAnduroSignature in preconf \n");
         if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
             return false;
         }
@@ -273,7 +285,7 @@ std::vector<CoordinatePreConfSig> getPreConfSig() {
  */
 void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId) {
     for (CoordinatePreConfSig& coordinatePreConfSigItem : coordinatePreConfSig) {
-        if(coordinatePreConfSigItem.witness.compare(preconfItem.witness)==0) {
+        if(coordinatePreConfSigItem.witness.compare(preconfItem.witness)==0 && !coordinatePreConfSigItem.isBroadcasted) {
             if (std::find(preconfItem.peerList.begin(), preconfItem.peerList.end(), peerId) != preconfItem.peerList.end()) {
                 coordinatePreConfSigItem.isBroadcasted = true;
             } else {
@@ -289,7 +301,7 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
     for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.nHeight == signedBlockItem.nHeight) {
+        if(finalizedSignedBlock.nHeight == signedBlockItem.nHeight && !finalizedSignedBlock.isBroadcasted) {
             if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
                 finalizedSignedBlock.isBroadcasted = true;
             } else {
