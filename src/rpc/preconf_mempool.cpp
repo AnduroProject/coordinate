@@ -302,8 +302,6 @@ static RPCHelpMan getpreconflist()
                                 voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
                                 block.push_back(voteItem);
                         }
-                    }
-                    
 
               
                 }
