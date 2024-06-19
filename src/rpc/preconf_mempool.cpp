@@ -276,21 +276,31 @@ static RPCHelpMan getpreconflist()
             UniValue block(UniValue::VARR);
             std::vector<CoordinatePreConfSig> coordinatePreConfSigs = getPreConfSig();
             for (const CoordinatePreConfSig& coordinatePreConfSig : coordinatePreConfSigs) {
-                if (coordinatePreConfSig.blockHeight == (int32_t)nHeight || nHeight == 0) {
-              
-                    for (size_t i = 0; i < coordinatePreConfSig.txids.size(); i++)
-                    {
-                        UniValue voteItem(UniValue::VOBJ);
-                        TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(coordinatePreConfSig.txids[i]));
-                        if(info.tx) {
-                            voteItem.pushKV("txids",  coordinatePreConfSig.txids[i].ToString());
-                            voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
-                            voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
-                            voteItem.pushKV("reserve", info.tx->vout[0].nValue);
-                            voteItem.pushKV("vsize", info.vsize);
-                            voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
-                            voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
-                            block.push_back(voteItem);
+                    if (coordinatePreConfSig.blockHeight == (int32_t)nHeight || nHeight == 0) {
+                        for (size_t i = 0; i < coordinatePreConfSig.txids.size(); i++)
+                        {
+                            UniValue voteItem(UniValue::VOBJ);
+                            if(coordinatePreConfSig.txids[i] == uint256::ZERO) {
+                                voteItem.pushKV("txid","");
+                                voteItem.pushKV("reserve", 0);
+                                voteItem.pushKV("vsize", 0);
+                            } else {
+                                TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(coordinatePreConfSig.txids[i]));
+                                if(info.tx) {
+                                    voteItem.pushKV("txid",  coordinatePreConfSig.txids[i].ToString());
+                                    voteItem.pushKV("reserve", info.tx->vout[0].nValue);
+                                    voteItem.pushKV("vsize", info.vsize);
+                                } else {
+                                    voteItem.pushKV("txid","");
+                                    voteItem.pushKV("reserve", 0);
+                                    voteItem.pushKV("vsize", 0);
+                                }
+                            }
+                                voteItem.pushKV("mined_block_height", coordinatePreConfSig.minedBlockHeight);
+                                voteItem.pushKV("signed_block_height", coordinatePreConfSig.blockHeight);
+                                voteItem.pushKV("finalized", coordinatePreConfSig.finalized);
+                                voteItem.pushKV("federationkey", coordinatePreConfSig.federationKey);
+                                block.push_back(voteItem);
                         }
                     }
                     
