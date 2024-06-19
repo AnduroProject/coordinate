@@ -295,7 +295,7 @@ std::vector<CoordinatePreConfSig> getPreConfSig() {
 void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId) {
     for (CoordinatePreConfSig& coordinatePreConfSigItem : coordinatePreConfSig) {
         if(coordinatePreConfSigItem.witness.compare(preconfItem.witness)==0 && !coordinatePreConfSigItem.isBroadcasted) {
-            if (std::find(preconfItem.peerList.begin(), preconfItem.peerList.end(), peerId) = preconfItem.peerList.end()) {
+            if (std::find(preconfItem.peerList.begin(), preconfItem.peerList.end(), peerId) != preconfItem.peerList.end()) {
                 coordinatePreConfSigItem.isBroadcasted = true;
             } else {
                 coordinatePreConfSigItem.peerList.push_back(peerId);
