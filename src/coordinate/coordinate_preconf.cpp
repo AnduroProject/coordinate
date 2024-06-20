@@ -128,6 +128,10 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     int blockindex = preconf[0].minedBlockHeight;
     int finalizedStatus = preconf[0].finalized;
 
+    if(blockindex<0) {
+          return false;
+    }
+
     if(preconf[0].txids.size() == 0) {
        LogPrintf("preconf transaction not exist \n");
         return false;
@@ -143,11 +147,16 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         LogPrintf("preconf transaction list already exist \n");
         return false;
     }
+    
+    // get block to find the eligible anduro keys to be signed on presigned block
+    CBlock block;
+    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
+        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+    }
 
     // check txid exist in preconf mempool
-    UniValue messages(UniValue::VARR);
-
     for (const CoordinatePreConfSig& coordinatePreConfSigItem : preconf) {
+        UniValue messages(UniValue::VARR);
         for (size_t i = 0; i < coordinatePreConfSigItem.txids.size(); i++){
             UniValue message(UniValue::VOBJ);
             if(coordinatePreConfSigItem.txids[i] != uint256::ZERO) {
@@ -179,29 +188,20 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             message.pushKV("pegins", pegmessages);
             messages.push_back(message);
         }
-        
+        if(finalizedStatus == 1) {
+            LogPrintf("validateAnduroSignature in preconf \n");
+            if(!validateAnduroSignature(coordinatePreConfSigItem.witness,messages.write(),block.currentKeys)) {
+                return false;
+            }
+        } else {
+            if(!validatePreconfSignature(coordinatePreConfSigItem.witness,messages.write(),block.currentKeys)) {
+                return false;
+            }
+        }
+    }
 
-    }
- 
-
-    if(blockindex<0) {
-          return false;
-    }
-    // get block to find the eligible anduro keys to be signed on presigned block
-    CBlock block;
-    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
-    }
     if(finalizedStatus == 1) {
-        LogPrintf("validateAnduroSignature in preconf \n");
-        if(!validateAnduroSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
-            return false;
-        }
         removePreConfWitness();
-    } else {
-        if(!validatePreconfSignature(preconf[0].witness,messages.write(),block.currentKeys)) {
-            return false;
-        }
     }
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {

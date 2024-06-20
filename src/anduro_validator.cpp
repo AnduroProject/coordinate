@@ -8,7 +8,6 @@
  * Validate presigned signature
  */
 bool validateAnduroSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-    LogPrintf("validateAnduroSignature messageIn %s \n", messageIn);
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
@@ -40,6 +39,9 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
         std::string redeemPath =  o.find_value("redeempath").get_str();
         std::string signature =  o.find_value("signature").get_str();
 
+        if(signature.compare("") == 0) {
+            continue;
+        }
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
             uint256 message = prepareMessageHash(messageIn);
             XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
@@ -59,6 +61,7 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
 
 bool validatePreconfSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
 
+    LogPrintf("validatePreconfSignature message %s", messageIn);
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
