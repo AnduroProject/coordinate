@@ -174,7 +174,7 @@ static RPCHelpMan sendpreconflist()
                    }
             }
  
-            
+            CoordinatePreConfSig preconfObj;
             for (unsigned int idx = 0; idx < req_params.size(); idx++) {
                 const UniValue& fedParams = req_params[idx].get_obj();
                 RPCTypeCheckObj(fedParams,
@@ -186,7 +186,7 @@ static RPCHelpMan sendpreconflist()
                                     {"reserve", UniValueType(UniValue::VNUM)},
                                 });
                 std::string receivedTx = fedParams.find_value("txid").get_str();
-                CoordinatePreConfSig preconfObj;
+               
                 if (receivedTx.compare("") != 0) {
                     preconfObj.txids.push_back(uint256S(receivedTx));
                 } else {
@@ -201,10 +201,10 @@ static RPCHelpMan sendpreconflist()
                 if(idx == 0 && pegins.size() > 0) {
                     preconfObj.pegins = pegins;
                 }
-                preconf.push_back(preconfObj);
+                
             }
-
-             return includePreConfSigWitness(preconf, chainman);
+            preconf.push_back(preconfObj);
+            return includePreConfSigWitness(preconf, chainman);
     
 
             return false;
