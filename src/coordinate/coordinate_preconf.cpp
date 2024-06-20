@@ -189,7 +189,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             messages.push_back(message);
         }
         if(finalizedStatus == 1) {
-            LogPrintf("validateAnduroSignature in preconf \n");
             if(!validateAnduroSignature(coordinatePreConfSigItem.witness,messages.write(),block.currentKeys)) {
                 return false;
             }

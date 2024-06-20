@@ -48,7 +48,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                 LogPrintf("failed verfication \n");
             } else {
-                LogPrintf("success verfication \n");
                 thresold -= 1;
                 if(thresold == 0) {
                     break;
@@ -61,7 +60,6 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
 
 bool validatePreconfSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
 
-    LogPrintf("validatePreconfSignature message %s", messageIn);
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
@@ -98,10 +96,7 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
 
         if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
             uint256 message = prepareMessageHash(messageIn);
-            LogPrintf("message %s \n",HexStr(message));
-            LogPrintf("redeemPath %s \n",redeemPath);
-            LogPrintf("signature %s \n",signature);
-     
+
             XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
             if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
                 LogPrintf("failed verfication \n");
