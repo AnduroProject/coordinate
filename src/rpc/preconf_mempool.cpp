@@ -403,6 +403,94 @@ static RPCHelpMan getsignedblockcount()
     };
 }
 
+
+static RPCHelpMan getpreconftxrefund() {
+    return RPCHelpMan{
+        "getpreconftxrefund",
+        "\nGet preconf tx refund\n",
+        {
+            {"txs",RPCArg::Type::ARR, RPCArg::Optional::NO, "preconf tx list",
+              {
+                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
+                    {
+                        {"tx", RPCArg::Type::STR, RPCArg::Optional::NO, "preconf tx"},
+                    }
+                }
+              }
+            },
+        },
+        RPCResult{
+            RPCResult::Type::ARR, "", "", {
+                {
+                    {RPCResult::Type::OBJ, "", "preconf tx details",
+                    {
+                        {RPCResult::Type::STR, "tx", "preconf tx"},
+                        {RPCResult::Type::NUM, "refund", "preconf tx refund"},
+                    }},
+                },
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("getpreconftxrefund", "") + HelpExampleRpc("getpreconftxrefund", "")},
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            const UniValue& req_params = request.params[0].get_array();
+                   
+            if (req_params.size() == 0) {
+               throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
+                                    "Txid not available");
+            }
+            LOCK(cs_main);
+            const NodeContext& node = EnsureAnyNodeContext(request.context);
+            ChainstateManager& chainman = EnsureChainman(node);
+            CCoinsViewCache view(&chainman.ActiveChainstate().CoinsTip());
+            chainman.ActiveChainstate().UpdatedCoinsTip(view,chainman.ActiveHeight());
+
+
+            const CBlockIndex* blockindex = nullptr;
+            uint256 hash_block;
+            UniValue result(UniValue::VARR);  
+            for (unsigned int idx = 0; idx < req_params.size(); idx++) {
+                const UniValue& params = req_params[idx].get_obj();
+                RPCTypeCheckObj(params,{
+                    {"tx", UniValueType(UniValue::VSTR)},
+                });
+                CAmount refund = CAmount(0);
+                uint256 hash = ParseHashV(params.find_value("tx"), "parameter 1");
+                CTransactionRef mined_tx = GetTransaction(blockindex, nullptr, hash, hash_block, chainman.m_blockman, true);
+                if(!mined_tx) {
+                    SignedTxindex signedTxIndex;
+                    chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash,signedTxIndex);
+                    if(!signedTxIndex.signedBlockHash.IsNull()) {
+                        CChain& active_chain = chainman.ActiveChain();
+                        CBlock block;
+                        if (chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[signedTxIndex.blockIndex])) {
+                            for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
+                                if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
+                                    mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
+                                    refund = getRefundForPreconfTx(*mined_tx,preconfBlockItem.currentFee,view);
+                                    break;
+                                }
+                            }
+                        } 
+                    }
+                }
+                UniValue preconfDetails(UniValue::VOBJ); 
+                preconfDetails.pushKV("tx", hash.ToString());
+                preconfDetails.pushKV("refund", refund);
+                result.push_back(preconfDetails); 
+            }
+            
+            // UniValue result(UniValue::VARR);  
+            // UniValue preconfDetails(UniValue::VOBJ); 
+            // preconfDetails.pushKV("tx", "test");
+            // preconfDetails.pushKV("refund", 1);
+            // result.push_back(preconfDetails); 
+            return result;
+        },
+    };
+}
+
+
 void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -411,7 +499,8 @@ void RegisterPreConfMempoolRPCCommands(CRPCTable& t)
         {"preconf", &getpreconffee},
         {"preconf", &getpreconflist},
         {"preconf", &getfinalizedsignedblocks},
-        {"preconf", &getsignedblockcount}
+        {"preconf", &getsignedblockcount},
+        {"preconf", &getpreconftxrefund}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);
