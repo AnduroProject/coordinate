@@ -695,7 +695,6 @@ CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsV
         if(coin.IsSpent()) {
             continue;
         }
-
         if (!MoneyRange(coin.out.nValue) || !MoneyRange(nValueIn)) {
             continue;
         }
@@ -705,14 +704,25 @@ CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsV
     for (size_t i = 1; i < ptx.vout.size(); ++i) {
         value_out = value_out + ptx.vout[i].nValue;
     }
-
     if (nValueIn < value_out) { 
         return refund;
     }
-
     refund = (nValueIn - value_out) - fee;
     if(refund < 0) {
         return 0;
     }
     return refund;
+}
+
+
+CAmount getRefundForPreconfCurrentTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) {
+    if(ptx.IsCoinBase()) {
+        return 0;
+    }
+    const COutPoint &prevout = COutPoint(ptx.GetHash(), 0);
+    const Coin& coin = inputs.AccessCoin(prevout);
+    if(coin.IsSpent()) {
+        return 0;
+    }
+    return coin.out.nValue;
 }

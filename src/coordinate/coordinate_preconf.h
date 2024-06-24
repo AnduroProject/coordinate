@@ -300,3 +300,10 @@ CAmount getPreconfFeeForFederation(std::vector<CTransactionRef> vtx, CAmount cur
  */
 CAmount getRefundForPreconfTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs) ;
 
+/**
+ * This function will calculate refund for particular tx in signed block
+ * @param[in] ptx  used to find previous blocks based on active chain state
+ * @param[in] blockFee signed block current fee
+ * @param[in] inputs active coin tip
+ */
+CAmount getRefundForPreconfCurrentTx(const CTransaction& ptx, CAmount blockFee, CCoinsViewCache& inputs);

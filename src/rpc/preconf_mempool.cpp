@@ -443,7 +443,7 @@ static RPCHelpMan getpreconftxrefund() {
             const NodeContext& node = EnsureAnyNodeContext(request.context);
             ChainstateManager& chainman = EnsureChainman(node);
             CCoinsViewCache view(&chainman.ActiveChainstate().CoinsTip());
-            chainman.ActiveChainstate().UpdatedCoinsTip(view,chainman.ActiveHeight());
+            chainman.ActiveChainstate().UpdatedCoinsTip(view,chainman.ActiveChainstate().m_chain.Height());
 
 
             const CBlockIndex* blockindex = nullptr;
@@ -462,7 +462,7 @@ static RPCHelpMan getpreconftxrefund() {
                     for (const auto& tx : finalizedSignedBlock.vtx) {
                         if (tx->GetHash() == hash) {
                             mined_tx =  tx;
-                            refund = getRefundForPreconfTx(*mined_tx,finalizedSignedBlock.currentFee,view);
+                            refund = getRefundForPreconfCurrentTx(*mined_tx,finalizedSignedBlock.currentFee,view);
                             break;
                         }
                     }
@@ -477,7 +477,7 @@ static RPCHelpMan getpreconftxrefund() {
                             for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
                                 if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
                                     mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
-                                    refund = getRefundForPreconfTx(*mined_tx,preconfBlockItem.currentFee,view);
+                                    refund = getRefundForPreconfCurrentTx(*mined_tx,preconfBlockItem.currentFee,view);
                                     break;
                                 }
                             }
@@ -489,12 +489,6 @@ static RPCHelpMan getpreconftxrefund() {
                 preconfDetails.pushKV("refund", refund);
                 result.push_back(preconfDetails); 
             }
-            
-            // UniValue result(UniValue::VARR);  
-            // UniValue preconfDetails(UniValue::VOBJ); 
-            // preconfDetails.pushKV("tx", "test");
-            // preconfDetails.pushKV("refund", 1);
-            // result.push_back(preconfDetails); 
             return result;
         },
     };
