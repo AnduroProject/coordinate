@@ -456,7 +456,17 @@ static RPCHelpMan getpreconftxrefund() {
                 });
                 CAmount refund = CAmount(0);
                 uint256 hash = ParseHashV(params.find_value("tx"), "parameter 1");
-                CTransactionRef mined_tx = GetTransaction(blockindex, nullptr, hash, hash_block, chainman.m_blockman, true);
+                CTransactionRef mined_tx;
+                std::vector<SignedBlock> finalizedBlocks= getFinalizedSignedBlocks();
+                for (SignedBlock finalizedSignedBlock : finalizedBlocks) {
+                    for (const auto& tx : finalizedSignedBlock.vtx) {
+                        if (tx->GetHash() == hash) {
+                            mined_tx =  tx;
+                            refund = getRefundForPreconfTx(*mined_tx,finalizedSignedBlock.currentFee,view);
+                            break;
+                        }
+                    }
+                }
                 if(!mined_tx) {
                     SignedTxindex signedTxIndex;
                     chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash,signedTxIndex);
