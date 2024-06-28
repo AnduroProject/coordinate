@@ -59,7 +59,6 @@ bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, Chainsta
    bool isValid = true;
    
    UniValue messages(UniValue::VARR);
-   int tIndex = 1;
    // preparing message for signature verification
    for (const AnduroPreCommitment& commitment : commitments) {
       if(commitment.block_height <= active_chain.Height()) {
@@ -79,7 +78,6 @@ bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, Chainsta
       if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
          LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
       }
-
       isValid = validateAnduroSignature(commitment.witness,block.GetHash().ToString(),block.currentKeys);
    }
 

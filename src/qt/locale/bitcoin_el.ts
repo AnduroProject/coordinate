@@ -1962,7 +1962,7 @@ ID Συναλλαγής: %1</translation>
         <translation type="unfinished">Το 'bitcoin://' δεν είναι έγκυρο URI. Αντ' αυτού χρησιμοποιήστε το 'bitcoin:'.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">Δεν είναι δυνατή η ανάλυση του URI! Αυτό μπορεί να προκληθεί από μη έγκυρη διεύθυνση Bitcoin ή παραμορφωμένες παραμέτρους URI.</translation>
     </message>
     <message>
@@ -2888,7 +2888,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Προειδοποίηση: Μη έγκυρη διεύθυνση Bitcoin</translation>
     </message>
     <message>

@@ -1898,7 +1898,7 @@ If you are receiving this error you should request the merchant provide a BIP21 
 Ако добијете ову грешку, требало би да затражите од трговца да достави УРИ компатибилан са БИП21.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI се не може рашчланити! Ово може бити проузроковано неважећом Биткоин адресом или погрешно форматираним URI параметрима.</translation>
     </message>
     <message>
@@ -2902,7 +2902,7 @@ Note:  Since the fee is calculated on a per-byte basis, a fee rate of "100 satos
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Упозорење: Неважећа Биткоин адреса</translation>
     </message>
     <message>

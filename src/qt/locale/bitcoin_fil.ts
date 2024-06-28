@@ -1400,7 +1400,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">Ang 'bitcoin://' ay hindi wastong URI. Sa halip, gamitin ang 'bitcoin:'.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">Hindi ma-parse ang URI! Marahil ito ay dahil sa hindi wastong Bitcoin address o maling URI parameters</translation>
     </message>
     <message>
@@ -2094,7 +2094,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Babala: Hindi wastong Bitcoin address</translation>
     </message>
     <message>

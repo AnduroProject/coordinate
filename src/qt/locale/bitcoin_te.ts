@@ -1937,7 +1937,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">'bitcoin://' చెల్లుబాటు అయ్యే URI కాదు. బదులుగా 'bitcoin:' ఉపయోగించండి.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI అన్వయించబడదు! ఇది చెల్లని బిట్‌కాయిన్ చిరునామా లేదా తప్పుగా రూపొందించబడిన URI పారామీటర్‌ల వల్ల సంభవించవచ్చు.</translation>
     </message>
     <message>

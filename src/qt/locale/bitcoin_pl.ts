@@ -1993,7 +1993,7 @@ Ze względu na wady bezpieczeństwa w BIP70 jest zalecane ignorować wszelkich i
 Jeśli pojawia się ten błąd, poproś sprzedawcę o podanie URI zgodnego z BIP21. </translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">Nie można przeanalizować identyfikatora URI! Może to być spowodowane nieważnym adresem Bitcoin lub nieprawidłowymi parametrami URI.</translation>
     </message>
     <message>
@@ -3051,7 +3051,7 @@ Uwaga: Ponieważ opłata jest naliczana za każdy bajt, opłata "100 satoshi za 
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Ostrzeżenie: nieprawidłowy adres Bitcoin</translation>
     </message>
     <message>

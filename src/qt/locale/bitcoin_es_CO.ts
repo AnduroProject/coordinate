@@ -2065,7 +2065,7 @@ Debido a los fallos de seguridad generalizados en BIP70, se recomienda encarecid
 Si recibes este error, debes solicitar al comerciante que te proporcione un URI compatible con BIP21.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">No se puede analizar el URI. Esto se puede deber a una dirección de Bitcoin inválida o a parámetros de URI con formato incorrecto.</translation>
     </message>
     <message>
@@ -3169,7 +3169,7 @@ Nota: Dado que la comisión se calcula por byte, una tasa de "100 satoshis por k
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Advertencia: Dirección de Bitcoin inválida</translation>
     </message>
     <message>

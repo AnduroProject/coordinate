@@ -816,7 +816,7 @@
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Анхаар:Буруу Биткойны хаяг байна</translation>
     </message>
     <message>

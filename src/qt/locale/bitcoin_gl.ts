@@ -1473,7 +1473,7 @@ Firmar é posible unicamente con enderezos de tipo 'legacy'.</translation>
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Atención:  Enderezo Bitcoin non válido</translation>
     </message>
     <message>

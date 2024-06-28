@@ -2000,7 +2000,7 @@ Kvôli bezpečnostným chybám v BIP70 sa odporúča ignorovať pokyny obchodní
 Ak ste dostali túto chybu mali by ste požiadať obchodníka o URI kompatibilné s BIP21.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI sa nedá analyzovať! To môže byť spôsobené neplatnou Bitcoin adresou alebo zle nastavenými vlastnosťami URI.</translation>
     </message>
     <message>
@@ -3065,7 +3065,7 @@ Poznámka: Keďže poplatok je počítaný za bajt, poplatok pri sadzbe "100 sat
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Varovanie: Neplatná Bitcoin adresa</translation>
     </message>
     <message>

@@ -1379,7 +1379,7 @@
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Pozōr: niynŏleżnŏ adresa Bitcoin</translation>
     </message>
     <message>

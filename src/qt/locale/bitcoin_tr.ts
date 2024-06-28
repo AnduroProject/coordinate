@@ -1863,7 +1863,7 @@ Cüzdan kilidini aç.</translation>
         <translation type="unfinished">'bitcoin://' geçerli bir URI değil. Onun yerine 'bitcoin:' kullanın.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI ayrıştırılamıyor! Bunun nedeni geçersiz bir Bitcoin adresi veya hatalı biçimlendirilmiş URI değişkenleri olabilir.</translation>
     </message>
     <message>
@@ -2704,7 +2704,7 @@ Cüzdan kilidini aç.</translation>
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Uyarı: geçersiz Bitcoin adresi</translation>
     </message>
     <message>

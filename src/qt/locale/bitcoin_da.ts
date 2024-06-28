@@ -1934,7 +1934,7 @@ På grund af udbredte sikkerhedsfejl i BIP70 anbefales det på det kraftigste, a
 Hvis du modtager denne fejl, skal du anmode forhandleren om en BIP21-kompatibel URI.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI kan ikke tolkes! Dette kan skyldes en ugyldig Bitcoin-adresse eller forkert udformede URL-parametre.</translation>
     </message>
     <message>
@@ -2941,7 +2941,7 @@ Bemærk: Da gebyret beregnes på per-byte-basis, ville en gebyrsats på "100 sat
         </translation>
     </message>
     <message>
-        <source>Warning: Invalid Bitcoin address</source>
+        <source>Warning: Invalid Coordinate address</source>
         <translation type="unfinished">Advarsel: Ugyldig Bitcoin-adresse</translation>
     </message>
     <message>

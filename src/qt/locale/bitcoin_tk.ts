@@ -2059,7 +2059,7 @@ BIP70-däki howpsuzlygyň giňden ýaýran gowşak taraplary sebäpli, täjirler
 Size bu ýalňyşlyk gelýän bolsa, siz täjirden BIP21-e gabat gelýän URI-ni üpjün etmegini talap etmeli.</translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">URI-ni işläp bolmady! Munuň sebäbi nädogry Bitkoin salgysy ýa-da ýalňyş emele getirilen URI parametrleri bolup biler.</translation>
     </message>
     <message>

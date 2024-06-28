@@ -986,7 +986,7 @@ Signing is only possible with addresses of the type 'legacy'.</source>
         <translation type="unfinished">'bitcoin://' എന്നത് ശരിയായ ഒരു URI അല്ല .പകരം 'bitcoin:' ഉപയോഗിക്കൂ </translation>
     </message>
     <message>
-        <source>URI cannot be parsed! This can be caused by an invalid Bitcoin address or malformed URI parameters.</source>
+        <source>URI cannot be parsed! This can be caused by an Invalid Coordinate address or malformed URI parameters.</source>
         <translation type="unfinished">യു‌ആർ‌ഐ പാഴ്‌സുചെയ്യാൻ‌ കഴിയില്ല! അസാധുവായ ബിറ്റ്കോയിൻ വിലാസം അല്ലെങ്കിൽ കേടായ യു‌ആർ‌ഐ പാരാമീറ്ററുകൾ കാരണം ഇത് സംഭവിക്കാം.</translation>
     </message>
     <message>
