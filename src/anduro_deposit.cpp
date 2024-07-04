@@ -115,7 +115,11 @@ void resetCommitment(int32_t block_height) {
          tCommitmentsNew.push_back(commitment);
       }
    }
-    tCommitments = tCommitmentsNew;
+   if(isPreCommitmentValid(tCommitmentsNew,m_chainman)) {    
+      tCommitments = tCommitmentsNew;
+   } else {
+      tCommitments.clear()
+   }
 }
 
 /**
