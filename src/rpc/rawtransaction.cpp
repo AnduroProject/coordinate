@@ -389,6 +389,7 @@ static RPCHelpMan getrawtransaction()
                     for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
                         if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
                             mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
+                            hash_block = block.GetHash();
                             break;
                         }
                     }
