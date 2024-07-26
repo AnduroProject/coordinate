@@ -1,10 +1,15 @@
-Coordinate Core integration/staging tree
+Coordinate Node integration/staging tree
 =====================================
 
-https://bitcoincore.org
+Ready to use Public Node
+------------------
+```
+http://seed2.coordinate.mara.technology:18332/
+username: coordinate
+password: coordinate
+```
 
-For an immediately usable, binary version of the Bitcoin Core software, see
-https://bitcoincore.org/en/download/.
+Note: Wallet based RPC calls are enabled but should not be used as any funds would be unsecured.
 
 What is Bitcoin Core?
 ---------------------
