@@ -360,8 +360,11 @@ static RPCHelpMan getfinalizedsignedblocks() {
 
                 UniValue blockDetails(UniValue::VOBJ); 
                 UniValue txs(UniValue::VARR);
-                for (const CTransactionRef& tx : block.vtx) {
-                    txs.push_back(tx->GetHash().ToString());
+                for (size_t i = 0; i < block.vtx.size(); ++i) {
+                    const CTransactionRef& tx = block.vtx.at(i);
+                    UniValue objTx(UniValue::VOBJ);
+                    TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
+                    txs.push_back(objTx);
                 }
 
                 blockDetails.pushKV("fee", block.currentFee);
