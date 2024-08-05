@@ -109,7 +109,7 @@ public:
         consensus.nMinimumChainWork = uint256S("000000000000000000000000000000000000000000000002540e3a82637546a2");
         consensus.defaultAssumeValid = uint256S("0xae28b6c95c6009b4e86fc56c6ee84b0be0591482da861f842df34f42f5f02520"); // 0
 
-        consensus.nAuxpowChainId = 0x0001;
+        consensus.nAuxpowChainId = 0x2222;
         consensus.nAuxpowStartHeight = 0; //19200; by dev
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0; //19200; by dev
@@ -238,7 +238,7 @@ public:
         m_assumed_chain_state_size = 3;
 
         consensus.nAuxpowStartHeight = 0;
-        consensus.nAuxpowChainId = 0x0001;
+        consensus.nAuxpowChainId = 0x2222;
         consensus.fStrictChainId = false;
         consensus.nLegacyBlocksBefore = -1;
 
@@ -378,7 +378,7 @@ public:
         nPruneAfterHeight = 1000;
         nAssetPruneAfterHeight = 3000;
         consensus.nAuxpowStartHeight = 0;
-        consensus.nAuxpowChainId = 0x0001;
+        consensus.nAuxpowChainId = 0x2222;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
 
@@ -454,7 +454,7 @@ public:
         consensus.defaultAssumeValid = uint256{};
    
         consensus.nAuxpowStartHeight = 0;
-        consensus.nAuxpowChainId = 0x0001;
+        consensus.nAuxpowChainId = 0x2222;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
         consensus.currentKeys = "7b2263757272656e745f61646472657373223a22636372743170306c71713963397863647476356e3575753470736674353268676e6c7030756832656a657a703079776c73677a30763734793773796434326838222c22616c6c5f6b657973223a5b22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d7d";

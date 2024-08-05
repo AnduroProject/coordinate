@@ -113,9 +113,10 @@ bool isSignatureAlreadyExist(AnduroPreCommitment commitments);
 
 /**
  * This function used to reset presigned signature for processed blocks
- * @param[in] block_height  block height to clear presigned signature
+ * @param[in] block_height  block height to clear presigned signature\
+ * @param[in] chainman  used to find next block number and active chain state
  */
-void resetCommitment(int32_t block_height);
+void resetCommitment(int32_t block_height, ChainstateManager& chainman);
 
 /**
  * This function used to get current keys to be signed for upcoming block

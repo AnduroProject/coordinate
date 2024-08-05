@@ -176,7 +176,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int resize = 2;
     CMutableTransaction coinbaseTx;
-    if(Params().GetChainType() != ChainType::REGTEST) {
+    // if(Params().GetChainType() != ChainType::REGTEST) {
         // get next block presigned data
         std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
         LogPrintf("commitment queue count %i\n", pending_commitments.size());
@@ -229,19 +229,19 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         std::vector<unsigned char> data = ParseHex(preCommitmentWitness);
         CTxOut out(0, CScript() << OP_RETURN << data);
         coinbaseTx.vout[oIncr] = out;
-    } else {
-        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
-        coinbaseTx.vin.resize(1);
-        coinbaseTx.vin[0].prevout.SetNull();
-        coinbaseTx.vout.resize(resize);
-        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-        int oIncr = 1;
-        // miner fee for preconf
-        coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
-        coinbaseTx.vout[oIncr].nValue = minerFee;
-    }
+    // } else {
+    //     pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
+    //     pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
+    //     coinbaseTx.vin.resize(1);
+    //     coinbaseTx.vin[0].prevout.SetNull();
+    //     coinbaseTx.vout.resize(resize);
+    //     coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+    //     coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    //     int oIncr = 1;
+    //     // miner fee for preconf
+    //     coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
+    //     coinbaseTx.vout[oIncr].nValue = minerFee;
+    // }
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
