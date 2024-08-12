@@ -1486,6 +1486,15 @@ void CWallet::blockConnected(ChainstateRole role, const interfaces::BlockInfo& b
         SyncTransaction(block.data->vtx[index], TxStateConfirmed{block.hash, block.height, static_cast<int>(index)});
         transactionRemovedFromMempool(block.data->vtx[index], MemPoolRemovalReason::BLOCK);
     }
+
+    // Scan block
+    for (size_t index = 0; index < block.data->preconfBlock.size(); index++) {
+        const SignedBlock& finalizedSignedBlock = block.data->preconfBlock[index];
+        for (size_t i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            SyncTransaction(finalizedSignedBlock.vtx[i], TxStateConfirmed{finalizedSignedBlock.GetHash(), static_cast<int>(finalizedSignedBlock.nHeight), static_cast<int>(i)});
+            transactionRemovedFromMempool(finalizedSignedBlock.vtx[i], MemPoolRemovalReason::BLOCK);
+        }
+    }
 }
 
 void CWallet::blockDisconnected(const interfaces::BlockInfo& block)
@@ -1528,6 +1537,42 @@ void CWallet::blockDisconnected(const interfaces::BlockInfo& block)
 
                 RecursiveUpdateTxState(wtx.tx->GetHash(), try_updating_state);
             }
+        }
+  
+    }
+
+    // Scan block
+    for (size_t index = 0; index < Assert(block.data)->preconfBlock.size(); index++) {
+        const SignedBlock& finalizedSignedBlock = Assert(block.data)->preconfBlock[index];
+        for (size_t i = 0; i < finalizedSignedBlock.vtx.size(); i++) {
+            const CTransactionRef& ptx = finalizedSignedBlock.vtx[i];
+            SyncTransaction(ptx, TxStateInactive{});
+
+            for (const CTxIn& tx_in : ptx->vin) {
+                // No other wallet transactions conflicted with this transaction
+                if (mapTxSpends.count(tx_in.prevout) < 1) continue;
+
+                std::pair<TxSpends::const_iterator, TxSpends::const_iterator> range = mapTxSpends.equal_range(tx_in.prevout);
+
+                // For all of the spends that conflict with this transaction
+                for (TxSpends::const_iterator _it = range.first; _it != range.second; ++_it) {
+                    CWalletTx& wtx = mapWallet.find(_it->second)->second;
+
+                    if (!wtx.isConflicted()) continue;
+
+                    auto try_updating_state = [&](CWalletTx& tx) {
+                        if (!tx.isConflicted()) return TxUpdate::UNCHANGED;
+                        if (tx.state<TxStateConflicted>()->conflicting_block_height >= disconnect_height) {
+                            tx.m_state = TxStateInactive{};
+                            return TxUpdate::CHANGED;
+                        }
+                        return TxUpdate::UNCHANGED;
+                    };
+
+                    RecursiveUpdateTxState(wtx.tx->GetHash(), try_updating_state);
+                }
+            }
+  
         }
     }
 }

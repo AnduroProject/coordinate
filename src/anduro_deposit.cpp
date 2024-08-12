@@ -108,14 +108,18 @@ std::vector<AnduroPreCommitment> listPendingCommitment(int32_t block_height) {
 /**
  * Used to reset precommitment signature for processed blocks
  */
-void resetCommitment(int32_t block_height) {
+void resetCommitment(int32_t block_height, ChainstateManager& chainman) {
    std::vector<AnduroPreCommitment> tCommitmentsNew;
    for (const AnduroPreCommitment& commitment : tCommitments) {
       if(commitment.block_height > block_height) {
          tCommitmentsNew.push_back(commitment);
       }
    }
-    tCommitments = tCommitmentsNew;
+   if(isPreCommitmentValid(tCommitmentsNew,chainman)) {    
+      tCommitments = tCommitmentsNew;
+   } else {
+      tCommitments.clear();
+   }
 }
 
 /**
@@ -159,10 +163,6 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyPreCommitment(ChainstateManager& chainman, const CBlock& block, int currentHeight) {
-   if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
-      return true;
-   }
-
    LOCK(cs_main);
    if(currentHeight < 3) {
       LogPrintf("verifyCommitment: gensis block ignored");

@@ -176,72 +176,59 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int resize = 2;
     CMutableTransaction coinbaseTx;
-    if(Params().GetChainType() != ChainType::REGTEST) {
-        // get next block presigned data
-        std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
-        LogPrintf("commitment queue count %i\n", pending_commitments.size());
-        // prevent to get block template if not presigned signature available for next block
-        if(nHeight > 2) {
-            if(pending_commitments.size() == 0) {
-                LogPrintf("commitment queue unavailable\n");
-                return nullptr;
-            }
-
-            // increase transaction out size based on available pegin 
-            if(!isPreCommitmentValid(pending_commitments,m_chainstate.m_chainman)) {
-                LogPrintf("anduro commitment invalid \n");
-                return nullptr;
-            }
+    // if(Params().GetChainType() != ChainType::REGTEST) {
+    // get next block presigned data
+    std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
+    LogPrintf("commitment queue count %i\n", pending_commitments.size());
+    // prevent to get block template if not presigned signature available for next block
+    if(nHeight > 2) {
+        if(pending_commitments.size() == 0) {
+            LogPrintf("commitment queue unavailable\n");
+            return nullptr;
         }
 
-        // increase transaction out size by one for include witness
-        resize = resize + 1;
-
-        if(nHeight > 2) {
-            // if new commitment included, then existing anduro key replaced in next block 
-            AnduroPreCommitment& commtiment = pending_commitments[0];
-            pblock->currentKeys = commtiment.nextKeys;
-            pblock->currentIndex = commtiment.nextIndex;
-
-        } else {
-            pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-            pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
+        // increase transaction out size based on available pegin 
+        if(!isPreCommitmentValid(pending_commitments,m_chainstate.m_chainman)) {
+            LogPrintf("anduro commitment invalid \n");
+            return nullptr;
         }
+    }
 
-        coinbaseTx.vin.resize(1);
-        coinbaseTx.vin[0].prevout.SetNull();
-        coinbaseTx.vout.resize(resize);
-        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+    // increase transaction out size by one for include witness
+    resize = resize + 1;
 
-        // miner fee for preconf
-        int oIncr = 1;
-        coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
-        coinbaseTx.vout[oIncr].nValue = minerFee;
-    
-        
-        // including anduro signature information
-        std::string preCommitmentWitness = "";
-        if(nHeight > 2) {
-            preCommitmentWitness = pending_commitments[0].witness;
-        }
-        oIncr = oIncr + 1;
-        std::vector<unsigned char> data = ParseHex(preCommitmentWitness);
-        CTxOut out(0, CScript() << OP_RETURN << data);
-        coinbaseTx.vout[oIncr] = out;
+    if(nHeight > 2) {
+        // if new commitment included, then existing anduro key replaced in next block 
+        AnduroPreCommitment& commtiment = pending_commitments[0];
+        pblock->currentKeys = commtiment.nextKeys;
+        pblock->currentIndex = commtiment.nextIndex;
+
     } else {
         pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
         pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
-        coinbaseTx.vin.resize(1);
-        coinbaseTx.vin[0].prevout.SetNull();
-        coinbaseTx.vout.resize(resize);
-        coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
-        coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
-        int oIncr = 1;
-        // miner fee for preconf
-        coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
-        coinbaseTx.vout[oIncr].nValue = minerFee;
     }
+
+    coinbaseTx.vin.resize(1);
+    coinbaseTx.vin[0].prevout.SetNull();
+    coinbaseTx.vout.resize(resize);
+    coinbaseTx.vout[0].scriptPubKey = scriptPubKeyIn;
+    coinbaseTx.vout[0].nValue = GetBlockSubsidy(nHeight, chainparams.GetConsensus());
+
+    // miner fee for preconf
+    int oIncr = 1;
+    coinbaseTx.vout[oIncr].scriptPubKey = getMinerScript(m_chainstate.m_chainman, nHeight);
+    coinbaseTx.vout[oIncr].nValue = minerFee;
+
+    
+    // including anduro signature information
+    std::string preCommitmentWitness = "";
+    if(nHeight > 2) {
+        preCommitmentWitness = pending_commitments[0].witness;
+    }
+    oIncr = oIncr + 1;
+    std::vector<unsigned char> data = ParseHex(preCommitmentWitness);
+    CTxOut out(0, CScript() << OP_RETURN << data);
+    coinbaseTx.vout[oIncr] = out;
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
     pblocktemplate->vchCoinbaseCommitment = m_chainstate.m_chainman.GenerateCoinbaseCommitment(*pblock, pindexPrev);
