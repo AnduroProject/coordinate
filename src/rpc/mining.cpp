@@ -37,7 +37,8 @@
 #include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
-
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_preconf.h>
 #include <memory>
 #include <stdint.h>
 #include <logging.h>
@@ -628,6 +629,35 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::NUM, "height", "The height of the next block"},
                 {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "Only on signet"},
                 {RPCResult::Type::STR_HEX, "default_witness_commitment", /*optional=*/true, "a valid witness commitment for the unmodified block template"},
+                {RPCResult::Type::OBJ, "reward", "reward for previous block",
+                {
+                    {RPCResult::Type::STR, "script", "miner coinbase script"},
+                    {RPCResult::Type::NUM, "value", "coinbase value"}
+                }},
+                {RPCResult::Type::ARR, "finalized", "Signed block details",
+                {
+                    {
+                        {RPCResult::Type::OBJ, "", "Signed block details",
+                        {
+                            {RPCResult::Type::NUM, "fee", "Signed block fee"},
+                            {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
+                            {RPCResult::Type::NUM, "height", "Signed block height"},
+                            {RPCResult::Type::NUM, "time", "Signed block time"},
+                            {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
+                            {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
+                            {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
+                            {RPCResult::Type::ARR, "tx", "The transaction ids",
+                                {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
+                        }},
+                    },
+                }},
+                {RPCResult::Type::ARR, "ivalidtx", "invalid tx list",
+                {
+                    {RPCResult::Type::STR_HEX, "value", "invalid transaction tx"},
+                }},
+                {RPCResult::Type::STR_HEX, "reconsiliationblock", "reconsiliation block hash"},
+                {RPCResult::Type::NUM, "currentindex", "The derviation index for federaion of the next block to sign"},
+                {RPCResult::Type::STR_HEX, "currentkeys", "federation witness to process next block"},
             }},
         },
         RPCExamples{
@@ -947,6 +977,91 @@ static RPCHelpMan getblocktemplate()
         result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment));
     }
 
+        // include additional block information
+    int nHeight = pindexPrev->nHeight + 1;
+    std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
+    if(nHeight > 2) {
+        if(pending_commitments.size() == 0) {
+            throw JSONRPCError(RPC_OUT_OF_MEMORY, "commitment queue unavailable");
+        }
+
+        // increase transaction out size based on available pegin 
+        if(!isPreCommitmentValid(pending_commitments,chainman)) {
+            throw JSONRPCError(RPC_OUT_OF_MEMORY, "anduro commitment invalid");
+        }
+    }
+
+    if(nHeight > 2) {
+        AnduroPreCommitment& commtiment = pending_commitments[0];
+        result.pushKV("currentindex",commtiment.nextIndex);
+        result.pushKV("currentkeys",commtiment.nextKeys);
+    } else {
+        result.pushKV("currentindex",getCurrentIndex(chainman));
+        result.pushKV("currentkeys",getCurrentKeys(chainman));
+    }
+
+
+
+    UniValue finalizedresult(UniValue::VARR);
+    std::vector<SignedBlock> finalizedBlocks = getFinalizedSignedBlocks();
+    for (const SignedBlock& block : finalizedBlocks) {
+        int blockSize = 0;
+        blockSize += sizeof(block.currentFee);
+        blockSize += sizeof(block.blockIndex);
+        blockSize += sizeof(block.nHeight);
+        blockSize += sizeof(block.nTime);
+        blockSize += block.hashPrevSignedBlock.size();
+        blockSize += block.hashMerkleRoot.size();
+        blockSize += block.GetHash().size();
+        for (const CTransactionRef& tx : block.vtx) {
+            blockSize +=  GetVirtualTransactionSize(*tx);
+        }
+
+        UniValue blockDetails(UniValue::VOBJ); 
+        UniValue txs(UniValue::VARR);
+        for (size_t i = 0; i < block.vtx.size(); ++i) {
+            const CTransactionRef& tx = block.vtx.at(i);
+            UniValue objTx(UniValue::VOBJ);
+            TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
+            txs.push_back(objTx);
+        }
+
+        blockDetails.pushKV("fee", block.currentFee);
+        blockDetails.pushKV("blockindex", (uint64_t)block.blockIndex);
+        blockDetails.pushKV("height", (uint64_t)block.nHeight);
+        blockDetails.pushKV("time", block.nTime);
+        blockDetails.pushKV("size", blockSize);
+        blockDetails.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
+        blockDetails.pushKV("merkleroot", block.hashMerkleRoot.ToString());
+        blockDetails.pushKV("hash", block.GetHash().ToString());
+        blockDetails.pushKV("tx", txs);
+
+        finalizedresult.push_back(blockDetails); 
+    }
+    result.pushKV("finalized", finalizedresult);
+
+    UniValue rewardresult(UniValue::VOBJ);
+    CAmount minerFee = 0;
+    if(nHeight > 3) {
+        minerFee = getFeeForBlock(chainman, nHeight);
+        CAmount totalPreconfFee = getPreconfFeeForBlock(chainman, nHeight);
+        if(totalPreconfFee > 0) {
+            CAmount federationFee = std::ceil(totalPreconfFee * 0.20);
+            minerFee = minerFee + (totalPreconfFee - federationFee);
+            rewardresult.pushKV("value", minerFee);
+            CTxDestination address;
+            rewardresult.pushKV("script", ExtractDestination(getMinerScript(chainman, nHeight), address));
+        }
+    }
+    result.pushKV("reward", rewardresult);
+    result.pushKV("reconsiliationblock", getReconsiledBlock(chainman).ToString());
+
+    UniValue invalidTxArr(UniValue::VARR);
+    std::vector<uint256> invalidTx = getInvalidTx(chainman);
+    for (size_t i = 0; i < invalidTx.size(); i++) {
+        invalidTxArr.push_back(invalidTx[i].ToString()); 
+    }
+    result.pushKV("invalidtx", invalidTxArr);
     return result;
 },
     };
