@@ -282,7 +282,6 @@ std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
     std::vector<SignedBlock> sigData;
     for (SignedBlockPeer finalizedSignedBlockPeer : finalizedSignedBlockPeers) {
         if(!finalizedSignedBlockPeer.isBroadcasted) {
-            uint256 hash = finalizedSignedBlockPeer.hash;
             for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
                 if(finalizedSignedBlockPeer.hash == finalizedSignedBlock.GetHash()) {
                     sigData.push_back(finalizedSignedBlock);
