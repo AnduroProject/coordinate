@@ -377,6 +377,11 @@ static RPCHelpMan getfinalizedsignedblocks() {
                 blockDetails.pushKV("hash", block.GetHash().ToString());
                 blockDetails.pushKV("tx", txs);
 
+                CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
+                ssBlock << block;
+                std::string strHex = HexStr(ssBlock);
+                LogPrintf("signed block hex %s \n", strHex);
+
                 result.push_back(blockDetails); 
             }
 
