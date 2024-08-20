@@ -288,7 +288,7 @@ std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
                         return d.GetHash() == hash; 
                     });
             if (it != finalizedSignedBlocks.end()) {
-                sigData.push_back(std::move(*it));
+                sigData.push_back(std::move(it));
             }
         } 
     }

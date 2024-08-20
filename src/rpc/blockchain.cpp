@@ -890,6 +890,7 @@ static RPCHelpMan getblock()
     }
 
     const CBlock block{GetBlockChecked(chainman.m_blockman, pblockindex)};
+    
 
     if (verbosity <= 0)
     {
