@@ -5430,12 +5430,19 @@ void PeerManagerImpl::MaybeSendPeg(CNode& node_to, Peer& peer, std::chrono::micr
             }
         }
 
+        LogPrintf("test1 \n");
         std::vector<SignedBlock> preconfBlock = getUnBroadcastedPreConfSignedBlock();
+        LogPrintf("test2 \n");
         if(preconfBlock.size() > 0) {
+            LogPrintf("test3 \n");
             const CNetMsgMaker msgMaker(node_to.GetCommonVersion());
+            LogPrintf("test4 \n");
             m_connman.PushMessage(&node_to, msgMaker.Make(NetMsgType::PRECONFFINALIZEPUSH, preconfBlock));
+            LogPrintf("test5 \n");
             for (SignedBlock& coordinatePreConfBlockItem : preconfBlock) {
+                LogPrintf("test6 \n");
                 updateBroadcastedSignedBlock(coordinatePreConfBlockItem,peer.m_id);
+                LogPrintf("test7 \n");
             }
         }
     }
