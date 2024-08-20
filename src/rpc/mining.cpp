@@ -636,20 +636,7 @@ static RPCHelpMan getblocktemplate()
                 }},
                 {RPCResult::Type::ARR, "finalized", "Signed block details",
                 {
-                    {
-                        {RPCResult::Type::OBJ, "", "Signed block details",
-                        {
-                            {RPCResult::Type::NUM, "fee", "Signed block fee"},
-                            {RPCResult::Type::NUM, "blockindex", "block index where anduro witness refer back to the pubkeys"},
-                            {RPCResult::Type::NUM, "height", "Signed block height"},
-                            {RPCResult::Type::NUM, "time", "Signed block time"},
-                            {RPCResult::Type::STR_HEX, "previousblock", "previous signed block hash"},
-                            {RPCResult::Type::STR_HEX, "merkleroot", "signed block merkle root hash"},
-                            {RPCResult::Type::STR_HEX, "hash", "Signed block hash"},
-                            {RPCResult::Type::ARR, "tx", "The transaction ids",
-                                {{RPCResult::Type::STR_HEX, "", "The transaction id"}}},
-                        }},
-                    },
+                    {RPCResult::Type::STR_HEX, "value", "sign block hex"},
                 }},
                 {RPCResult::Type::ARR, "ivalidtx", "invalid tx list",
                 {
@@ -658,6 +645,7 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::STR_HEX, "reconsiliationblock", "reconsiliation block hash"},
                 {RPCResult::Type::NUM, "currentindex", "The derviation index for federaion of the next block to sign"},
                 {RPCResult::Type::STR_HEX, "currentkeys", "federation witness to process next block"},
+                {RPCResult::Type::STR_HEX, "precommitment", "federation witness to process next block"},
             }},
         },
         RPCExamples{
@@ -995,6 +983,7 @@ static RPCHelpMan getblocktemplate()
         AnduroPreCommitment& commtiment = pending_commitments[0];
         result.pushKV("currentindex",commtiment.nextIndex);
         result.pushKV("currentkeys",commtiment.nextKeys);
+        result.pushKV("precommitment",commtiment.witness);
     } else {
         result.pushKV("currentindex",getCurrentIndex(chainman));
         result.pushKV("currentkeys",getCurrentKeys(chainman));
@@ -1005,38 +994,9 @@ static RPCHelpMan getblocktemplate()
     UniValue finalizedresult(UniValue::VARR);
     std::vector<SignedBlock> finalizedBlocks = getFinalizedSignedBlocks();
     for (const SignedBlock& block : finalizedBlocks) {
-        int blockSize = 0;
-        blockSize += sizeof(block.currentFee);
-        blockSize += sizeof(block.blockIndex);
-        blockSize += sizeof(block.nHeight);
-        blockSize += sizeof(block.nTime);
-        blockSize += block.hashPrevSignedBlock.size();
-        blockSize += block.hashMerkleRoot.size();
-        blockSize += block.GetHash().size();
-        for (const CTransactionRef& tx : block.vtx) {
-            blockSize +=  GetVirtualTransactionSize(*tx);
-        }
-
-        UniValue blockDetails(UniValue::VOBJ); 
-        UniValue txs(UniValue::VARR);
-        for (size_t i = 0; i < block.vtx.size(); ++i) {
-            const CTransactionRef& tx = block.vtx.at(i);
-            UniValue objTx(UniValue::VOBJ);
-            TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
-            txs.push_back(objTx);
-        }
-
-        blockDetails.pushKV("fee", block.currentFee);
-        blockDetails.pushKV("blockindex", (uint64_t)block.blockIndex);
-        blockDetails.pushKV("height", (uint64_t)block.nHeight);
-        blockDetails.pushKV("time", block.nTime);
-        blockDetails.pushKV("size", blockSize);
-        blockDetails.pushKV("previousblock", block.hashPrevSignedBlock.ToString());
-        blockDetails.pushKV("merkleroot", block.hashMerkleRoot.ToString());
-        blockDetails.pushKV("hash", block.GetHash().ToString());
-        blockDetails.pushKV("tx", txs);
-
-        finalizedresult.push_back(blockDetails); 
+        CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssBlock << block;
+        finalizedresult.push_back(HexStr(ssBlock)); 
     }
     result.pushKV("finalized", finalizedresult);
 
@@ -1049,9 +1009,15 @@ static RPCHelpMan getblocktemplate()
             CAmount federationFee = std::ceil(totalPreconfFee * 0.20);
             minerFee = minerFee + (totalPreconfFee - federationFee);
             rewardresult.pushKV("value", minerFee);
-            CTxDestination address;
-            rewardresult.pushKV("script", ExtractDestination(getMinerScript(chainman, nHeight), address));
+        } 
+        rewardresult.pushKV("value", minerFee);
+        CTxDestination address;
+        if (ExtractDestination(getMinerScript(chainman, nHeight), address)) {
+            rewardresult.pushKV("script", EncodeDestination(address));
+        } else {
+            rewardresult.pushKV("script", "");
         }
+
     }
     result.pushKV("reward", rewardresult);
     result.pushKV("reconsiliationblock", getReconsiledBlock(chainman).ToString());

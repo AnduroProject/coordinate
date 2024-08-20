@@ -20,6 +20,7 @@
 #include <util/time.h>
 #include <auxpow.h>
 #include <cassert>
+#include <logging.h>
 
 namespace
 {
@@ -95,7 +96,9 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
 
         /* Finalise it by setting the version and building the merkle root.  */
         newBlock->block.hashMerkleRoot = BlockMerkleRoot (newBlock->block);
-        newBlock->block.SetAuxpowVersion (true);
+        newBlock->block.SetAuxpowVersion(true);
+
+        LogPrintf("header is %s", newBlock->block.ToString());
 
         /* Save in our map of constructed blocks.  */
         pblockCur = &newBlock->block;
@@ -151,6 +154,7 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
 
   uint256 target;
   const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
+
   UniValue result(UniValue::VOBJ);
   result.pushKV ("hash", pblock->GetHash ().GetHex ());
   result.pushKV ("chainid", pblock->GetChainId ());
@@ -160,7 +164,6 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   result.pushKV ("bits", strprintf ("%08x", pblock->nBits));
   result.pushKV ("height", static_cast<int64_t> (pindexPrev->nHeight + 1));
   result.pushKV ("_target", HexStr (target));
-
   return result;
 }
 
