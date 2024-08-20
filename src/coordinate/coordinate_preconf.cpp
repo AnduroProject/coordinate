@@ -290,7 +290,6 @@ std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
             }
         } 
     }
-
     return sigData;
 }
 
