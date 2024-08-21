@@ -98,7 +98,7 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
         newBlock->block.hashMerkleRoot = BlockMerkleRoot (newBlock->block);
         newBlock->block.SetAuxpowVersion(true);
 
-        LogPrintf("header is %s", newBlock->block.ToString());
+        LogPrintf("header is %s \n", newBlock->block.ToString());
 
         /* Save in our map of constructed blocks.  */
         pblockCur = &newBlock->block;
@@ -155,6 +155,14 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   uint256 target;
   const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
 
+  CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 1);
+  CBlock block = *pblock;
+  CAuxPow::initAuxPow(block);
+  LogPrintf("block merkleroot %s \n", block.hashMerkleRoot.GetHex());
+  LogPrintf("block hash  %s \n", block.GetHash().GetHex());
+  ssTx << block;
+  LogPrintf("EncodeHexTx(*tx, RPCSerializationFlags()) %s \n", HexStr(ssTx));
+  
   UniValue result(UniValue::VOBJ);
   result.pushKV ("hash", pblock->GetHash ().GetHex ());
   result.pushKV ("chainid", pblock->GetChainId ());
