@@ -87,6 +87,13 @@ public:
                            const CScript& scriptPubKey);
 
   /**
+   * Performs the main work for the "createauxblock" RPC:  Construct a new block
+   * to work on with the given address for the block reward and return the
+   * block hex
+   */
+  UniValue createAuxBlockHex (const JSONRPCRequest& request,
+                           const CScript& scriptPubKey);
+  /**
    * Performs the main work for the "submitauxblock" RPC:  Look up the block
    * previously created for the given hash, attach the given auxpow to it
    * and try to submit it.  Returns true if all was successful and the block
