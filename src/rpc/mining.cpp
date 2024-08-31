@@ -1107,6 +1107,7 @@ static RPCHelpMan submitblock()
     bool new_block;
     auto sc = std::make_shared<submitblock_StateCatcher>(block.GetHash());
     RegisterSharedValidationInterface(sc);
+    LogPrintf("submitblock \n");
     bool accepted = chainman.ProcessNewBlock(blockptr, /*force_processing=*/true, /*min_pow_checked=*/true, /*new_block=*/&new_block);
     UnregisterSharedValidationInterface(sc);
     if (!new_block && accepted) {
@@ -1149,6 +1150,7 @@ static RPCHelpMan submitheader()
     }
 
     BlockValidationState state;
+    LogPrintf("submitheader \n");
     chainman.ProcessNewBlockHeaders({h}, /*min_pow_checked=*/true, state);
     if (state.IsValid()) return UniValue::VNULL;
     if (state.IsError()) {

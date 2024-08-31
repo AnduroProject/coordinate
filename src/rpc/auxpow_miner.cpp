@@ -98,8 +98,6 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
         newBlock->block.hashMerkleRoot = BlockMerkleRoot (newBlock->block);
         newBlock->block.SetAuxpowVersion(true);
 
-        LogPrintf("header is %s \n", newBlock->block.ToString());
-
         /* Save in our map of constructed blocks.  */
         pblockCur = &newBlock->block;
         curBlocks.emplace(scriptID, pblockCur);
@@ -220,6 +218,11 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
   ss >> *pow;
   shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
+
+  if(!shared_block->auxpow) {
+    return false;
+  }
+  LogPrintf("AuxpowMiner::submitAuxBlock \n");
   return chainman.ProcessNewBlock (shared_block, /*force_processing=*/true,
                                    /*min_pow_checked=*/true, nullptr);
 }

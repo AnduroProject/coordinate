@@ -1094,6 +1094,7 @@ bool BlockManager::ReadBlockFromDisk(CBlock& block, const FlatFilePos& pos) cons
         return error("%s: Deserialize or I/O error - %s at %s", __func__, e.what(), pos.ToString());
     }
 
+    LogPrintf("CheckProofOfWork \n");
     // Check the header
     if (!CheckProofOfWork(block, GetConsensus())) {
         return error("ReadBlockFromDisk: Errors in block header at %s", pos.ToString());
