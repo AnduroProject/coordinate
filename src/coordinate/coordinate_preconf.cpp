@@ -13,6 +13,7 @@ using node::BlockManager;
 
 std::vector<CoordinatePreConfSig> coordinatePreConfSig;
 std::vector<SignedBlock> finalizedSignedBlocks;
+std::vector<SignedBlockPeer> finalizedSignedBlockPeers;
 
 CCoinsView coins_view;
 CCoinsViewCache preconfView(&coins_view);
@@ -236,6 +237,9 @@ bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedB
 
 void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock) {
     finalizedSignedBlocks.push_back(newFinalizedSignedBlock);
+    SignedBlockPeer newPeer;
+    newPeer.hash = newFinalizedSignedBlock.GetHash();
+    finalizedSignedBlockPeers.push_back(newPeer);
 }
 
 
@@ -245,12 +249,17 @@ void removePreConfWitness() {
 
 void removePreConfFinalizedBlock(uint64_t blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
+    std::vector<SignedBlockPeer> newFinalizedSignedBlockPeers;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
         if(static_cast<uint64_t>(finalizedSignedBlock.nHeight) > blockHeight) {
             newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
+            SignedBlockPeer newPeer;
+            newPeer.hash = finalizedSignedBlock.GetHash();
+            newFinalizedSignedBlockPeers.push_back(newPeer);
         }
     }
     finalizedSignedBlocks = newFinalizedSignedBlocks;
+    finalizedSignedBlockPeers = newFinalizedSignedBlockPeers;
 }
 /**
  * This is the function which used to get unbroadcasted preconfirmation signatures
@@ -271,12 +280,15 @@ std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig() {
  */
 std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
     std::vector<SignedBlock> sigData;
-    for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
-        if(!finalizedSignedBlock.isBroadcasted) {
-            sigData.push_back(finalizedSignedBlock);
+    for (SignedBlockPeer finalizedSignedBlockPeer : finalizedSignedBlockPeers) {
+        if(!finalizedSignedBlockPeer.isBroadcasted) {
+            for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
+                if(finalizedSignedBlockPeer.hash == finalizedSignedBlock.GetHash()) {
+                    sigData.push_back(finalizedSignedBlock);
+                }
+            }
         } 
     }
-
     return sigData;
 }
 
@@ -308,12 +320,12 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
  * This is the function which used change status for broadcasted signed block
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
-    for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.nHeight == signedBlockItem.nHeight && !finalizedSignedBlock.isBroadcasted) {
-            if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
-                finalizedSignedBlock.isBroadcasted = true;
+    for (SignedBlockPeer& finalizedSignedBlockPeer : finalizedSignedBlockPeers) {
+        if(signedBlockItem.GetHash() == finalizedSignedBlockPeer.hash && !finalizedSignedBlockPeer.isBroadcasted) {
+            if (std::find(finalizedSignedBlockPeer.peerList.begin(), finalizedSignedBlockPeer.peerList.end(), peerId) != finalizedSignedBlockPeer.peerList.end()) {
+                finalizedSignedBlockPeer.isBroadcasted = true;
             } else {
-                finalizedSignedBlock.peerList.push_back(peerId);
+                finalizedSignedBlockPeer.peerList.push_back(peerId);
             }
             break;
         }

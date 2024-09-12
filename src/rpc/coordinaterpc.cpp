@@ -47,6 +47,41 @@ static RPCHelpMan createAuxBlock()
     };
 }
 
+static RPCHelpMan createAuxBlockHex()
+{
+    return RPCHelpMan{
+        "createauxblockhex",
+        "The mining pool to request new coordinate block hex",
+        {
+            {"paytoaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "The coordinate address that the mining pool wants to send the Babylon mining rewards to. Will be written to coordinate coinbase transaction."},
+        },
+        RPCResult{
+            RPCResult::Type::OBJ, "", "",
+            {
+               {RPCResult::Type::STR_HEX, "hex", "The coordinate block hex"},
+                {RPCResult::Type::OBJ, "aux", "aux object",
+                    {
+                        {RPCResult::Type::NUM, "n", "block_height"},
+                    }
+                }
+            },
+        },
+        RPCExamples{
+            HelpExampleCli("createauxblockhex", "90869d013db27608c7428251c6755e5a1d9e9313") +
+            HelpExampleRpc("createauxblockhex", "\"90869d013db27608c7428251c6755e5a1d9e9313\"")
+        },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+        {
+            const CTxDestination coinbaseScript = DecodeDestination(request.params[0].get_str());
+            if (!IsValidDestination(coinbaseScript)) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,"Error: Invalid coinbase payout address");
+            }
+            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
+            return AuxpowMiner::get ().createAuxBlockHex(request, scriptPubKey);
+        }
+    };
+}
+
 static RPCHelpMan submitAuxBlock()
 {
     return RPCHelpMan{
@@ -271,6 +306,7 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"coordinate", &createAuxBlock},
+        {"coordinate", &createAuxBlockHex},
         {"coordinate", &submitAuxBlock},
         {"coordinate", &getPendingCommitments},
         {"coordinate", &anduroDepositAddress},

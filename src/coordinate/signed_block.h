@@ -16,14 +16,12 @@ class SignedBlock {
         uint256 hashPrevSignedBlock; /*!< previous signed block */
         uint256 hashMerkleRoot; /*!< signed block merkle root */
         CAmount currentFee; /*!< current signed block fee*/
-        bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
-        std::vector<int64_t> peerList; /*!< node peer id infomrat that received the signed block through network */
         std::vector<CTransactionRef> vtx; /*!< signed bock transaction list */
         SignedBlock() {
          SetNull();
         }
 
-        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx, obj.peerList, obj.isBroadcasted); }
+        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx); }
 
         void SetNull()
         {
@@ -35,11 +33,30 @@ class SignedBlock {
             hashMerkleRoot.SetNull();
             currentFee = 0;
             static_cast<void>(vtx.empty());
-            static_cast<void>(peerList.empty());
-            isBroadcasted = false;
         }
 
         uint256 GetHash() const;
 };
+
+
+class SignedBlockPeer {
+    public:
+        uint256 hash; /*!< signed block hash */
+        bool isBroadcasted; /*!< identify that it was broadcasted to the peers */
+        std::vector<int64_t> peerList; /*!< node peer id infomrat that received the signed block through network */
+        SignedBlockPeer() {
+         SetNull();
+        }
+
+        SERIALIZE_METHODS(SignedBlockPeer, obj) { READWRITE(obj.hash, obj.isBroadcasted, obj.peerList); }
+
+        void SetNull()
+        {
+            hash.SetNull();
+            static_cast<void>(peerList.empty());
+            isBroadcasted = false;
+        }
+};
+
 
 #endif // BITCOIN_SIGNEDBLOCK_H

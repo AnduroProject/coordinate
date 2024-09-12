@@ -37,7 +37,8 @@
 #include <validation.h>
 #include <validationinterface.h>
 #include <warnings.h>
-
+#include <anduro_deposit.h>
+#include <coordinate/coordinate_preconf.h>
 #include <memory>
 #include <stdint.h>
 #include <logging.h>
@@ -628,6 +629,23 @@ static RPCHelpMan getblocktemplate()
                 {RPCResult::Type::NUM, "height", "The height of the next block"},
                 {RPCResult::Type::STR_HEX, "signet_challenge", /*optional=*/true, "Only on signet"},
                 {RPCResult::Type::STR_HEX, "default_witness_commitment", /*optional=*/true, "a valid witness commitment for the unmodified block template"},
+                {RPCResult::Type::OBJ, "reward", "reward for previous block",
+                {
+                    {RPCResult::Type::STR, "script", "miner coinbase script"},
+                    {RPCResult::Type::NUM, "value", "coinbase value"}
+                }},
+                {RPCResult::Type::ARR, "finalized", "Signed block details",
+                {
+                    {RPCResult::Type::STR_HEX, "value", "sign block hex"},
+                }},
+                {RPCResult::Type::ARR, "ivalidtx", "invalid tx list",
+                {
+                    {RPCResult::Type::STR_HEX, "value", "invalid transaction tx"},
+                }},
+                {RPCResult::Type::STR_HEX, "reconsiliationblock", "reconsiliation block hash"},
+                {RPCResult::Type::NUM, "currentindex", "The derviation index for federaion of the next block to sign"},
+                {RPCResult::Type::STR_HEX, "currentkeys", "federation witness to process next block"},
+                {RPCResult::Type::STR_HEX, "precommitment", "federation witness to process next block"},
             }},
         },
         RPCExamples{
@@ -947,6 +965,69 @@ static RPCHelpMan getblocktemplate()
         result.pushKV("default_witness_commitment", HexStr(pblocktemplate->vchCoinbaseCommitment));
     }
 
+        // include additional block information
+    int nHeight = pindexPrev->nHeight + 1;
+    std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
+    if(nHeight > 2) {
+        if(pending_commitments.size() == 0) {
+            throw JSONRPCError(RPC_OUT_OF_MEMORY, "commitment queue unavailable");
+        }
+
+        // increase transaction out size based on available pegin 
+        if(!isPreCommitmentValid(pending_commitments,chainman)) {
+            throw JSONRPCError(RPC_OUT_OF_MEMORY, "anduro commitment invalid");
+        }
+    }
+
+    if(nHeight > 2) {
+        AnduroPreCommitment& commtiment = pending_commitments[0];
+        result.pushKV("currentindex",commtiment.nextIndex);
+        result.pushKV("currentkeys",commtiment.nextKeys);
+        result.pushKV("precommitment",commtiment.witness);
+    } else {
+        result.pushKV("currentindex",getCurrentIndex(chainman));
+        result.pushKV("currentkeys",getCurrentKeys(chainman));
+    }
+
+
+
+    UniValue finalizedresult(UniValue::VARR);
+    std::vector<SignedBlock> finalizedBlocks = getFinalizedSignedBlocks();
+    for (const SignedBlock& block : finalizedBlocks) {
+        CDataStream ssBlock(SER_NETWORK, PROTOCOL_VERSION | RPCSerializationFlags());
+        ssBlock << block;
+        finalizedresult.push_back(HexStr(ssBlock)); 
+    }
+    result.pushKV("finalized", finalizedresult);
+
+    UniValue rewardresult(UniValue::VOBJ);
+    CAmount minerFee = 0;
+    if(nHeight > 3) {
+        minerFee = getFeeForBlock(chainman, nHeight);
+        CAmount totalPreconfFee = getPreconfFeeForBlock(chainman, nHeight);
+        if(totalPreconfFee > 0) {
+            CAmount federationFee = std::ceil(totalPreconfFee * 0.20);
+            minerFee = minerFee + (totalPreconfFee - federationFee);
+            rewardresult.pushKV("value", minerFee);
+        } 
+        rewardresult.pushKV("value", minerFee);
+        CTxDestination address;
+        if (ExtractDestination(getMinerScript(chainman, nHeight), address)) {
+            rewardresult.pushKV("script", EncodeDestination(address));
+        } else {
+            rewardresult.pushKV("script", "");
+        }
+
+    }
+    result.pushKV("reward", rewardresult);
+    result.pushKV("reconsiliationblock", getReconsiledBlock(chainman).ToString());
+
+    UniValue invalidTxArr(UniValue::VARR);
+    std::vector<uint256> invalidTx = getInvalidTx(chainman);
+    for (size_t i = 0; i < invalidTx.size(); i++) {
+        invalidTxArr.push_back(invalidTx[i].ToString()); 
+    }
+    result.pushKV("invalidtx", invalidTxArr);
     return result;
 },
     };
@@ -1026,6 +1107,7 @@ static RPCHelpMan submitblock()
     bool new_block;
     auto sc = std::make_shared<submitblock_StateCatcher>(block.GetHash());
     RegisterSharedValidationInterface(sc);
+    LogPrintf("submitblock \n");
     bool accepted = chainman.ProcessNewBlock(blockptr, /*force_processing=*/true, /*min_pow_checked=*/true, /*new_block=*/&new_block);
     UnregisterSharedValidationInterface(sc);
     if (!new_block && accepted) {
@@ -1068,6 +1150,7 @@ static RPCHelpMan submitheader()
     }
 
     BlockValidationState state;
+    LogPrintf("submitheader \n");
     chainman.ProcessNewBlockHeaders({h}, /*min_pow_checked=*/true, state);
     if (state.IsValid()) return UniValue::VNULL;
     if (state.IsError()) {

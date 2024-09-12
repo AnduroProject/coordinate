@@ -2394,6 +2394,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
     // m_adjusted_time_callback() to go backward).
+    LogPrintf("ConnectBlock \n");
     if (!CheckBlock(block, state, params.GetConsensus(), !fJustCheck, !fJustCheck)) {
         if (state.GetResult() == BlockValidationResult::BLOCK_MUTATED) {
             // We don't write down blocks to disk if they may have been
@@ -4160,6 +4161,7 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
+       LogPrintf("CheckBlockHeader \n");
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(block, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
@@ -4174,6 +4176,7 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     if (block.fChecked)
         return true;
 
+    LogPrintf("CheckBlock \n");
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))
@@ -4282,6 +4285,7 @@ std::vector<unsigned char> ChainstateManager::GenerateCoinbaseCommitment(CBlock&
 
 bool HasValidProofOfWork(const std::vector<CBlockHeader>& headers, const Consensus::Params& consensusParams)
 {
+    LogPrintf("HasValidProofOfWork \n");
     return std::all_of(headers.cbegin(), headers.cend(),
             [&](const auto& header) { return CheckProofOfWork(header, consensusParams);});
 }
@@ -4651,7 +4655,7 @@ bool ChainstateManager::AcceptBlock(const std::shared_ptr<const CBlock>& pblock,
     }
 
     const CChainParams& params{GetParams()};
-
+    LogPrintf("AcceptBlock \n");
     if (!CheckBlock(block, state, params.GetConsensus()) ||
         !ContextualCheckBlock(block, state, *this, pindex->pprev)) {
         if (state.IsInvalid() && state.GetResult() != BlockValidationResult::BLOCK_MUTATED) {
@@ -4712,6 +4716,7 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         // malleability that cause CheckBlock() to fail; see e.g. CVE-2012-2459 and
         // https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-February/016697.html.  Because CheckBlock() is
         // not very expensive, the anti-DoS benefits of caching failure (of a definitely-invalid block) are not substantial.
+        LogPrintf("ProcessNewBlock \n");
         bool ret = CheckBlock(*block, state, GetConsensus());
         if (ret) {
 
@@ -4786,7 +4791,7 @@ bool TestBlockValidity(BlockValidationState& state,
     indexDummy.pprev = pindexPrev;
     indexDummy.nHeight = pindexPrev->nHeight + 1;
     indexDummy.phashBlock = &block_hash;
-
+    LogPrintf("TestBlockValidity \n");
     // NOTE: CheckBlockHeader is called by CheckBlock
     if (!ContextualCheckBlockHeader(block, state, chainstate.m_blockman, chainstate.m_chainman, pindexPrev, adjusted_time_callback()))
         return error("%s: Consensus::ContextualCheckBlockHeader: %s", __func__, state.ToString());
@@ -4905,6 +4910,7 @@ VerifyDBResult CVerifyDB::VerifyDB(
             LogPrintf("Verification error: ReadBlockFromDisk failed at %d, hash=%s\n", pindex->nHeight, pindex->GetBlockHash().ToString());
             return VerifyDBResult::CORRUPTED_BLOCK_DB;
         }
+        LogPrintf("VerifyDB \n");
         // check level 1: verify block validity
         if (nCheckLevel >= 1 && !CheckBlock(block, state, consensus_params)) {
             LogPrintf("Verification error: found bad block at %d, hash=%s (%s)\n",
