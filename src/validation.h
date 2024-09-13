@@ -113,6 +113,8 @@ double GuessVerificationProgress(const ChainTxData& data, const CBlockIndex* pin
 /** Prune block files up to a given height */
 void PruneBlockFilesManual(Chainstate& active_chainstate, int nManualPruneHeight);
 
+static const int MIN_MAINCHAIN_NODE_VERSION = 160300; // 0.16.3
+
 /**
 * Validation result for a single transaction mempool acceptance.
 */
