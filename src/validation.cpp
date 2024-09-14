@@ -77,7 +77,13 @@
 #include <coordinate/signed_block.h>
 #include <coordinate/invalid_tx.h>
 #include <coordinate/signed_txindex.h>
+#include <coordinate/coordinate_address.h>
 #include <anduro_validator.h>
+#include <primitives/bitcoin/transaction.h>
+#include <primitives/bitcoin/merkleblock.h>
+
+#include <rpc/coordinaterpc.h>
+#include <common/args.h>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -1794,6 +1800,193 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
         }
     }
 
+    return true;
+}
+
+bool CheckParentProofOfWork(uint256 hash, unsigned int nBits)
+{
+    bool fNegative;
+    bool fOverflow;
+    arith_uint256 bnTarget;
+
+    bnTarget.SetCompact(nBits, &fNegative, &fOverflow);
+
+    // Check range
+    if (fNegative || bnTarget == 0 || fOverflow || bnTarget > UintToArith256(Params().ParentPowList()))
+        return false;
+
+    // Check proof of work matches claimed amount
+    if (UintToArith256(hash) > bnTarget)
+        return false;
+
+    return true;
+}
+
+template<typename T>
+static bool GetBlockAndTxFromMerkleBlock(uint256& block_hash, uint256& tx_hash, unsigned int& tx_index, T& merkle_block, const std::vector<unsigned char>& merkle_block_raw)
+{
+    try {
+        std::vector<uint256> tx_hashes;
+        std::vector<unsigned int> tx_indices;
+        CDataStream merkle_block_stream(merkle_block_raw, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+        merkle_block_stream >> merkle_block;
+        block_hash = merkle_block.header.GetHash();
+
+        if (!merkle_block_stream.empty()) {
+           return false;
+        }
+        if (merkle_block.txn.ExtractMatches(tx_hashes, tx_indices) != merkle_block.header.hashMerkleRoot || tx_hashes.size() != 1) {
+            return false;
+        }
+        tx_hash = tx_hashes[0];
+        tx_index = tx_indices[0];
+    } catch (std::exception&) {
+        // Invalid encoding of merkle block
+        return false;
+    }
+    return true;
+}
+
+template<typename T>
+static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, const COutPoint& prevout, CAmount peginValue, std::string claimAddress, std::string federationAddress)
+{
+    try {
+        CDataStream pegtx_stream(tx_data, SER_NETWORK, PROTOCOL_VERSION);
+        pegtx_stream >> pegtx;
+        if (!pegtx_stream.empty()) {
+            return false;
+        }
+    } catch (std::exception&) {
+        // Invalid encoding of transaction
+        return false;
+    }
+
+    // Check that transaction matches txid
+    if (pegtx->GetHash() != prevout.hash) {
+        return false;
+    }
+
+    if (prevout.n >= pegtx->vout.size()) {
+        return false;
+    }
+    CAmount amount = pegtx->vout[prevout.n].nValue;
+
+    if(amount != peginValue) {
+        return false;
+    }
+
+    CTxDestination fedAddress;
+    CTxDestination userAddress;
+    ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, fedAddress);
+    std::string fedAddressStr = ParentEncodeDestination(fedAddress);
+
+    if(federationAddress.compare(fedAddressStr) != 0) {
+        return false;
+    }
+
+    for (size_t i = 0; i < pegtx->vout.size(); i++) {
+        if(pegtx->vout[i].scriptPubKey.IsUnspendable()) {
+           if (ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, userAddress)) {
+                std::string userAddressStr = EncodeDestination(userAddress);
+                if(claimAddress.compare(userAddressStr) != 0) {
+                    return false;
+                }
+           }
+           break;
+        }
+    }
+    
+    return true;
+}
+
+
+
+bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& prevout, std::string& err_msg) {
+
+    // Format on stack is as follows:
+    // 1) federation address
+    // 2) claim address
+    // 3) amount
+    // 3) serialized transaction - serialized bitcoin transaction
+    // 4) txout proof - merkle proof connecting transaction to header
+
+    const std::vector<std::vector<unsigned char> >& stack = pegin_witness.stack;
+    // Must include all elements
+    if (stack.size() != 5) {
+        err_msg = "Not enough stack items.";
+        return false;
+    }
+
+    CDataStream stream2(stack[0], SER_NETWORK, PROTOCOL_VERSION);
+    std::string federationAddress;
+    try {
+        stream2 >> federationAddress;
+    } catch (...) {
+        err_msg = "Could not deserialize federation address.";
+        return false;
+    }
+
+    CDataStream stream1(stack[1], SER_NETWORK, PROTOCOL_VERSION);
+    std::string claimAddress;
+    try {
+        stream1 >> claimAddress;
+    } catch (...) {
+        err_msg = "Could not deserialize claim address.";
+        return false;
+    }
+
+    CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+    CAmount value;
+    try {
+        stream >> value;
+    } catch (...) {
+        err_msg = "Could not deserialize value.";
+        return false;
+    }
+
+    if (!MoneyRange(value)) {
+        err_msg = "Value was not in valid value range.";
+        return false;
+    }
+
+    uint256 block_hash;
+    uint256 tx_hash;
+    int num_txs;
+    unsigned int tx_index = 0;
+    // Get txout proof
+    Sidechain::Bitcoin::CMerkleBlock merkle_block_pow;
+    if (!GetBlockAndTxFromMerkleBlock(block_hash, tx_hash, tx_index, merkle_block_pow, stack[4])) {
+        err_msg = "Could not extract block and tx from merkleblock.";
+        return false;
+    }
+    if (!CheckParentProofOfWork(block_hash, merkle_block_pow.header.nBits)) {
+        err_msg = "Parent proof of work is invalid or insufficient.";
+        return false;
+    }
+
+    Sidechain::Bitcoin::CTransactionRef pegtx;
+    if (!CheckPeginTx(stack[3], pegtx, prevout, value, claimAddress, federationAddress)) {
+        err_msg = "Peg-in tx is invalid.";
+        return false;
+    }
+
+    num_txs = merkle_block_pow.txn.GetNumTransactions();
+
+
+    // Check that the merkle proof corresponds to the txid
+    if (prevout.hash != tx_hash) {
+        err_msg = "Merkle proof and txid mismatch.";
+        return false;
+    }
+
+    // Finally, validate peg-in via rpc call
+    if (gArgs.GetBoolArg("-validatepegin", true)) {
+        unsigned int required_depth = (unsigned int)COINBASE_MATURITY;
+        if (!IsConfirmedBitcoinBlock(block_hash, required_depth, num_txs)) {
+            err_msg = "Needs more confirmations.";
+            return false;
+        }
+    }
     return true;
 }
 

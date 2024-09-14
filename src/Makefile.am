@@ -135,6 +135,7 @@ BITCOIN_CORE_H = \
   coordinate_preconf.h \
   invalid_tx.h \
   signed_txindex.h \
+  coordinate_address.h \
   chain.h \
   chainparams.h \
   chainparamsbase.h \
@@ -536,6 +537,8 @@ libcoordinate_wallet_a_SOURCES = \
   wallet/walletdb.cpp \
   wallet/walletutil.cpp \
   wallet/coinselection.cpp \
+  primitives/bitcoin/merkleblock.cpp \
+  primitives/bitcoin/block.cpp \
   $(BITCOIN_CORE_H)
 
 if USE_SQLITE
@@ -659,6 +662,12 @@ libbitcoin_consensus_a_SOURCES = \
   primitives/pureheader.h \
   primitives/transaction.cpp \
   primitives/transaction.h \
+  primitives/bitcoin/block.cpp \
+  primitives/bitcoin/block.h \
+  primitives/bitcoin/merkleblock.cpp \
+  primitives/bitcoin/merkleblock.h \
+  primitives/bitcoin/transaction.cpp \
+  primitives/bitcoin/transaction.h \
   pubkey.cpp \
   pubkey.h \
   script/bitcoinconsensus.cpp \
@@ -692,6 +701,7 @@ libbitcoin_common_a_SOURCES = \
   coordinate/coordinate_preconf.cpp \
   coordinate/invalid_tx.cpp \
   coordinate/signed_txindex.cpp \
+  coordinate/coordinate_address.cpp \
   anduro_validator.cpp \
   chainparams.cpp \
   coins.cpp \
@@ -957,6 +967,7 @@ libbitcoinkernel_la_SOURCES = \
   coordinate/coordinate_preconf.cpp \
   coordinate/invalid_tx.cpp \
   coordinate/signed_txindex.cpp \
+  coordinate/coordinate_address.cpp \
   anduro_validator.cpp \
   chain.cpp \
   clientversion.cpp \
@@ -1033,6 +1044,9 @@ libbitcoinkernel_la_SOURCES = \
   validation.cpp \
   validationinterface.cpp \
   versionbits.cpp \
+  primitives/bitcoin/block.cpp \
+  primitives/bitcoin/merkleblock.cpp \
+  primitives/bitcoin/transaction.cpp \
   warnings.cpp
 
 # Required for obj/build.h to be generated first.

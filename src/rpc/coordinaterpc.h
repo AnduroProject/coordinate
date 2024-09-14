@@ -6,6 +6,7 @@
 #define BITCOIN_RPC_COORDINATERPC_H
 
 #include <string>
+#include <uint256.h>
 
 static const char MAINCHAIN_RPC_HOST[] = "127.0.0.1";
 static const int MAINCHAIN_RPC_PORT = 19011;
@@ -26,5 +27,12 @@ public:
 };
 
 UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params);
+
+// Verify if the block with given hash has at least the specified minimum number
+// of confirmations.
+// For validating merkle blocks, you can provide the nbTxs parameter to verify if
+// it equals the number of transactions in the block.
+bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDepth, const int nbTxs);
+
 
 #endif // BITCOIN_RPC_COORDINATERPC_H

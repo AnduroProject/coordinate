@@ -21,6 +21,7 @@
 #include <coordinate/signed_block.h>
 #include <coordinate/invalid_tx.h>
 #include <coordinate/signed_txindex.h>
+#include <coordinate/coordinate_address.h>
 
 class COutPoint;
 class uint256;
@@ -112,6 +113,9 @@ public:
     bool GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx);
     bool WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash);
     bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
+
+    bool WriteDepositAddress(const CoordinateAddress& coordinateAddressObj, std::string address);
+    bool getDepositAddress(const std::string address, CoordinateAddress& coordinateAddressObj);
 };
 
 

@@ -439,6 +439,48 @@ UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params)
     return reply;
 }
 
+bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDepth, const int nbTxs)
+{
+    LogPrintf("Checking for confirmed bitcoin block with hash %s, mindepth %d, nbtxs %d\n", hash.ToString().c_str(), nMinConfirmationDepth, nbTxs);
+    try {
+        UniValue params(UniValue::VARR);
+        params.push_back(hash.GetHex());
+        UniValue reply = CallMainChainRPC("getblockheader", params);
+        UniValue errval = reply.find_value("error");
+        if (!errval.isNull()) {
+            LogPrintf("WARNING: Got error reply from bitcoind getblockheader: %s\n", errval.write());
+            return false;
+        }
+        UniValue result = reply.find_value("result");
+        if (!result.isObject()) {
+            LogPrintf("ERROR: bitcoind getblockheader result was malformed (not object): %s\n", result.write());
+            return false;
+        }
+
+        UniValue confirmations = result.get_obj().find_value("confirmations");
+        if (!confirmations.isNum() || confirmations.getInt<int>() < nMinConfirmationDepth) {
+            LogPrintf("Insufficient confirmations (got %s, need at least %d).\n", confirmations.write(), nMinConfirmationDepth);
+            return false;
+        }
+
+        // Only perform extra test if nbTxs has been provided (non-zero).
+        if (nbTxs != 0) {
+            UniValue nTx = result.get_obj().find_value("nTx");
+            if (!nTx.isNum() || nTx.getInt<int>() != nbTxs) {
+                LogPrintf("ERROR: Invalid number of transactions in merkle block for %s (got %s, need exactly %d)\n",
+                        hash.GetHex(), nTx.write(), nbTxs);
+                return false;
+            }
+        }
+    } catch (CConnectionFailed&) {
+        LogPrintf("WARNING: Lost connection to mainchain daemon RPC; will retry.\n");
+        return false;
+    } catch (...) {
+        LogPrintf("WARNING: Failure connecting to mainchain daemon RPC; will retry.\n");
+        return false;
+    }
+    return true;
+}
 
 void RegisterCoordinateRPCCommands(CRPCTable& t)
 {

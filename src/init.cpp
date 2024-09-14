@@ -1103,6 +1103,20 @@ bool MainchainRPCCheck() {
                 LogPrintf("ERROR: Parent chain daemon too old; need Bitcoin Core version 0.16.3 or newer.\n");
                 return false;
             }
+
+            params.push_back(UniValue(0));
+            reply = CallMainChainRPC("getblockhash", params);
+            error = reply["error"];
+            if (!error.isNull()) {
+                LogPrintf("ERROR: Mainchain daemon RPC check returned 'error' response.\n");
+                return false;
+            }
+            result = reply["result"];
+            if (!result.isStr() || result.get_str() != Params().ParentGenesisBlockHash().GetHex()) {
+                LogPrintf("ERROR: Invalid parent genesis block hash response via RPC. Contacting wrong parent daemon?\n");
+                return false;
+            }
+
         } catch (const std::runtime_error& re) {
             LogPrintf("ERROR: Failure connecting to mainchain daemon RPC: %s\n", std::string(re.what()));
             return false;

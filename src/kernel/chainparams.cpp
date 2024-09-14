@@ -150,6 +150,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
         bech32_hrp = "cc";
+        parent_bech32_hrp = "bc";
 
         vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
 
@@ -184,6 +185,8 @@ public:
             .nTxCount = 881818374,
             .dTxRate  = 5.521964628130412,
         };
+        parentGenesisBlockHash = uint256S("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+        parentPowLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 
@@ -263,6 +266,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "tc";
+        parent_bech32_hrp = "tb";
 
         vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
 
@@ -290,6 +294,8 @@ public:
             .nTxCount = 66484552,
             .dTxRate  = 0.1804908356632494,
         };
+        parentGenesisBlockHash = uint256S("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943");
+        parentPowLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 
@@ -406,9 +412,13 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "tc";
+        parent_bech32_hrp = "tb";
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
+
+        parentGenesisBlockHash = uint256S("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943");
+        parentPowLimit = uint256S("00000377ae000000000000000000000000000000000000000000000000000000");
     }
 };
 
@@ -540,6 +550,10 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "ccrt";
+        parent_bech32_hrp = "bcrt";
+
+        parentGenesisBlockHash = uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206");
+        parentPowLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 

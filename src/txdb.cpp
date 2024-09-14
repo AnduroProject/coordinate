@@ -35,7 +35,7 @@ static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_HASH{'U'};
 static constexpr uint8_t DB_BLOCK_INVALID_TX{'Q'};
 static constexpr uint8_t DB_SIGNED_BLOCK_TX{'P'};
-
+static constexpr uint8_t DB_DEPOSIT_ADDRESS{'R'};
 
 bool CCoinsViewDB::NeedsUpgrade()
 {
@@ -395,4 +395,16 @@ bool SignedBlocksDB::WriteTxPosition(const SignedTxindex& signedTx, uint256 txHa
 bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
 {
     return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
+}
+
+bool SignedBlocksDB::WriteDepositAddress(const CoordinateAddress& coordinateAddressObj, std::string address){
+    CDBBatch batch(*this);
+    std::pair<uint8_t, std::string> key = std::make_pair(DB_DEPOSIT_ADDRESS, address);
+    batch.Write(key, coordinateAddressObj);
+    return WriteBatch(batch, true);
+}
+
+bool SignedBlocksDB::getDepositAddress(const std::string address, CoordinateAddress& coordinateAddressObj)
+{
+    return Read(std::make_pair(DB_DEPOSIT_ADDRESS, address), coordinateAddressObj);
 }
