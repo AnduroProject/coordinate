@@ -1907,8 +1907,8 @@ bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& p
     // 1) federation address
     // 2) claim address
     // 3) amount
-    // 3) serialized transaction - serialized bitcoin transaction
-    // 4) txout proof - merkle proof connecting transaction to header
+    // 4) serialized transaction - serialized bitcoin transaction
+    // 5) txout proof - merkle proof connecting transaction to header
 
     const std::vector<std::vector<unsigned char> >& stack = pegin_witness.stack;
     // Must include all elements
