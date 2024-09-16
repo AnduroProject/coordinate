@@ -132,6 +132,7 @@ BITCOIN_CORE_H = \
   anduro_deposit.h \
   coordinate_assets.h \
   coordinate_mempool_entry.h \
+  coordinate_pegin.h \
   coordinate_preconf.h \
   invalid_tx.h \
   signed_txindex.h \
@@ -698,6 +699,7 @@ libbitcoin_common_a_SOURCES = \
   anduro_deposit.cpp \
   coordinate/coordinate_assets.cpp \
   coordinate/coordinate_mempool_entry.cpp \
+  coordinate/coordinate_pegin.cpp \
   coordinate/coordinate_preconf.cpp \
   coordinate/invalid_tx.cpp \
   coordinate/signed_txindex.cpp \
@@ -964,6 +966,7 @@ libbitcoinkernel_la_SOURCES = \
   anduro_deposit.cpp \
   coordinate/coordinate_assets.cpp \
   coordinate/coordinate_mempool_entry.cpp \
+  coordinate/coordinate_pegin.cpp \
   coordinate/coordinate_preconf.cpp \
   coordinate/invalid_tx.cpp \
   coordinate/signed_txindex.cpp \
