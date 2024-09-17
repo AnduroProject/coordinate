@@ -13,7 +13,7 @@ bool hasAddressInRegistry(Chainstate& m_active_chainstate, std::string depositAd
 
 std::string ExtractOpReturnScript(const CScript& script);
 
-CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress, std::string depositAddress, CTxOut txOut);
+CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress, CTxOut txOut);
 
 
 #endif // BITCOIN_COORDINATEPEGIN_H

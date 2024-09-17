@@ -1984,7 +1984,7 @@ bool AppInitMain(NodeContext& node, interfaces::BlockAndHeaderTipInfo* tip_info)
     RPCNotifyBlockChange(WITH_LOCK(chainman.GetMutex(), return chainman.ActiveTip()));
     SetRPCWarmupFinished();
 
-    if (gArgs.GetBoolArg("-validatepegin", true)) {
+    if (gArgs.GetBoolArg("-validatepegin", false)) {
         uiInterface.InitMessage(_("Awaiting mainchain RPC warmup").translated);
         if (!MainchainRPCCheck()) {
             const std::string err_msg = "ERROR: coordinate is set to verify pegins but cannot get a valid response from the mainchain daemon. Please check debug.log for more information.\n\nIf you haven't setup a bitcoind please get the latest stable version from https://bitcoincore.org/en/download/ or if you do not need to validate pegins set in your coordinate configuration validatepegin=0";

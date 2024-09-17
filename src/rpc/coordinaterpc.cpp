@@ -418,8 +418,11 @@ static RPCHelpMan createPegin()
 
     CMutableTransaction mtx;
     mtx.nVersion = TRANSACTION_PEGIN_VERSION;
+    mtx.vin.push_back(buildPeginTxInput(ParseHex(request.params[0].get_str()), ParseHex(request.params[1].get_str()),  request.params[2].get_str(), txOut));
+    mtx.vout.push_back(txOut);
+
     std::string strHex = EncodeHexTx(CTransaction(mtx), RPCSerializationFlags());
-    
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("hex", strHex);
     obj.pushKV("mature", false);
