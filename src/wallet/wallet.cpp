@@ -1489,6 +1489,7 @@ void CWallet::blockConnected(ChainstateRole role, const interfaces::BlockInfo& b
 
     for (size_t index = 0; index < block.data->pegins.size(); index++) {
         SyncTransaction(block.data->pegins[index], TxStateConfirmed{block.hash, block.height, static_cast<int>(index)});
+        transactionRemovedFromMempool(block.data->pegins[index], MemPoolRemovalReason::BLOCK);
     }
 
     // Scan block
