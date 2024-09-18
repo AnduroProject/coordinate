@@ -84,6 +84,7 @@
 
 #include <rpc/coordinaterpc.h>
 #include <common/args.h>
+#include <coordinate/coordinate_pegin.h>
 
 using kernel::CCoinsStats;
 using kernel::CoinStatsHashType;
@@ -190,6 +191,10 @@ std::optional<std::vector<int>> CalculatePrevHeights(
     std::vector<int> prev_heights;
     prev_heights.resize(tx.vin.size());
     for (size_t i = 0; i < tx.vin.size(); ++i) {
+        if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
+            prev_heights[i] = tip.nHeight + 1;
+            continue;
+        }
         const CTxIn& txin = tx.vin[i];
         Coin coin;
         if (!coins.GetCoin(txin.prevout, coin)) {
@@ -768,6 +773,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTransaction
     }
 
+
     // Coinbase is only valid in a block, not as a loose transaction
     if (tx.IsCoinBase())
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "coinbase");
@@ -788,7 +794,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     if (!CheckFinalTxAtTip(*Assert(m_active_chainstate.m_chain.Tip()), tx)) {
         return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-final");
     }
-
     if (m_pool.exists(GenTxid::Wtxid(tx.GetWitnessHash()))) {
         // Exact transaction already exists in the mempool.
         return state.Invalid(TxValidationResult::TX_CONFLICT, "txn-already-in-mempool");
@@ -867,9 +872,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             coins_to_uncache.push_back(txin.prevout);
         }
 
-        // Note: this call may add txin.prevout to the coins cache
-        // (coins_cache.cacheCoins) by way of FetchCoin(). It should be removed
-        // later (via coins_to_uncache) if this tx turns out to be invalid.
+
         if (!m_view.HaveCoin(txin.prevout)) {
             // Are inputs missing because we already have the tx?
             for (size_t out = 0; out < tx.vout.size(); out++) {
@@ -881,6 +884,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             // Otherwise assume this might be an orphan tx for which we just haven't seen parents yet
             return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent");
         }
+        
+
+
     }
 
     // This is const, but calls into the back end CoinsViews. The CCoinsViewDB at the bottom of the
@@ -899,10 +905,12 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // be mined yet.
     // Pass in m_view which has all of the relevant inputs cached. Note that, since m_view's
     // backend was removed, it no longer pulls coins from the mempool.
+
     const std::optional<LockPoints> lock_points{CalculateLockPointsAtTip(m_active_chainstate.m_chain.Tip(), m_view, tx)};
     if (!lock_points.has_value() || !CheckSequenceLocksAtTip(m_active_chainstate.m_chain.Tip(), *lock_points)) {
         return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "non-BIP68-final");
     }
+
 
     // The mempool holds txs for the next block, so pass height+1 to CheckTxInputs
     if (!Consensus::CheckTxInputs(tx, state, m_view, m_active_chainstate.m_chain.Height() + 1, ws.m_base_fees)) {
@@ -914,6 +922,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
        return false; // state filled in by CheckTxInputs
     }
 
+    int64_t nSigOpsCost = 0;
+    bool fSpendsCoinbase = false;
+
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
@@ -923,15 +934,8 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return state.Invalid(TxValidationResult::TX_WITNESS_MUTATED, "bad-witness-nonstandard");
     }
 
-    int64_t nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
+    nSigOpsCost = GetTransactionSigOpCost(tx, m_view, STANDARD_SCRIPT_VERIFY_FLAGS);
 
-    // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
-    ws.m_modified_fees = ws.m_base_fees;
-    m_pool.ApplyDelta(hash, ws.m_modified_fees);
-
-    // Keep track of transactions that spend a coinbase, which we re-scan
-    // during reorgs to ensure COINBASE_MATURITY is still met.
-    bool fSpendsCoinbase = false;
     for (const CTxIn &txin : tx.vin) {
         const Coin &coin = m_view.AccessCoin(txin.prevout);
         if (coin.IsCoinBase()) {
@@ -939,6 +943,17 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             break;
         }
     }
+
+
+
+    // ws.m_modified_fees includes any fee deltas from PrioritiseTransaction
+    ws.m_modified_fees = ws.m_base_fees;
+    m_pool.ApplyDelta(hash, ws.m_modified_fees);
+
+    // Keep track of transactions that spend a coinbase, which we re-scan
+    // during reorgs to ensure COINBASE_MATURITY is still met.
+ 
+
 
     uint64_t signedBlockHeight = 0;
     m_active_chainstate.psignedblocktree->GetLastSignedBlockID(signedBlockHeight);
@@ -950,6 +965,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     entry.reset(new CTxMemPoolEntry(ptx, ws.m_base_fees, nAcceptTime, m_active_chainstate.m_chain.Height(), entry_sequence,
                                     fSpendsCoinbase, nSigOpsCost, lock_points.value(), signedBlockHeight + 3));
     ws.m_vsize = entry->GetTxSize();
+
 
     if (nSigOpsCost > MAX_STANDARD_TX_SIGOPS_COST)
         return state.Invalid(TxValidationResult::TX_NOT_STANDARD, "bad-txns-too-many-sigops",
@@ -974,6 +990,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     // Note that these modifications are only applicable to single transaction scenarios;
     // carve-outs and package RBF are disabled for multi-transaction evaluations.
     CTxMemPool::Limits maybe_rbf_limits = m_pool.m_limits;
+
 
     // Calculate in-mempool ancestors, up to a limit.
     if (ws.m_conflicts.size() == 1) {
@@ -1050,7 +1067,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         // conflicts with would be inconsistent.
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-spends-conflicting-tx", *err_string);
     }
-
     m_rbf = !ws.m_conflicts.empty();
     return true;
 }
@@ -1171,7 +1187,7 @@ bool MemPoolAccept::ConsensusScriptChecks(const ATMPArgs& args, Workspace& ws)
     // There is a similar check in CreateNewBlock() to prevent creating
     // invalid blocks (using TestBlockValidity), however allowing such
     // transactions into the mempool can be exploited as a DoS attack.
-        CCoinsViewCache coins_tip(&m_active_chainstate.CoinsTip());
+    CCoinsViewCache coins_tip(&m_active_chainstate.CoinsTip());
     m_active_chainstate.UpdatedCoinsTip(coins_tip,m_active_chainstate.m_chain.Height());
     unsigned int currentBlockScriptVerifyFlags{GetBlockScriptFlags(*m_active_chainstate.m_chain.Tip(), m_active_chainstate.m_chainman)};
     if (!CheckInputsFromMempoolAndCache(tx, state, m_view, m_pool, currentBlockScriptVerifyFlags,
@@ -1326,15 +1342,22 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     Workspace ws(ptx);
 
+
+
     if (!PreChecks(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
+
     if (m_rbf && !ReplacementChecks(ws)) return MempoolAcceptResult::Failure(ws.m_state);
+
 
     // Perform the inexpensive checks first and avoid hashing and signature verification unless
     // those checks pass, to mitigate CPU exhaustion denial-of-service attacks.
     if (!PolicyScriptChecks(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
+
+
     if (!ConsensusScriptChecks(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
+
 
     const CFeeRate effective_feerate{ws.m_modified_fees, static_cast<uint32_t>(ws.m_vsize)};
     const std::vector<uint256> single_wtxid{ws.m_ptx->GetWitnessHash()};
@@ -1344,15 +1367,16 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
                                             ws.m_base_fees, effective_feerate, single_wtxid);
     }
 
+
+
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.is_preconf ? 0 : m_pool.GetAndIncrementSequence());
-
     // adding asset coin info to back track child transaction in checkTransaction Function
     if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         includeMempoolAsset(*ptx, m_active_chainstate);
     }
-
+    
     return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees,
                                         effective_feerate, single_wtxid);
 }
@@ -1822,175 +1846,6 @@ bool CheckParentProofOfWork(uint256 hash, unsigned int nBits)
     return true;
 }
 
-template<typename T>
-static bool GetBlockAndTxFromMerkleBlock(uint256& block_hash, uint256& tx_hash, unsigned int& tx_index, T& merkle_block, const std::vector<unsigned char>& merkle_block_raw)
-{
-    try {
-        std::vector<uint256> tx_hashes;
-        std::vector<unsigned int> tx_indices;
-        CDataStream merkle_block_stream(merkle_block_raw, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
-        merkle_block_stream >> merkle_block;
-        block_hash = merkle_block.header.GetHash();
-
-        if (!merkle_block_stream.empty()) {
-           return false;
-        }
-        if (merkle_block.txn.ExtractMatches(tx_hashes, tx_indices) != merkle_block.header.hashMerkleRoot || tx_hashes.size() != 1) {
-            return false;
-        }
-        tx_hash = tx_hashes[0];
-        tx_index = tx_indices[0];
-    } catch (std::exception&) {
-        // Invalid encoding of merkle block
-        return false;
-    }
-    return true;
-}
-
-template<typename T>
-static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, const COutPoint& prevout, CAmount peginValue, std::string claimAddress, std::string federationAddress)
-{
-    try {
-        CDataStream pegtx_stream(tx_data, SER_NETWORK, PROTOCOL_VERSION);
-        pegtx_stream >> pegtx;
-        if (!pegtx_stream.empty()) {
-            return false;
-        }
-    } catch (std::exception&) {
-        // Invalid encoding of transaction
-        return false;
-    }
-
-    // Check that transaction matches txid
-    if (pegtx->GetHash() != prevout.hash) {
-        return false;
-    }
-
-    if (prevout.n >= pegtx->vout.size()) {
-        return false;
-    }
-    CAmount amount = pegtx->vout[prevout.n].nValue;
-
-    if(amount != peginValue) {
-        return false;
-    }
-
-    CTxDestination fedAddress;
-    CTxDestination userAddress;
-    ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, fedAddress);
-    std::string fedAddressStr = ParentEncodeDestination(fedAddress);
-
-    if(federationAddress.compare(fedAddressStr) != 0) {
-        return false;
-    }
-
-    for (size_t i = 0; i < pegtx->vout.size(); i++) {
-        if(pegtx->vout[i].scriptPubKey.IsUnspendable()) {
-           if (ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, userAddress)) {
-                std::string userAddressStr = EncodeDestination(userAddress);
-                if(claimAddress.compare(userAddressStr) != 0) {
-                    return false;
-                }
-           }
-           break;
-        }
-    }
-    
-    return true;
-}
-
-
-
-bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& prevout, std::string& err_msg) {
-
-    // Format on stack is as follows:
-    // 1) federation address
-    // 2) claim address
-    // 3) amount
-    // 4) serialized transaction - serialized bitcoin transaction
-    // 5) txout proof - merkle proof connecting transaction to header
-
-    const std::vector<std::vector<unsigned char> >& stack = pegin_witness.stack;
-    // Must include all elements
-    if (stack.size() != 5) {
-        err_msg = "Not enough stack items.";
-        return false;
-    }
-
-    CDataStream stream2(stack[0], SER_NETWORK, PROTOCOL_VERSION);
-    std::string federationAddress;
-    try {
-        stream2 >> federationAddress;
-    } catch (...) {
-        err_msg = "Could not deserialize federation address.";
-        return false;
-    }
-
-    CDataStream stream1(stack[1], SER_NETWORK, PROTOCOL_VERSION);
-    std::string claimAddress;
-    try {
-        stream1 >> claimAddress;
-    } catch (...) {
-        err_msg = "Could not deserialize claim address.";
-        return false;
-    }
-
-    CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
-    CAmount value;
-    try {
-        stream >> value;
-    } catch (...) {
-        err_msg = "Could not deserialize value.";
-        return false;
-    }
-
-    if (!MoneyRange(value)) {
-        err_msg = "Value was not in valid value range.";
-        return false;
-    }
-
-    uint256 block_hash;
-    uint256 tx_hash;
-    int num_txs;
-    unsigned int tx_index = 0;
-    // Get txout proof
-    Sidechain::Bitcoin::CMerkleBlock merkle_block_pow;
-    if (!GetBlockAndTxFromMerkleBlock(block_hash, tx_hash, tx_index, merkle_block_pow, stack[4])) {
-        err_msg = "Could not extract block and tx from merkleblock.";
-        return false;
-    }
-    if (!CheckParentProofOfWork(block_hash, merkle_block_pow.header.nBits)) {
-        err_msg = "Parent proof of work is invalid or insufficient.";
-        return false;
-    }
-
-    Sidechain::Bitcoin::CTransactionRef pegtx;
-    if (!CheckPeginTx(stack[3], pegtx, prevout, value, claimAddress, federationAddress)) {
-        err_msg = "Peg-in tx is invalid.";
-        return false;
-    }
-
-    num_txs = merkle_block_pow.txn.GetNumTransactions();
-
-
-    // Check that the merkle proof corresponds to the txid
-    if (prevout.hash != tx_hash) {
-        err_msg = "Merkle proof and txid mismatch.";
-        return false;
-    }
-
-    // Finally, validate peg-in via rpc call
-    if (gArgs.GetBoolArg("-validatepegin", false)) {
-        unsigned int required_depth = (unsigned int)COINBASE_MATURITY;
-        if (!IsConfirmedBitcoinBlock(block_hash, required_depth, num_txs)) {
-            err_msg = "Needs more confirmations.";
-            return false;
-        }
-    }
-    return true;
-}
-
-
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
     // if(Params().GetChainType() != ChainType::REGTEST) {
@@ -2184,7 +2039,7 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
     nControlNOut = -1; // Track asset controller outputs
     nAssetIDOut = 0; // Track asset ID
     // mark inputs spent
-    if (!tx.IsCoinBase()) {
+    if (!tx.IsCoinBase() && tx.nVersion != TRANSACTION_PEGIN_VERSION) {
         txundo.vprevout.reserve(tx.vin.size());
         for (size_t x = 0; x < tx.vin.size(); x++) {
             const CTxIn &txin = tx.vin[x];
@@ -2875,7 +2730,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops");
         }
 
-        if (!tx.IsCoinBase())
+        if (!tx.IsCoinBase() && tx.nVersion != TRANSACTION_PEGIN_VERSION)
         {
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */

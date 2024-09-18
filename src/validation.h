@@ -376,10 +376,6 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 /** Check whether a parent chain block hash satisfies the proof-of-work requirement specified by nBits */
 bool CheckParentProofOfWork(uint256 hash, unsigned int nBits);
 
-/** Checks pegin witness for validity */
-bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const std::vector<std::pair<CScript, CScript>>& fedpegscripts, const COutPoint& prevout, std::string& err_msg);
-
-
 enum class VerifyDBResult {
     SUCCESS,
     CORRUPTED_BLOCK_DB,
