@@ -28,5 +28,6 @@ bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& p
 // it equals the number of transactions in the block.
 bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDepth, const int nbTxs);
 
+bool isPeginFeeValid(const CTransaction& tx);
 
 #endif // BITCOIN_COORDINATEPEGIN_H

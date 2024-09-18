@@ -1487,6 +1487,10 @@ void CWallet::blockConnected(ChainstateRole role, const interfaces::BlockInfo& b
         transactionRemovedFromMempool(block.data->vtx[index], MemPoolRemovalReason::BLOCK);
     }
 
+    for (size_t index = 0; index < block.data->pegins.size(); index++) {
+        SyncTransaction(block.data->pegins[index], TxStateConfirmed{block.hash, block.height, static_cast<int>(index)});
+    }
+
     // Scan block
     for (size_t index = 0; index < block.data->preconfBlock.size(); index++) {
         const SignedBlock& finalizedSignedBlock = block.data->preconfBlock[index];

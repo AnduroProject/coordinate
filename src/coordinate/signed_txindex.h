@@ -6,7 +6,7 @@
 
 class SignedTxindex {
     public:
-        uint32_t pos; /*!< signed tx position where it positioned in signed block */
+        int32_t pos; /*!< signed tx position where it positioned in signed block */
         int blockIndex; /*!< mined block index where signed block confirmed */
         uint256 signedBlockHash; /*!< signed block hash where tx included */
 
@@ -17,7 +17,7 @@ class SignedTxindex {
         SERIALIZE_METHODS(SignedTxindex, obj) { READWRITE(obj.pos, obj.blockIndex, obj.signedBlockHash);}
         void SetNull()
         {
-            pos = 0;
+            pos = -1;
             blockIndex = 0;
             signedBlockHash.SetNull();
         }

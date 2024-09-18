@@ -276,6 +276,15 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
     result.pushKV("invalidtxs", invalidTxs);
     result.pushKV("reconsiliationblock", block.reconsiliationBlock.GetHex());
 
+    UniValue pegins(UniValue::VARR);
+    for (size_t i = 0; i < block.pegins.size(); ++i) {
+        const CTransactionRef& tx =  block.pegins.at(i);
+        UniValue objTx(UniValue::VOBJ);
+        TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
+        pegins.push_back(objTx);
+    }
+    result.pushKV("pegins", pegins);
+
     UniValue txs(UniValue::VARR);
 
     switch (verbosity) {

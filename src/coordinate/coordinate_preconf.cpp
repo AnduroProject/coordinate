@@ -7,6 +7,7 @@
 #include <validation.h>
 #include <consensus/merkle.h>
 #include <coordinate/invalid_tx.h>
+#include <coordinate/coordinate_pegin.h>
 #include <undo.h>
 
 using node::BlockManager;
@@ -637,6 +638,16 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
         }
 
         totalFee = totalFee + (amt_total_in - amt_total_out);
+    }
+
+    for (size_t i = 0; i < prevblock.pegins.size(); ++i) {
+        const std::vector<std::vector<unsigned char> >& stack = prevblock.pegins[i]->vin[0].scriptWitness.stack;
+        CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+        CAmount value;
+        stream >> value;
+        const CTransaction& tx = *prevblock.pegins[i];
+        CAmount fee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+        totalFee = totalFee + fee;
     }
 
     if(!MoneyRange(totalFee)) {

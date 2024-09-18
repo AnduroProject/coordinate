@@ -365,3 +365,16 @@ bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDept
     return true;
 }
 
+
+bool isPeginFeeValid(const CTransaction& tx) {
+    const std::vector<std::vector<unsigned char> >& stack = tx.vin[0].scriptWitness.stack;
+    CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+    CAmount value;
+    stream >> value;
+    CAmount fee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+
+    if(tx.vout[0].nValue == (value - fee)) {
+        return true;
+    }
+    return false;
+}

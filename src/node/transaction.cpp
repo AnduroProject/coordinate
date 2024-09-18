@@ -180,6 +180,12 @@ CTransactionRef GetTransaction(const CBlockIndex* const block_index, const CTxMe
                     return tx;
                 }
             }
+            for (const auto& tx : block.pegins) {
+                if (tx->GetHash() == hash) {
+                    hashBlock = block_index->GetBlockHash();
+                    return tx;
+                }
+            }
             for (SignedBlock finalizedSignedBlock : block.preconfBlock) {
                 for (const auto& tx : finalizedSignedBlock.vtx) {
                     if (tx->GetHash() == hash) {

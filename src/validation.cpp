@@ -2669,9 +2669,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
 
-    for (unsigned int i = 0; i < block.vtx.size(); i++)
+    for (unsigned int i = 0; i < block.vtx.size() + block.pegins.size(); i++)
     {
-        const CTransaction &tx = *(block.vtx[i]);
+        const CTransaction &tx = block.vtx.size() > i ?  *(block.vtx[i]) : *(block.pegins[i]);
 
         nInputs += tx.vin.size();
         bool isValidTx = true;
@@ -2698,6 +2698,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
                                 tx_state.GetRejectReason(), tx_state.GetDebugMessage());
                     return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
+                }
+            }
+            if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
+                if(view.isPeginSpent(tx.vin[0].prevout)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin already processed");
+                }
+                if(!isPeginFeeValid(tx)) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin fee is invalid");
                 }
             }
             nFees += txfee;
@@ -2834,7 +2842,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
 
         CTxUndo undoDummy;
-        if (i > 0) {
+        if (i > 0 && tx.nVersion != TRANSACTION_PEGIN_VERSION) {
             blockundo.vtxundo.emplace_back();
         }
 
@@ -2842,7 +2850,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         int nControlN = -1;
         uint32_t nAssetID = 0;
        CAmount preconfCurrentFee = CAmount(0);
-        UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID, preconfCurrentFee);
+        UpdateCoins(tx, view, (i == 0 || tx.nVersion == TRANSACTION_PEGIN_VERSION) ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID, preconfCurrentFee);
     }
     const auto time_3{SteadyClock::now()};
     time_connect += time_3 - time_2;
@@ -2961,6 +2969,14 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             signTxIndex.pos = i;
             psignedblocktree->WriteTxPosition(signTxIndex,ptx->GetHash());
         }
+    }
+
+    for (unsigned int i = 0; i < block.pegins.size(); i++) {
+        CTransactionRef ptx = block.pegins[i];
+        SignedTxindex signTxIndex;
+        signTxIndex.blockIndex = pindex->nHeight;
+        signTxIndex.pos = i;
+        psignedblocktree->WriteTxPosition(signTxIndex,ptx->GetHash());
     }
 
     resetCommitment(pindex->nHeight, m_chainman);

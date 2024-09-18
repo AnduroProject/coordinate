@@ -424,7 +424,6 @@ static RPCHelpMan createPegin()
     CTransaction ctx = CTransaction(mtx);
     size_t size(GetVirtualTransactionSize(ctx));
     LogPrintf("tx size %i \n",size);
-    CFeeRate feerate(PEGIN_FEE, size);
     LogPrintf("original value %i \n",mtx.vout[0].nValue);
     mtx.vout[0].nValue = mtx.vout[0].nValue - (GetVirtualTransactionSize(ctx) * PEGIN_FEE);
     LogPrintf("final value %i \n",mtx.vout[0].nValue);
