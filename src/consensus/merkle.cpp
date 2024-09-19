@@ -130,7 +130,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
 
 
     // pegin transaciton merkle root preparation
-    peginLeaves.resize(block.vtx.size());
+    peginLeaves.resize(block.pegins.size());
     for (size_t s = 1; s < block.pegins.size(); s++) {
         peginLeaves[s] = block.pegins[s]->GetWitnessHash();
     }
