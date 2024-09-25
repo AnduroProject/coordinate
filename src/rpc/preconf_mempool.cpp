@@ -104,16 +104,6 @@ static RPCHelpMan sendpreconflist()
             {"witness", RPCArg::Type::STR, RPCArg::Optional::NO, "preconf witness for block"},
             {"finalized", RPCArg::Type::STR, RPCArg::Optional::NO, "Finalized list from federation leader or not"},
             {"federationkey", RPCArg::Type::STR, RPCArg::Optional::NO, "Federation identification"},
-            {"pegins",RPCArg::Type::ARR, RPCArg::Optional::OMITTED, "pegin list",
-              {
-                {"", RPCArg::Type::OBJ, RPCArg::Optional::OMITTED, "",
-                    {
-                        {"address", RPCArg::Type::STR, RPCArg::Optional::NO, "Address which will get deposit as pegin"},
-                        {"amount", RPCArg::Type::AMOUNT, RPCArg::Optional::NO, "Pegin amount details"},
-                    }
-                }
-              }
-            },
         },
         RPCResult{
             RPCResult::Type::BOOL, "", "the result for preconf block submission from anduro federation"},
@@ -151,29 +141,8 @@ static RPCHelpMan sendpreconflist()
                 return false;
             }
 
-            std::vector<CTxOut> pegins;
             std::vector<CoordinatePreConfSig> preconf;
      
-
-            if(!request.params[4].isNull()) {
-                const UniValue& pegin_params = request.params[4].get_array();
-                   if (pegin_params.size() > 0) {
-                        for (unsigned int idx = 0; idx < pegin_params.size(); idx++) {
-                            const UniValue& peginParams = pegin_params[idx].get_obj();
-                            RPCTypeCheckObj(peginParams,
-                            {
-                                {"address", UniValueType(UniValue::VSTR)},
-                                {"amount", UniValueType(UniValue::VNUM)},
-                            });
-                            const CTxDestination coinbaseScript = DecodeDestination(peginParams.find_value("address").get_str());
-                            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-                            CAmount peg_amount = CAmount(peginParams.find_value("amount").getInt<int64_t>());
-                            CTxOut pegin(peg_amount, scriptPubKey);
-                            pegins.push_back(pegin);
-                        }
-                   }
-            }
- 
             CoordinatePreConfSig preconfObj;
             for (unsigned int idx = 0; idx < req_params.size(); idx++) {
                 const UniValue& fedParams = req_params[idx].get_obj();
@@ -198,9 +167,6 @@ static RPCHelpMan sendpreconflist()
                 preconfObj.finalized = finalized;
                 preconfObj.witness =  request.params[1].get_str();
                 preconfObj.federationKey = request.params[3].get_str();
-                if(idx == 0 && pegins.size() > 0) {
-                    preconfObj.pegins = pegins;
-                }
                 
             }
             preconf.push_back(preconfObj);
