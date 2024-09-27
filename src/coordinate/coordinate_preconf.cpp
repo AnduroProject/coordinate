@@ -88,11 +88,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         }
         result.minedBlockHeight = coordinatePreConfSigtem.minedBlockHeight;
         result.witness = coordinatePreConfSigtem.witness;
-        if(coordinatePreConfSigtem.pegins.size() > 0) {
-          for (size_t i = 0; i < coordinatePreConfSigtem.pegins.size(); i++) {
-             result.pegins.push_back(coordinatePreConfSigtem.pegins[i]);
-          }
-        }
         for (size_t i = 0; i < coordinatePreConfSigtem.txids.size(); i++) {
             if(coordinatePreConfSigtem.txids[i] != uint256::ZERO) {
                 txids.push_back(coordinatePreConfSigtem.txids[i]);
@@ -172,22 +167,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             }
             message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
             message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
-            UniValue pegmessages(UniValue::VARR);
-            if(coordinatePreConfSigItem.pegins.size() > 0 && i == 0) {
-                    // preparing message for signature verification
-                    for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
-                        CTxDestination address;
-                        ExtractDestination(pegin.scriptPubKey, address);
-                        std::string addressStr = EncodeDestination(address);
-
-                        UniValue pegmessage(UniValue::VOBJ);
-                        pegmessage.pushKV("address", addressStr);
-                        pegmessage.pushKV("amount", pegin.nValue);
-                        pegmessages.push_back(pegmessage);
-                    }
-                    
-            }
-            message.pushKV("pegins", pegmessages);
             messages.push_back(message);
         }
         if(finalizedStatus == 1) {
@@ -396,9 +375,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
     coinBaseOuts.push_back(federationFeeOut);
 
-    for (size_t i = 0; i < preconfList.pegins.size(); i++) {
-        coinBaseOuts.push_back(preconfList.pegins[i]);
-    }
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
@@ -435,22 +411,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         message.pushKV("signed_block_height", block.nHeight);
         message.pushKV("mined_block_height", block.blockIndex);
 
-        UniValue pegmessages(UniValue::VARR);
-        if(i == 0) {
-            // preparing message for signature verification
-            if(block.vtx[i]->vout.size() > 3) {
-                for (size_t idx = 2; idx < block.vtx[i]->vout.size()-1; idx++) {
-                    CTxDestination address;
-                    ExtractDestination(block.vtx[i]->vout[idx].scriptPubKey, address);
-                    std::string addressStr = EncodeDestination(address);
-                    UniValue pegmessage(UniValue::VOBJ);
-                    pegmessage.pushKV("address", addressStr);
-                    pegmessage.pushKV("amount", block.vtx[i]->vout[idx].nValue);
-                    pegmessages.push_back(pegmessage);
-                }
-            } 
-        }
-        message.pushKV("pegins", pegmessages);
         messages.push_back(message);
     }
     
