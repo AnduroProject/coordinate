@@ -78,7 +78,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.preconfBlock.size(); s++) {
         preconfBlockLeaves[s] = block.preconfBlock[s].GetHash();
     }
-    leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves), mutated);
+    leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves));
 
     // normal transaciton merkle root preparation
     txLeaves.resize(block.vtx.size());
@@ -92,7 +92,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.pegins.size(); s++) {
         peginLeaves[s] = block.pegins[s]->GetHash();
     }
-    leaves[2] = ComputeMerkleRoot(std::move(peginLeaves), mutated);
+    leaves[2] = ComputeMerkleRoot(std::move(peginLeaves));
 
     // invalid transaciton merkle root preparation
     invalidTxeaves.resize(block.invalidTx.size() + 1);
@@ -100,8 +100,8 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
         invalidTxeaves[s+1] = block.invalidTx[s];
     }
-    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves), mutated);
-    return ComputeMerkleRoot(std::move(leaves), mutated);
+    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves));
+    return ComputeMerkleRoot(std::move(leaves));
 }
 
 uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
@@ -118,7 +118,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.preconfBlock.size(); s++) {
         preconfBlockLeaves[s] = block.preconfBlock[s].GetHash();
     }
-    leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves), mutated);
+    leaves[0] = ComputeMerkleRoot(std::move(preconfBlockLeaves));
 
     // normal transaciton merkle root preparation
     txLeaves.resize(block.vtx.size());
@@ -131,10 +131,10 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
 
     // pegin transaciton merkle root preparation
     peginLeaves.resize(block.pegins.size());
-    for (size_t s = 1; s < block.pegins.size(); s++) {
+    for (size_t s = 0; s < block.pegins.size(); s++) {
         peginLeaves[s] = block.pegins[s]->GetWitnessHash();
     }
-    leaves[2] = ComputeMerkleRoot(std::move(peginLeaves), mutated);
+    leaves[2] = ComputeMerkleRoot(std::move(peginLeaves));
 
 
     // invalid transaciton merkle root preparation
@@ -143,10 +143,10 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     for (size_t s = 0; s < block.invalidTx.size(); s++) {
         invalidTxeaves[s+1] = block.invalidTx[s];
     }
-    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves), mutated);
+    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves));
 
 
-    return ComputeMerkleRoot(std::move(leaves), mutated);
+    return ComputeMerkleRoot(std::move(leaves));
 }
 
 
