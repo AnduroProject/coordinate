@@ -2442,7 +2442,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     // is enforced in ContextualCheckBlockHeader(); we wouldn't want to
     // re-enforce that rule here (at least until we make it impossible for
     // m_adjusted_time_callback() to go backward).
-    LogPrintf("ConnectBlock \n");
     if (!CheckBlock(block, state, params.GetConsensus(), !fJustCheck, !fJustCheck)) {
         if (state.GetResult() == BlockValidationResult::BLOCK_MUTATED) {
             // We don't write down blocks to disk if they may have been
@@ -2668,11 +2667,44 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         UpdatedCoinsTip(view,pindex->nHeight);
     }
 
-
-    for (unsigned int i = 0; i < block.vtx.size() + block.pegins.size(); i++)
+    for (unsigned int i = 0; i < block.pegins.size(); i++)
     {
-        const CTransaction &tx = block.vtx.size() > i ?  *(block.vtx[i]) : *(block.pegins[i]);
+        const CTransaction &tx = *(block.pegins[i]);
+        if (tx.nVersion != TRANSACTION_PEGIN_VERSION) {
+            return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid pegin transaction version");
+        }
+        CAmount txfee = 0;
+        TxValidationState tx_state;
+        if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
+            state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
+                        tx_state.GetRejectReason(), tx_state.GetDebugMessage());
+            return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
+        }
+        nFees += txfee;
+        if(view.isPeginSpent(tx.vin[0].prevout)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin already processed");
+        }
+        if(!isPeginFeeValid(tx)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin fee is invalid");
+        }
 
+        if (!MoneyRange(nFees)) {
+            LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
+        }
+
+        CTxUndo undoDummy;
+        CAmount amountAssetIn = CAmount(0);
+        int nControlN = -1;
+        uint32_t nAssetID = 0;
+        CAmount refund = CAmount(0);
+        UpdateCoins(tx, view, undoDummy, pindex->nHeight, amountAssetIn, nControlN, nAssetID, 0, refund);
+    }
+
+
+    for (unsigned int i = 0; i < block.vtx.size(); i++)
+    {
+        const CTransaction &tx = *(block.vtx[i]);
         nInputs += tx.vin.size();
         bool isValidTx = true;
         if (!tx.IsCoinBase())
@@ -2682,7 +2714,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
                 }
             }
-
             if (!AreCoordinateTransactionStandard(tx,view)) {
                 LogPrintf("Invalid transaction standard \n");
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
@@ -2700,20 +2731,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                     return error("%s: Consensus::CheckTxInputs: %s, %s", __func__, tx.GetHash().ToString(), state.ToString());
                 }
             }
-            if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
-                if(view.isPeginSpent(tx.vin[0].prevout)) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin already processed");
-                }
-                if(!isPeginFeeValid(tx)) {
-                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Pegin fee is invalid");
-                }
-            }
             nFees += txfee;
             if (!MoneyRange(nFees)) {
                 LogPrintf("ERROR: %s: accumulated fee in the block out of range.\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-accumulated-fee-outofrange");
             }
-
             // Check that transaction is BIP68 final
             // BIP68 lock checks (as opposed to nLockTime checks) must
             // be in ConnectBlock because they require the UTXO set
@@ -2721,13 +2743,11 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             for (size_t j = 0; j < tx.vin.size(); j++) {
                 prevheights[j] = view.AccessCoin(tx.vin[j].prevout).nHeight;
             }
-
             if (!SequenceLocks(tx, nLockTimeFlags, prevheights, *pindex)) {
                 LogPrintf("ERROR: %s: contains a non-BIP68-final transaction\n", __func__);
                 return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-txns-nonfinal");
             }
         }
-
         // GetTransactionSigOpCost counts 3 types of sigops:
         // * legacy (always)
         // * p2sh (when P2SH enabled in flags and excludes coinbase)
@@ -2737,8 +2757,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             LogPrintf("ERROR: ConnectBlock(): too many sigops\n");
             return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "bad-blk-sigops");
         }
-
-        if (!tx.IsCoinBase() && tx.nVersion != TRANSACTION_PEGIN_VERSION)
+        if (!tx.IsCoinBase())
         {
             std::vector<CScriptCheck> vChecks;
             bool fCacheResults = fJustCheck; /* Don't cache results if we're actually connecting blocks (still consult the cache, though) */
@@ -2752,7 +2771,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
             control.Add(std::move(vChecks));
         }
-
         if(!isValidTx) {
              continue;
         }
@@ -2840,18 +2858,18 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             removeMempoolAsset(tx);
         }
-
         CTxUndo undoDummy;
-        if (i > 0 && tx.nVersion != TRANSACTION_PEGIN_VERSION) {
+        if (i > 0) {
             blockundo.vtxundo.emplace_back();
         }
 
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-       CAmount preconfCurrentFee = CAmount(0);
+        CAmount preconfCurrentFee = CAmount(0);
         UpdateCoins(tx, view, (i == 0 || tx.nVersion == TRANSACTION_PEGIN_VERSION) ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID, preconfCurrentFee);
     }
+   
     const auto time_3{SteadyClock::now()};
     time_connect += time_3 - time_2;
     LogPrint(BCLog::BENCH, "      - Connect %u transactions: %.2fms (%.3fms/tx, %.3fms/txin) [%.2fs (%.2fms/blk)]\n", (unsigned)block.vtx.size(),
