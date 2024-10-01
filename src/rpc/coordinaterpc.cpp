@@ -482,13 +482,13 @@ UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params)
     int r = evhttp_make_request(evcon.get(), req.get(), EVHTTP_REQ_POST, "/");
     req.release(); // ownership moved to evcon in above call
     if (r != 0) {
-        throw CConnectionFailed("send http request failed");
+        throw std::runtime_error("send http request failed");
     }
 
     event_base_dispatch(base.get());
 
     if (response.status == 0)
-        throw CConnectionFailed(strprintf("couldn't connect to server: %s (code %d)\n(make sure server is running and you are connecting to the correct RPC port)", http_errorstring(response.error), response.error));
+        throw std::runtime_error(strprintf("couldn't connect to server: %s (code %d)\n(make sure server is running and you are connecting to the correct RPC port)", http_errorstring(response.error), response.error));
     else if (response.status == HTTP_UNAUTHORIZED)
         throw std::runtime_error("incorrect mainchainrpcuser or mainchainrpcpassword (authorization failed)");
     else if (response.status >= 400 && response.status != HTTP_BAD_REQUEST && response.status != HTTP_NOT_FOUND && response.status != HTTP_INTERNAL_SERVER_ERROR)

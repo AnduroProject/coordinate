@@ -17,16 +17,6 @@ static const int MAINCHAIN_HTTP_CLIENT_TIMEOUT=900;
 
 class UniValue;
 
-class CConnectionFailed : public std::runtime_error
-{
-public:
-
-    explicit inline CConnectionFailed(const std::string& msg) :
-        std::runtime_error(msg)
-    {}
-
-};
-
 UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params);
 
 #endif // BITCOIN_RPC_COORDINATERPC_H

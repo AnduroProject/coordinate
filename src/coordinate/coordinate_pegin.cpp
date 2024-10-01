@@ -355,9 +355,6 @@ bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDept
                 return false;
             }
         }
-    } catch (CConnectionFailed&) {
-        LogPrintf("WARNING: Lost connection to mainchain daemon RPC; will retry.\n");
-        return false;
     } catch (...) {
         LogPrintf("WARNING: Failure connecting to mainchain daemon RPC; will retry.\n");
         return false;
