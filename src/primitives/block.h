@@ -72,6 +72,7 @@ class CBlock : public CBlockHeader
 public:
     // network and disk
     std::vector<CTransactionRef> vtx;
+    std::vector<CTransactionRef> pegins;
     std::vector<SignedBlock> preconfBlock;
     std::vector<uint256> invalidTx;
     uint256 reconsiliationBlock;
@@ -93,6 +94,7 @@ public:
     SERIALIZE_METHODS(CBlock, obj)
     {
         READWRITE(AsBase<CBlockHeader>(obj), obj.vtx);
+        READWRITE(obj.pegins);
         READWRITE(obj.invalidTx);
         READWRITE(obj.preconfBlock);
         READWRITE(obj.reconsiliationBlock);
@@ -102,6 +104,7 @@ public:
     {
         CBlockHeader::SetNull();
         vtx.clear();
+        pegins.clear();
         invalidTx.clear();
         preconfBlock.clear();
         reconsiliationBlock.SetNull();

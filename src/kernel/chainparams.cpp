@@ -120,10 +120,10 @@ public:
          * The characters are rarely used upper ASCII, not valid as UTF-8, and produce
          * a large 32-bit integer with any alignment.
          */
-        pchMessageStart[0] = 0xf7;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb7;
-        pchMessageStart[3] = 0xd7;
+        pchMessageStart[0] = 0xf8;
+        pchMessageStart[1] = 0xbf;
+        pchMessageStart[2] = 0xb8;
+        pchMessageStart[3] = 0xd8;
         nDefaultPort = 8337;
         nPruneAfterHeight = 100000;
         nAssetPruneAfterHeight = 300000;
@@ -150,6 +150,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x88, 0xAD, 0xE4};
 
         bech32_hrp = "cc";
+        parent_bech32_hrp = "bc";
 
         vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_main), std::end(chainparams_seed_main));
 
@@ -184,6 +185,8 @@ public:
             .nTxCount = 881818374,
             .dTxRate  = 5.521964628130412,
         };
+        parentGenesisBlockHash = uint256S("000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f");
+        parentPowLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 
@@ -227,10 +230,10 @@ public:
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000100010001");
         consensus.defaultAssumeValid = uint256S("0xadf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab"); // 2344474
 
-        pchMessageStart[0] = 0xf7;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb7;
-        pchMessageStart[3] = 0xd7;
+        pchMessageStart[0] = 0xf8;
+        pchMessageStart[1] = 0xbf;
+        pchMessageStart[2] = 0xb8;
+        pchMessageStart[3] = 0xd8;
         nDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         nAssetPruneAfterHeight = 3000;
@@ -263,6 +266,7 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "tc";
+        parent_bech32_hrp = "tb";
 
         vFixedSeeds = std::vector<uint8_t>(std::begin(chainparams_seed_test), std::end(chainparams_seed_test));
 
@@ -290,6 +294,8 @@ public:
             .nTxCount = 66484552,
             .dTxRate  = 0.1804908356632494,
         };
+        parentGenesisBlockHash = uint256S("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943");
+        parentPowLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 
@@ -406,9 +412,13 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "tc";
+        parent_bech32_hrp = "tb";
 
         fDefaultConsistencyChecks = false;
         m_is_mockable_chain = false;
+
+        parentGenesisBlockHash = uint256S("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943");
+        parentPowLimit = uint256S("00000377ae000000000000000000000000000000000000000000000000000000");
     }
 };
 
@@ -459,10 +469,10 @@ public:
         consensus.nLegacyBlocksBefore = 0;
         consensus.currentKeys = "7b2263757272656e745f61646472657373223a22636372743170306c71713963397863647476356e3575753470736674353268676e6c7030756832656a657a703079776c73677a30763734793773796434326838222c22616c6c5f6b657973223a5b22303262303861643439393430363235633366323663313534636237373438663634623439623965383064333438386433303336646333656434323239353537656562222c22303361313037366139326366306431373661633734646432346535323732393137633232613366363062383765616230346236643365306462613838663036336136222c22303236666163346633313066366564313765376465333434316166383537613365663361633862303665383339623535383865383434646538643332343137383363225d7d";
 
-        pchMessageStart[0] = 0xf7;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb7;
-        pchMessageStart[3] = 0xd7;
+        pchMessageStart[0] = 0xf8;
+        pchMessageStart[1] = 0xbf;
+        pchMessageStart[2] = 0xb8;
+        pchMessageStart[3] = 0xd8;
         nDefaultPort = 18444;
         nPruneAfterHeight = opts.fastprune ? 100 : 1000;
         nAssetPruneAfterHeight = 3000;
@@ -540,6 +550,10 @@ public:
         base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
 
         bech32_hrp = "ccrt";
+        parent_bech32_hrp = "bcrt";
+
+        parentGenesisBlockHash = uint256S("0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206");
+        parentPowLimit = uint256S("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
 

@@ -7,12 +7,14 @@
 #include <validation.h>
 #include <consensus/merkle.h>
 #include <coordinate/invalid_tx.h>
+#include <coordinate/coordinate_pegin.h>
 #include <undo.h>
 
 using node::BlockManager;
 
 std::vector<CoordinatePreConfSig> coordinatePreConfSig;
 std::vector<SignedBlock> finalizedSignedBlocks;
+std::vector<SignedBlockPeer> finalizedSignedBlockPeers;
 
 CCoinsView coins_view;
 CCoinsViewCache preconfView(&coins_view);
@@ -86,11 +88,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         }
         result.minedBlockHeight = coordinatePreConfSigtem.minedBlockHeight;
         result.witness = coordinatePreConfSigtem.witness;
-        if(coordinatePreConfSigtem.pegins.size() > 0) {
-          for (size_t i = 0; i < coordinatePreConfSigtem.pegins.size(); i++) {
-             result.pegins.push_back(coordinatePreConfSigtem.pegins[i]);
-          }
-        }
         for (size_t i = 0; i < coordinatePreConfSigtem.txids.size(); i++) {
             if(coordinatePreConfSigtem.txids[i] != uint256::ZERO) {
                 txids.push_back(coordinatePreConfSigtem.txids[i]);
@@ -170,22 +167,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             }
             message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
             message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
-            UniValue pegmessages(UniValue::VARR);
-            if(coordinatePreConfSigItem.pegins.size() > 0 && i == 0) {
-                    // preparing message for signature verification
-                    for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
-                        CTxDestination address;
-                        ExtractDestination(pegin.scriptPubKey, address);
-                        std::string addressStr = EncodeDestination(address);
-
-                        UniValue pegmessage(UniValue::VOBJ);
-                        pegmessage.pushKV("address", addressStr);
-                        pegmessage.pushKV("amount", pegin.nValue);
-                        pegmessages.push_back(pegmessage);
-                    }
-                    
-            }
-            message.pushKV("pegins", pegmessages);
             messages.push_back(message);
         }
         if(finalizedStatus == 1) {
@@ -236,6 +217,9 @@ bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedB
 
 void insertNewSignedBlock(const SignedBlock& newFinalizedSignedBlock) {
     finalizedSignedBlocks.push_back(newFinalizedSignedBlock);
+    SignedBlockPeer newPeer;
+    newPeer.hash = newFinalizedSignedBlock.GetHash();
+    finalizedSignedBlockPeers.push_back(newPeer);
 }
 
 
@@ -245,12 +229,17 @@ void removePreConfWitness() {
 
 void removePreConfFinalizedBlock(uint64_t blockHeight) {
     std::vector<SignedBlock> newFinalizedSignedBlocks;
+    std::vector<SignedBlockPeer> newFinalizedSignedBlockPeers;
     for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
         if(static_cast<uint64_t>(finalizedSignedBlock.nHeight) > blockHeight) {
             newFinalizedSignedBlocks.push_back(finalizedSignedBlock);
+            SignedBlockPeer newPeer;
+            newPeer.hash = finalizedSignedBlock.GetHash();
+            newFinalizedSignedBlockPeers.push_back(newPeer);
         }
     }
     finalizedSignedBlocks = newFinalizedSignedBlocks;
+    finalizedSignedBlockPeers = newFinalizedSignedBlockPeers;
 }
 /**
  * This is the function which used to get unbroadcasted preconfirmation signatures
@@ -271,12 +260,15 @@ std::vector<CoordinatePreConfSig> getUnBroadcastedPreConfSig() {
  */
 std::vector<SignedBlock> getUnBroadcastedPreConfSignedBlock() {
     std::vector<SignedBlock> sigData;
-    for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
-        if(!finalizedSignedBlock.isBroadcasted) {
-            sigData.push_back(finalizedSignedBlock);
+    for (SignedBlockPeer finalizedSignedBlockPeer : finalizedSignedBlockPeers) {
+        if(!finalizedSignedBlockPeer.isBroadcasted) {
+            for (SignedBlock finalizedSignedBlock : finalizedSignedBlocks) {
+                if(finalizedSignedBlockPeer.hash == finalizedSignedBlock.GetHash()) {
+                    sigData.push_back(finalizedSignedBlock);
+                }
+            }
         } 
     }
-
     return sigData;
 }
 
@@ -308,12 +300,12 @@ void updateBroadcastedPreConf(CoordinatePreConfSig& preconfItem, int64_t peerId)
  * This is the function which used change status for broadcasted signed block
  */
 void updateBroadcastedSignedBlock(SignedBlock& signedBlockItem, int64_t peerId) {
-    for (SignedBlock& finalizedSignedBlock : finalizedSignedBlocks) {
-        if(finalizedSignedBlock.nHeight == signedBlockItem.nHeight && !finalizedSignedBlock.isBroadcasted) {
-            if (std::find(signedBlockItem.peerList.begin(), signedBlockItem.peerList.end(), peerId) != signedBlockItem.peerList.end()) {
-                finalizedSignedBlock.isBroadcasted = true;
+    for (SignedBlockPeer& finalizedSignedBlockPeer : finalizedSignedBlockPeers) {
+        if(signedBlockItem.GetHash() == finalizedSignedBlockPeer.hash && !finalizedSignedBlockPeer.isBroadcasted) {
+            if (std::find(finalizedSignedBlockPeer.peerList.begin(), finalizedSignedBlockPeer.peerList.end(), peerId) != finalizedSignedBlockPeer.peerList.end()) {
+                finalizedSignedBlockPeer.isBroadcasted = true;
             } else {
-                finalizedSignedBlock.peerList.push_back(peerId);
+                finalizedSignedBlockPeer.peerList.push_back(peerId);
             }
             break;
         }
@@ -383,9 +375,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
     coinBaseOuts.push_back(federationFeeOut);
 
-    for (size_t i = 0; i < preconfList.pegins.size(); i++) {
-        coinBaseOuts.push_back(preconfList.pegins[i]);
-    }
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
@@ -422,22 +411,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         message.pushKV("signed_block_height", block.nHeight);
         message.pushKV("mined_block_height", block.blockIndex);
 
-        UniValue pegmessages(UniValue::VARR);
-        if(i == 0) {
-            // preparing message for signature verification
-            if(block.vtx[i]->vout.size() > 3) {
-                for (size_t idx = 2; idx < block.vtx[i]->vout.size()-1; idx++) {
-                    CTxDestination address;
-                    ExtractDestination(block.vtx[i]->vout[idx].scriptPubKey, address);
-                    std::string addressStr = EncodeDestination(address);
-                    UniValue pegmessage(UniValue::VOBJ);
-                    pegmessage.pushKV("address", addressStr);
-                    pegmessage.pushKV("amount", block.vtx[i]->vout[idx].nValue);
-                    pegmessages.push_back(pegmessage);
-                }
-            } 
-        }
-        message.pushKV("pegins", pegmessages);
         messages.push_back(message);
     }
     
@@ -625,6 +598,16 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
         }
 
         totalFee = totalFee + (amt_total_in - amt_total_out);
+    }
+
+    for (size_t i = 0; i < prevblock.pegins.size(); ++i) {
+        const std::vector<std::vector<unsigned char> >& stack = prevblock.pegins[i]->vin[0].scriptWitness.stack;
+        CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+        CAmount value;
+        stream >> value;
+        const CTransaction& tx = *prevblock.pegins[i];
+        CAmount fee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+        totalFee = totalFee + fee;
     }
 
     if(!MoneyRange(totalFee)) {

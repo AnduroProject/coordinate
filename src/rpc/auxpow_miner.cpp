@@ -20,6 +20,7 @@
 #include <util/time.h>
 #include <auxpow.h>
 #include <cassert>
+#include <logging.h>
 
 namespace
 {
@@ -95,7 +96,7 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
 
         /* Finalise it by setting the version and building the merkle root.  */
         newBlock->block.hashMerkleRoot = BlockMerkleRoot (newBlock->block);
-        newBlock->block.SetAuxpowVersion (true);
+        newBlock->block.SetAuxpowVersion(true);
 
         /* Save in our map of constructed blocks.  */
         pblockCur = &newBlock->block;
@@ -151,6 +152,12 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
 
   uint256 target;
   const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
+
+  CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 1);
+  CBlock block = *pblock;
+  CAuxPow::initAuxPow(block);
+  ssTx << block;
+  
   UniValue result(UniValue::VOBJ);
   result.pushKV ("hash", pblock->GetHash ().GetHex ());
   result.pushKV ("chainid", pblock->GetChainId ());
@@ -160,7 +167,32 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   result.pushKV ("bits", strprintf ("%08x", pblock->nBits));
   result.pushKV ("height", static_cast<int64_t> (pindexPrev->nHeight + 1));
   result.pushKV ("_target", HexStr (target));
+  return result;
+}
 
+
+UniValue
+AuxpowMiner::createAuxBlockHex (const JSONRPCRequest& request,
+                             const CScript& scriptPubKey)
+{
+  LOCK (cs);
+
+  const auto& node = EnsureAnyNodeContext (request.context);
+  auxMiningCheck (node);
+  const auto& mempool = EnsureMemPool (node);
+  const auto& chainman = EnsureChainman (node);
+
+  uint256 target;
+  const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
+
+  CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 1);
+  CBlock block = *pblock;
+  CAuxPow::initAuxPow(block);
+  ssTx << block;
+  
+  UniValue result(UniValue::VOBJ);
+  result.pushKV ("hex", HexStr(ssTx));
+  result.pushKV ("aux", createAuxBlock(request, scriptPubKey));
   return result;
 }
 
@@ -186,6 +218,11 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
   ss >> *pow;
   shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
+
+  if(!shared_block->auxpow) {
+    return false;
+  }
+  LogPrintf("AuxpowMiner::submitAuxBlock \n");
   return chainman.ProcessNewBlock (shared_block, /*force_processing=*/true,
                                    /*min_pow_checked=*/true, nullptr);
 }

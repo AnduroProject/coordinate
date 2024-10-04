@@ -51,11 +51,16 @@ public:
     //! Is this a BitAsset controller?
     bool isPreconf;
 
+    //! Is this a pegin transaction
+    bool isPegin;
+
     uint32_t nAssetID;
 
+
+
     //! construct a Coin from a CTxOut and height/coinbase information.
-    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, uint32_t nAssetIDIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), nAssetID(nAssetIDIn) {}
-    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, uint32_t nAssetIDIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), nAssetID(nAssetIDIn) {}
+    Coin(CTxOut&& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, bool isPeginIn, uint32_t nAssetIDIn) : out(std::move(outIn)), fCoinBase(fCoinBaseIn), nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), isPegin(isPeginIn), nAssetID(nAssetIDIn) {}
+    Coin(const CTxOut& outIn, int nHeightIn, bool fCoinBaseIn, bool fBitAssetIn, bool fBitAssetControlIn, bool isPreconfIn, bool isPeginIn, uint32_t nAssetIDIn) : out(outIn), fCoinBase(fCoinBaseIn),nHeight(nHeightIn), fBitAsset(fBitAssetIn), fBitAssetControl(fBitAssetControlIn), isPreconf(isPreconfIn), isPegin(isPeginIn), nAssetID(nAssetIDIn) {}
 
     void Clear() {
         out.SetNull();
@@ -64,11 +69,12 @@ public:
         fBitAsset = false;
         fBitAssetControl = false;
         isPreconf = false;
+        isPegin = false;
         nAssetID = 0;
     }
 
     //! empty constructor
-    Coin() : fCoinBase(false), nHeight(0), fBitAsset(false), fBitAssetControl(false), isPreconf(false), nAssetID(0)  { }
+    Coin() : fCoinBase(false), nHeight(0), fBitAsset(false), fBitAssetControl(false), isPreconf(false), isPegin(false), nAssetID(0)  { }
 
     bool IsCoinBase() const {
         return fCoinBase;
@@ -86,6 +92,10 @@ public:
         return isPreconf;
     }
 
+    bool isPeginCoin() const {
+        return isPegin;
+    }
+
     uint32_t GetAssetID() const {
         return nAssetID;
     }
@@ -100,6 +110,7 @@ public:
         ::Serialize(s, fBitAsset);
         ::Serialize(s, fBitAssetControl);
         ::Serialize(s, isPreconf);
+        ::Serialize(s, isPegin);
         ::Serialize(s, nAssetID);
     }
 
@@ -113,6 +124,7 @@ public:
         ::Unserialize(s, fBitAsset);
         ::Unserialize(s, fBitAssetControl);
         ::Unserialize(s, isPreconf);
+        ::Unserialize(s, isPegin);
         ::Unserialize(s, nAssetID);
     }
 
@@ -352,6 +364,7 @@ public:
     bool getAssetCoin(const COutPoint &outpoint, bool& fBitAsset, bool& fBitAssetControl, uint32_t& nAssetID, Coin* moveto = nullptr);
 
 
+    bool isPeginSpent(const COutPoint &outpoint) const;
 
     /**
      * Push the modifications applied to this cache to its base and wipe local state.

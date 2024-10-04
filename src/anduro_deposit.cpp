@@ -11,6 +11,7 @@
 #include <rpc/client.h>
 #include <anduro_deposit.h>
 #include <anduro_validator.h>
+#include <coordinate/coordinate_pegin.h>
 
 using node::BlockManager;
 // temporary storage for including precommitment signature on next block
@@ -79,6 +80,7 @@ bool isPreCommitmentValid(std::vector<AnduroPreCommitment> commitments, Chainsta
          LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
       }
       isValid = validateAnduroSignature(commitment.witness,block.GetHash().ToString(),block.currentKeys);
+      saveAddressInRegistry(chainman.ActiveChainstate(),commitment.depositAddress);
    }
 
    // check signature is valid
@@ -163,6 +165,10 @@ bool isAnduroValidationActive() {
  * Validate the anduro signature on confirmed blocks
  */
 bool verifyPreCommitment(ChainstateManager& chainman, const CBlock& block, int currentHeight) {
+   // need this line uncommented for running unit test case
+   // if(chainman.GetParams().GetChainType() == ChainType::REGTEST) {
+   //    return true;
+   // }
    LOCK(cs_main);
    if(currentHeight < 3) {
       LogPrintf("verifyCommitment: gensis block ignored");

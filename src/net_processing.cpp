@@ -3031,6 +3031,7 @@ void PeerManagerImpl::ProcessHeadersMessage(CNode& pfrom, Peer& peer,
 
     // Now process all the headers.
     BlockValidationState state;
+    LogPrintf("ProcessHeadersMessage \n");
     if (!m_chainman.ProcessNewBlockHeaders(headers, /*min_pow_checked=*/true, state, &pindexLast)) {
         if (state.IsInvalid()) {
             MaybePunishNodeForBlock(pfrom.GetId(), state, via_compact_block, "invalid header received");
@@ -3309,6 +3310,7 @@ void PeerManagerImpl::ProcessGetCFCheckPt(CNode& node, Peer& peer, CDataStream& 
 void PeerManagerImpl::ProcessBlock(CNode& node, const std::shared_ptr<const CBlock>& block, bool force_processing, bool min_pow_checked)
 {
     bool new_block{false};
+    LogPrintf("PeerManagerImpl::ProcessBlock \n");
     m_chainman.ProcessNewBlock(block, force_processing, min_pow_checked, &new_block);
     if (new_block) {
         node.m_last_block_time = GetTime<std::chrono::seconds>();
@@ -4219,7 +4221,15 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         LogPrint(BCLog::NET, "getheaders %d to %s from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.IsNull() ? "end" : hashStop.ToString(), pfrom.GetId());
         for (; pindex; pindex = m_chainman.ActiveChain().Next(pindex))
         {
-            vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+            const CBlockHeader header = pindex->GetBlockHeader(m_chainman.m_blockman);
+            if(!header.auxpow) {
+                if(header.GetHash().ToString().compare("31902208f1dc57e1f009d20bfab5116303487ecd0840e27d103af98a9f1a4298") == 0 || header.GetHash().ToString().compare("d056cca6fa864bc8099fbdf587e251ff247e33cdfbeb1ea481e607e7f9722f9c") == 0  || header.GetHash().ToString().compare("11de75a48e2193f7e88104eb64a078eaff54b7d6ec2ffbd97cb15edc128d498d") == 0) {
+                    vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+                } 
+            } else {
+                vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+            }
+          
             ++nCount;
             if (nCount >= MAX_HEADERS_RESULTS)
                 break;
@@ -4488,6 +4498,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
         const CBlockIndex *pindex = nullptr;
         BlockValidationState state;
+        LogPrintf("PeerManagerImpl::ProcessMessage \n");
         if (!m_chainman.ProcessNewBlockHeaders({cmpctblock.header}, /*min_pow_checked=*/true, state, &pindex)) {
             if (state.IsInvalid()) {
                 MaybePunishNodeForBlock(pfrom.GetId(), state, /*via_compact_block=*/true, "invalid header via cmpctblock");
@@ -4738,6 +4749,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         //     ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
         // }
         vRecv >> headers;
+        
         ProcessHeadersMessage(pfrom, *peer, std::move(headers), /*via_compact_block=*/false);
 
         // Check if the headers presync progress needs to be reported to validation.
