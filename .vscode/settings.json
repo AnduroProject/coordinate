@@ -89,7 +89,8 @@
         "shared_mutex": "cpp",
         "thread": "cpp",
         "filesystem": "cpp",
-        "examples_util.h": "c"
+        "examples_util.h": "c",
+        "execution": "cpp"
     },
     "cmake.sourceDirectory": "/Users/jk/MIKE/maranodegit/src/crc32c",
     "C_Cpp.errorSquiggles": "disabled"
