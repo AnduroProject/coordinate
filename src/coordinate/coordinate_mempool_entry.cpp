@@ -100,7 +100,6 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
  * This is the function which get asset ouput information for particular transaction 
  */
 int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate) {
-    LOCK(cs_main);
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         return 2;
     }
