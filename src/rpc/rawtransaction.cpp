@@ -381,16 +381,21 @@ static RPCHelpMan getrawtransaction()
             SignedTxindex signedTxIndex;
             chainman.ActiveChainstate().psignedblocktree->getTxPosition(hash,signedTxIndex);
 
-            if(!signedTxIndex.signedBlockHash.IsNull()) {
+            if(signedTxIndex.pos != -1) {
                 LOCK(cs_main);
                 CChain& active_chain = chainman.ActiveChain();
                 CBlock block;
                 if (chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[signedTxIndex.blockIndex])) {
-                    for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
-                        if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
-                            mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
-                            hash_block = block.GetHash();
-                            break;
+                    if(signedTxIndex.signedBlockHash.IsNull()) {
+                        mined_tx = block.pegins[signedTxIndex.pos];
+                        hash_block = block.GetHash();
+                    } else {
+                        for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
+                            if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
+                                mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];
+                                hash_block = block.GetHash();
+                                break;
+                            }
                         }
                     }
                 } 
