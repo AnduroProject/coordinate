@@ -448,9 +448,6 @@ static RPCHelpMan getpreconftxrefund() {
             CCoinsViewCache view(&chainman.ActiveChainstate().CoinsTip());
             chainman.ActiveChainstate().UpdatedCoinsTip(view,chainman.ActiveChainstate().m_chain.Height());
 
-
-            const CBlockIndex* blockindex = nullptr;
-            uint256 hash_block;
             UniValue result(UniValue::VARR);  
             for (unsigned int idx = 0; idx < req_params.size(); idx++) {
                 const UniValue& params = req_params[idx].get_obj();
