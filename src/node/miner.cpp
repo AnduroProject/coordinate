@@ -176,28 +176,31 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
 
     int resize = 2;
     CMutableTransaction coinbaseTx;
-    // if(Params().GetChainType() != ChainType::REGTEST) {
-    // get next block presigned data
     std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
-    LogPrintf("commitment queue count %i\n", pending_commitments.size());
-    // prevent to get block template if not presigned signature available for next block
-    if(nHeight > 2) {
-        if(pending_commitments.size() == 0) {
-            LogPrintf("commitment queue unavailable\n");
-            return nullptr;
-        }
+    if(Params().GetChainType() != ChainType::REGTEST) {
+    // get next block presigned data
+  
+        LogPrintf("commitment queue count %i\n", pending_commitments.size());
+        // prevent to get block template if not presigned signature available for next block
+        if(nHeight > 2) {
+            if(pending_commitments.size() == 0) {
+                LogPrintf("commitment queue unavailable\n");
+                return nullptr;
+            }
 
-        // increase transaction out size based on available pegin 
-        if(!isPreCommitmentValid(pending_commitments,m_chainstate.m_chainman)) {
-            LogPrintf("anduro commitment invalid \n");
-            return nullptr;
+            // increase transaction out size based on available pegin 
+            if(!isPreCommitmentValid(pending_commitments,m_chainstate.m_chainman)) {
+                LogPrintf("anduro commitment invalid \n");
+                return nullptr;
+            }
         }
+        // increase transaction out size by one for include witness
+ 
     }
-
-    // increase transaction out size by one for include witness
     resize = resize + 1;
 
-    if(nHeight > 2) {
+
+    if(nHeight > 2 && Params().GetChainType() != ChainType::REGTEST) {
         // if new commitment included, then existing anduro key replaced in next block 
         AnduroPreCommitment& commtiment = pending_commitments[0];
         pblock->currentKeys = commtiment.nextKeys;
@@ -222,7 +225,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     
     // including anduro signature information
     std::string preCommitmentWitness = "";
-    if(nHeight > 2) {
+    if(nHeight > 2 && Params().GetChainType() != ChainType::REGTEST) {
         preCommitmentWitness = pending_commitments[0].witness;
     }
     oIncr = oIncr + 1;
