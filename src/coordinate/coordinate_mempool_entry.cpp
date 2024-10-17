@@ -61,7 +61,6 @@ void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate
  * This is the function which used to get asset total amount
  */
 bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate, CAmount& amountAssetIn, uint32_t& currentAssetID) {
-     LOCK(cs_main);
     CCoinsViewCache& mapInputs = m_active_chainstate.CoinsTip();
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         uint32_t nAssetID = 0;
