@@ -730,8 +730,12 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
         }
 
-        if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+        if(tx.payloadData.compare("") == 0) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction payload missing");
+        }
+
+        if(tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction payload mismatch",strprintf("got (%s), expected (%s)", tx.payload.ToString(), prepareMessageHash(tx.payloadData).ToString()));
         }
 
         // validate asset precision
@@ -2630,8 +2634,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         if (!tx.IsCoinBase())
         {
             if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && !m_chainman.ActiveChainstate().isAssetPrune) {
-                if(tx.payloadData.compare("") == 0 || tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+                if(tx.payloadData.compare("") == 0) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload missing");
+                }
+
+                if(tx.payload.ToString().compare(prepareMessageHash(tx.payloadData).ToString()) != 0) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): transaction payload mismatch",strprintf("got (%s), expected (%s) or (%s)", tx.payload.ToString(), prepareMessageHash(tx.payloadData).ToString()));
                 }
             }
 
