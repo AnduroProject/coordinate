@@ -43,8 +43,9 @@
 #include <coordinate/coordinate_mempool_entry.h>
 #include <numeric>
 #include <stdint.h>
-
+#include <anduro_validator.h>
 #include <univalue.h>
+#include <logging.h>
 
 using node::AnalyzePSBT;
 using node::FindCoins;
@@ -174,7 +175,7 @@ static std::vector<RPCArg> CreateTxDoc()
                 {"precision", RPCArg::Type::NUM, RPCArg::Optional::NO, "Precision number for token"},
                 {"ticker", RPCArg::Type::STR, RPCArg::Optional::NO, "The ticker symbol"},
                 {"headline", RPCArg::Type::STR, RPCArg::Optional::NO, "The headline"},
-                {"payload", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The payload"},
+                {"payload", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The payload"},
                 {"payloaddata", RPCArg::Type::STR, RPCArg::Optional::NO, "The payload data"}
             }
         }
@@ -492,7 +493,12 @@ static RPCHelpMan createrawtransaction()
             rawTx.precision = assetParams["precision"].getInt<int>();
             rawTx.ticker = assetParams["ticker"].get_str();
             rawTx.headline = assetParams["headline"].get_str();
-            rawTx.payload = uint256S(assetParams["payload"].get_str());
+            if(assetParams["payload"].isNull()) {
+                rawTx.payload = prepareMessageHash(assetParams["payloaddata"].get_str());
+            } else {
+                rawTx.payload = uint256S(assetParams["payload"].get_str());
+            }
+           
             rawTx.payloadData = assetParams["payloaddata"].get_str();
         }
     }
