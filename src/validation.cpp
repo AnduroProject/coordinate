@@ -907,7 +907,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if(!AreCoordinateTransactionStandard(tx, m_view)) {
+    if(!AreCoordinateTransactionStandard(tx,  m_active_chainstate.CoinsTip())) {
        LogPrintf("Invalid transaction standard \n");
        return false; // state filled in by CheckTxInputs
     }
