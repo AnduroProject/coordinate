@@ -505,7 +505,6 @@ void CTxMemPool::removeUnchecked(txiter it, MemPoolRemovalReason reason)
         // in transactions included in blocks can subscribe to the BlockConnected
         // notification.
         GetMainSignals().TransactionRemovedFromMempool(it->GetSharedTx(), reason, mempool_sequence);
-        removeMempoolAsset(it->GetTx());
     }
     TRACE5(mempool, removed,
         it->GetTx().GetHash().data(),
@@ -780,6 +779,8 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         CAmount amountAssetIn = CAmount(0);
         CAmount preconfRefund = CAmount(0);
         int nControlN = -1;
+        LogPrintf("Mempool addcoins \n");
+        uint32_t nAssetIDOut = 0;
         for (size_t x = 0; x < tx.vin.size(); x++) {
             bool fBitAsset = false;
             bool fBitAssetControl = false;
@@ -787,12 +788,21 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
             uint32_t nAssetID = 0;
             Coin coin;
             mempoolDuplicate.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &coin);
+            LogPrintf("fBitAsset %i \n", fBitAsset);
+            LogPrintf("fBitAssetControl %i \n", fBitAssetControl);
+            if (nAssetID)
+                nAssetIDOut = nAssetID;
+
             if (fBitAsset)
                 amountAssetIn += coin.out.nValue;
             if (fBitAssetControl)
                 nControlN = x;
         } 
-        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), preconfRefund, amountAssetIn, nControlN, true);
+
+        LogPrintf("nControlN %i  \n", nControlN);
+        LogPrintf("nAssetID %i  \n", nAssetIDOut);
+        LogPrintf("asset in %i  \n", amountAssetIn);
+        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), preconfRefund, nAssetIDOut, amountAssetIn, nControlN, 0, true);
     }
     for (auto it = mapNextTx.cbegin(); it != mapNextTx.cend(); it++) {
         uint256 hash = it->second->GetHash();

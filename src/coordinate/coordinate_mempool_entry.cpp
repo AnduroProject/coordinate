@@ -1,62 +1,6 @@
 #include <coordinate/coordinate_mempool_entry.h>
 #include <anduro_validator.h>
 
-std::vector<CoordinateMempoolEntry> coordinateMempoolEntry;
-
-/**
- * This is the function which used to get mempool asset information
- */
-bool getMempoolAsset(uint256 txid, uint32_t voutIn, CoordinateMempoolEntry* assetMempoolObj) {
-    auto it = std::find_if(coordinateMempoolEntry.begin(), coordinateMempoolEntry.end(), 
-                       [txid,voutIn] (const CoordinateMempoolEntry& d) { 
-                          return d.txid == txid && d.vout == (int32_t)voutIn; 
-                       });
-    if (it == coordinateMempoolEntry.end()) return false;
-
-    *assetMempoolObj = std::move(*it);
-    return assetMempoolObj->assetID == 0 ? false : true;
-}
-
-/**
- * This is the function which remove all asset transaction based on txid
- */
-void removeMempoolAsset(const CTransaction& tx) {
-    uint256 txid = tx.GetHash();
-    for (unsigned long i = 0; i < tx.vout.size(); i++) {
-        auto it = std::find_if(coordinateMempoolEntry.begin(), coordinateMempoolEntry.end(), 
-                       [txid, i] (const CoordinateMempoolEntry& d) { 
-                          return d.txid == txid && d.vout == (int32_t)i; ; 
-                       });
-        if (it == coordinateMempoolEntry.end()) {
-        } else {
-           int indexToRemove = it - coordinateMempoolEntry.begin() ;
-           coordinateMempoolEntry.erase(coordinateMempoolEntry.begin() + indexToRemove);
-        }
-    }
-}
-/**
- * This is the function which include mempool asset
- */
-void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate) {
-    uint32_t currentAssetID = 0;
-    CAmount amountAssetIn = 0;
-    bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
-    if(has_asset_amount) {
-        CAmount amountAssetOut = 0;
-        for (unsigned long i = 0; i < tx.vout.size(); i++) {
-            if(amountAssetOut == amountAssetIn) {
-                break;
-            }
-            CoordinateMempoolEntry assetMempoolObj;
-            assetMempoolObj.assetID = currentAssetID;
-            assetMempoolObj.txid = tx.GetHash();
-            assetMempoolObj.vout = (int32_t)i;
-            assetMempoolObj.nValue = tx.vout[i].nValue;
-            coordinateMempoolEntry.push_back(assetMempoolObj);
-            amountAssetOut = amountAssetOut + tx.vout[i].nValue;
-        }
-    }
-}
 /**
  * This is the function which used to get asset total amount
  */
@@ -66,25 +10,16 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
         uint32_t nAssetID = 0;
         bool fBitAsset = false;
         bool fBitAssetControl = false;
-        CoordinateMempoolEntry assetMempoolObj;
-        bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
-        nAssetID = assetMempoolObj.assetID;
-        if(is_mempool_asset) {
-            amountAssetIn = amountAssetIn + assetMempoolObj.nValue;
-        } else {
-            Coin coin;
-            if(mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin)) {
-                if(fBitAssetControl) {
-                    currentAssetID = 0;
-                    break;
-                }
-                if(fBitAsset) {
-                    amountAssetIn = amountAssetIn + coin.out.nValue;
-                }
+        Coin coin;
+        if(mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin)) {
+            if(fBitAssetControl) {
+                currentAssetID = 0;
+                break;
             }
-
+            if(fBitAsset) {
+                amountAssetIn = amountAssetIn + coin.out.nValue;
+            }
         }
-
 
         if(!nAssetID) {
            break;
@@ -121,11 +56,4 @@ int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate)
     }
 
     return 0;
-}
- 
-/**
- * This is the function which get mempool asset information through rpc
- */
-std::vector<CoordinateMempoolEntry> getMempoolAssets() {
-   return coordinateMempoolEntry;
 }

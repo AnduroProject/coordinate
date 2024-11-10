@@ -179,24 +179,19 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
         Coin coin;
         CAmount coinValue = 0;
 
-        CoordinateMempoolEntry assetMempoolObj;
-        bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
-        if(is_mempool_asset) {
-            fBitAsset = true;
-            fBitAssetControl = false;
-            nAssetID = assetMempoolObj.assetID;
-            coinValue = assetMempoolObj.nValue;
-        } else {
-            // check input is unspent
-            bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
-            if(!is_asset) {
-                LogPrintf("Invalid inputs \n");
-                return false;
-            } else {
-                coinValue = coin.out.nValue;
-            }
-        }
+        LogPrintf("input hash %s \n",tx.vin[i].prevout.hash.ToString());
+        LogPrintf("input hash index %i \n",tx.vin[i].prevout.n);
 
+        // check input is unspent
+        bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+        if(!is_asset) {
+            LogPrintf("Invalid inputs \n");
+            return false;
+        } else {
+            LogPrintf("input nAssetID %i \n",nAssetID);
+            LogPrintf("input value %i \n",coin.out.nValue);
+            coinValue = coin.out.nValue;
+        }
 
         if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             // check first input is asset

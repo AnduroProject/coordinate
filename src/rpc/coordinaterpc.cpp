@@ -255,53 +255,6 @@ static RPCHelpMan listAllAssets() {
 
 }
 
-static RPCHelpMan listMempoolAssets() {
-        return RPCHelpMan{
-        "listmempoolassets",
-        "get all coordinate assets from mempool",
-        {
-        },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
-                {RPCResult::Type::ARR, "assets", "",
-                {
-                     {RPCResult::Type::OBJ, "", "",
-                        {
-                            {RPCResult::Type::NUM, "assetId", "AssetID"},
-                            {RPCResult::Type::STR_HEX, "assetId", "Transaction ID"},
-                            {RPCResult::Type::NUM, "vout", "Transaction Index"},
-                            {RPCResult::Type::NUM, "nValue", "Transaction Amount"},
-                        }
-                     }
-                }},
-            },
-        },
-        RPCExamples{
-           HelpExampleCli("listmempoolassets", "")
-        },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-
-                UniValue result(UniValue::VOBJ);
-                UniValue assets(UniValue::VARR);
-                std::vector<CoordinateMempoolEntry> assetList = getMempoolAssets();
-            ;
-                for (const CoordinateMempoolEntry& assetItem : assetList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("assetId", (uint32_t)assetItem.assetID);
-                    obj.pushKV("txid", assetItem.txid.ToString());
-                    obj.pushKV("vout", (uint32_t)assetItem.vout);
-                     obj.pushKV("nValue", (int64_t)assetItem.nValue);
-                    assets.push_back(obj);
-                }
-                result.pushKV("assets", assets);
-                return result;
-        }
-    };
-
-}
-
 void RegisterCoordinateRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
@@ -311,8 +264,7 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
         {"coordinate", &getPendingCommitments},
         {"coordinate", &anduroDepositAddress},
         {"coordinate", &anduroWithdrawAddress},
-        {"coordinate", &listAllAssets},
-        {"coordinate", &listMempoolAssets}
+        {"coordinate", &listAllAssets}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

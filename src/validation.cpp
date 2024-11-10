@@ -907,11 +907,6 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         return false; // state filled in by CheckTxInputs
     }
 
-    if(!AreCoordinateTransactionStandard(tx,  m_view)) {
-       LogPrintf("Invalid transaction standard \n");
-       return false; // state filled in by CheckTxInputs
-    }
-
     if (m_pool.m_require_standard && !AreInputsStandard(tx, m_view)) {
         return state.Invalid(TxValidationResult::TX_INPUTS_NOT_STANDARD, "bad-txns-nonstandard-inputs");
     }
@@ -1038,6 +1033,38 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     }
 
     ws.m_ancestors = *ancestors;
+
+    CCoinsViewCache dummyMempool(&m_active_chainstate.CoinsTip());
+    m_active_chainstate.UpdatedCoinsTip(dummyMempool,m_active_chainstate.m_chain.Height() + 1);
+
+    for (CTxMemPool::txiter ancestorIt : *ancestors) {
+        const CTransaction& tx = ancestorIt->GetTx();
+         CAmount amountAssetIn = CAmount(0);
+        CAmount preconfRefund = CAmount(0);
+        int nControlN = -1;
+        uint32_t nAssetIDOut = 0;
+        for (size_t x = 0; x < tx.vin.size(); x++) {
+            bool fBitAsset = false;
+            bool fBitAssetControl = false;
+            bool isPreconf = m_pool.is_preconf ? true : false;
+            uint32_t nAssetID = 0;
+            Coin coin;
+            dummyMempool.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &coin);
+            if (nAssetID)
+                nAssetIDOut = nAssetID;
+
+            if (fBitAsset)
+                amountAssetIn += coin.out.nValue;
+            if (fBitAssetControl)
+                nControlN = x;
+        } 
+        AddCoins(dummyMempool, tx, std::numeric_limits<int>::max(), preconfRefund, nAssetIDOut, amountAssetIn, nControlN, 0, true);
+    }
+    
+    if(!AreCoordinateTransactionStandard(tx,  dummyMempool)) {
+       LogPrintf("Invalid transaction standard \n");
+       return false; // state filled in by CheckTxInputs
+    }
 
     // A transaction that spends outputs that would be replaced by it is invalid. Now
     // that we have the set of all ancestors we can detect this
@@ -1310,9 +1337,6 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
                         MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                          ws.m_base_fees, effective_feerate, effective_feerate_wtxids));
         GetMainSignals().TransactionAddedToMempool(ws.m_ptx, m_pool.GetAndIncrementSequence());
-        if(ws.m_ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
-            includeMempoolAsset(*ws.m_ptx, m_active_chainstate);
-        }
     }
     return all_submitted;
 }
@@ -1345,11 +1369,6 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
     if (!Finalize(args, ws)) return MempoolAcceptResult::Failure(ws.m_state);
 
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.is_preconf ? 0 : m_pool.GetAndIncrementSequence());
-
-    // adding asset coin info to back track child transaction in checkTransaction Function
-    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
-        includeMempoolAsset(*ptx, m_active_chainstate);
-    }
 
     return MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize, ws.m_base_fees,
                                         effective_feerate, single_wtxid);
@@ -2787,10 +2806,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
             // Copy new asset ID, we will pass it to CoinDB when we UpdateCoins
             nNewAssetID = asset.nID;
-        }
-
-        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
-            removeMempoolAsset(tx);
         }
 
         CTxUndo undoDummy;
