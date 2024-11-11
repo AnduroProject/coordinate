@@ -1034,12 +1034,20 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
 
     ws.m_ancestors = *ancestors;
 
-    CCoinsViewCache dummyMempool(&m_active_chainstate.CoinsTip());
-    m_active_chainstate.UpdatedCoinsTip(dummyMempool,m_active_chainstate.m_chain.Height() + 1);
 
-    for (CTxMemPool::txiter ancestorIt : *ancestors) {
+    CCoinsViewCache dummyMempool(&m_active_chainstate.CoinsTip());
+    m_active_chainstate.UpdatedCoinsTip(dummyMempool,m_active_chainstate.m_chain.Height());
+    auto ancestoers{m_pool.CalculateMemPoolAncestors(*entry, CTxMemPool::Limits::NoLimits())};
+
+    std::vector<CTxMemPool::txiter> finalAncestors;
+    for (CTxMemPool::txiter ancestorIt : *ancestoers) {
+        finalAncestors.push_back(ancestorIt);
+    }
+
+    std::sort(finalAncestors.begin(), finalAncestors.end(), CoordinateCompareTxIterByAncestorCount());
+    for (CTxMemPool::txiter ancestorIt : finalAncestors) {
         const CTransaction& tx = ancestorIt->GetTx();
-         CAmount amountAssetIn = CAmount(0);
+        CAmount amountAssetIn = CAmount(0);
         CAmount preconfRefund = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetIDOut = 0;
@@ -1060,24 +1068,26 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         } 
         AddCoins(dummyMempool, tx, std::numeric_limits<int>::max(), preconfRefund, nAssetIDOut, amountAssetIn, nControlN, 0, true);
     }
-    
     if(!AreCoordinateTransactionStandard(tx,  dummyMempool)) {
-       LogPrintf("Invalid transaction standard \n");
-       return false; // state filled in by CheckTxInputs
+        LogPrintf("Invalid transaction standard \n");
+        return false; // state filled in by CheckTxInputs
     }
 
-    // A transaction that spends outputs that would be replaced by it is invalid. Now
-    // that we have the set of all ancestors we can detect this
-    // pathological case by making sure ws.m_conflicts and ws.m_ancestors don't
-    // intersect.
-    if (const auto err_string{EntriesAndTxidsDisjoint(ws.m_ancestors, ws.m_conflicts, hash)}) {
-        // We classify this as a consensus error because a transaction depending on something it
-        // conflicts with would be inconsistent.
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-spends-conflicting-tx", *err_string);
-    }
 
-    m_rbf = !ws.m_conflicts.empty();
-    return true;
+
+
+// A transaction that spends outputs that would be replaced by it is invalid. Now
+// that we have the set of all ancestors we can detect this
+// pathological case by making sure ws.m_conflicts and ws.m_ancestors don't
+// intersect.
+if (const auto err_string{EntriesAndTxidsDisjoint(ws.m_ancestors, ws.m_conflicts, hash)}) {
+    // We classify this as a consensus error because a transaction depending on something it
+    // conflicts with would be inconsistent.
+    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-spends-conflicting-tx", *err_string);
+}
+
+m_rbf = !ws.m_conflicts.empty();
+return true;
 }
 
 bool MemPoolAccept::ReplacementChecks(Workspace& ws)
@@ -4184,7 +4194,6 @@ void ChainstateManager::ReceivedBlockTransactions(const CBlock& block, CBlockInd
 
 static bool CheckBlockHeader(const CBlockHeader& block, BlockValidationState& state, const Consensus::Params& consensusParams, bool fCheckPOW = true)
 {
-       LogPrintf("CheckBlockHeader \n");
     // Check proof of work matches claimed amount
     if (fCheckPOW && !CheckProofOfWork(block, consensusParams))
         return state.Invalid(BlockValidationResult::BLOCK_INVALID_HEADER, "high-hash", "proof of work failed");
@@ -4199,7 +4208,6 @@ bool CheckBlock(const CBlock& block, BlockValidationState& state, const Consensu
     if (block.fChecked)
         return true;
 
-    LogPrintf("CheckBlock \n");
     // Check that the header is valid (particularly PoW).  This is mostly
     // redundant with the call in AcceptBlockHeader.
     if (!CheckBlockHeader(block, state, consensusParams, fCheckPOW))

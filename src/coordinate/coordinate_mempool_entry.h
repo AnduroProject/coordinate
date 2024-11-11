@@ -5,6 +5,15 @@
 #include <primitives/transaction.h>
 #include <validation.h>
 
+struct CoordinateCompareTxIterByAncestorCount {
+    bool operator()(const CTxMemPool::txiter& a, const CTxMemPool::txiter& b) const
+    {
+        if (a->GetCountWithAncestors() != b->GetCountWithAncestors()) {
+            return a->GetCountWithAncestors() < b->GetCountWithAncestors();
+        }
+        return CompareIteratorByHash()(a, b);
+    }
+};
 
 /**
  * Get asset total amount
