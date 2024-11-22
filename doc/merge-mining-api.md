@@ -7,7 +7,7 @@
 2. Build and run coordinate node by following [doc folder](/doc).
 
 ## Create Aux Block API
-The mining pool to request new block header hashes from merge mining enabled chain
+The mining pool to request new block header hashes through rpc
 
 #### Request
 ```curl
