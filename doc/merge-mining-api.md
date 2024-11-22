@@ -4,7 +4,7 @@
 
 1. Clone Coordinate repo from below url
    <pre>https://github.com/AnduroProject/coordinate.git</pre>
-2. Build and run coordinate node by follow [doc folder](/doc).
+2. Build and run coordinate node by following [doc folder](/doc).
 
 ## Create Aux Block API
 The mining pool to request new block header hashes from merge mining enabled chain
