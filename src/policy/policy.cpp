@@ -179,24 +179,13 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
         Coin coin;
         CAmount coinValue = 0;
 
-        CoordinateMempoolEntry assetMempoolObj;
-        bool is_mempool_asset = getMempoolAsset(tx.vin[i].prevout.hash,tx.vin[i].prevout.n, &assetMempoolObj);
-        if(is_mempool_asset) {
-            fBitAsset = true;
-            fBitAssetControl = false;
-            nAssetID = assetMempoolObj.assetID;
-            coinValue = assetMempoolObj.nValue;
+        // check input is unspent
+        bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
+        if(!is_asset) {
+            return false;
         } else {
-            // check input is unspent
-            bool is_asset = mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin);
-            if(!is_asset) {
-                LogPrintf("Invalid inputs \n");
-                return false;
-            } else {
-                coinValue = coin.out.nValue;
-            }
+            coinValue = coin.out.nValue;
         }
-
 
         if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             // check first input is asset
