@@ -1487,6 +1487,11 @@ void CWallet::blockConnected(ChainstateRole role, const interfaces::BlockInfo& b
         transactionRemovedFromMempool(block.data->vtx[index], MemPoolRemovalReason::BLOCK);
     }
 
+    for (size_t index = 0; index < block.data->pegins.size(); index++) {
+        SyncTransaction(block.data->pegins[index], TxStateConfirmed{block.hash, block.height, static_cast<int>(index)});
+        transactionRemovedFromMempool(block.data->pegins[index], MemPoolRemovalReason::BLOCK);
+    }
+
     // Scan block
     for (size_t index = 0; index < block.data->preconfBlock.size(); index++) {
         const SignedBlock& finalizedSignedBlock = block.data->preconfBlock[index];
@@ -2159,7 +2164,7 @@ bool CWallet::SignTransaction(CMutableTransaction& tx) const
         }
         const CWalletTx& wtx = mi->second;
         int prev_height = wtx.state<TxStateConfirmed>() ? wtx.state<TxStateConfirmed>()->confirmed_block_height : 0;
-        coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], prev_height, wtx.IsCoinBase(), false, false, false, 0);
+        coins[input.prevout] = Coin(wtx.tx->vout[input.prevout.n], prev_height, wtx.IsCoinBase(), false, false, false, false, 0);
     }
     std::map<int, bilingual_str> input_errors;
     return SignTransaction(tx, coins, SIGHASH_DEFAULT, input_errors);
