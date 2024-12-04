@@ -344,6 +344,13 @@ UniValue AuxpowToJSON(const CAuxPow& auxpow, const bool verbose, Chainstate& act
         result.pushKV("chainmerklebranch", branch);
     }
 
+    {
+        UniValue branch(UniValue::VARR);
+        for (const auto& node : auxpow.miningHashes)
+            branch.push_back(node.GetHex());
+        result.pushKV("mininghashes", branch);
+    }
+
     if (verbose)
         result.pushKV("parentblock", blockheaderToJSON(auxpow.parentBlock));
     else
