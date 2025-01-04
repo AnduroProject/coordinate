@@ -38,7 +38,7 @@ DecodeLE32 (const unsigned char* bytes)
 } // anonymous namespace
 
 bool
-CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
+CAuxPow::check(const uint256& hashAuxBlock, int nChainId,
                 const Consensus::Params& params) const
 {
     if (params.fStrictChainId && parentBlock.GetChainId () == nChainId)
@@ -47,25 +47,10 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
     if (vChainMerkleBranch.size() > 30)
         return error("Aux POW chain merkle branch too long");
 
-    uint256 nRootHash;
-    if(miningHashes.size() > 0) {
-        if(std::find(miningHashes.begin(), miningHashes.end(), hashAuxBlock) == miningHashes.end()) {
-            return error("Aux POW Block hash not available in mining hashes");
-        }
-        std::vector<uint256> leaves;
-        leaves.resize(miningHashes.size());
-        for (size_t s = 0; s < miningHashes.size(); s++) {
-           leaves[s] = miningHashes[s];
-        }
-        nRootHash = ComputeMerkleRoot(std::move(leaves));
-    } else {
-        nRootHash = CheckMerkleBranch (hashAuxBlock, vChainMerkleBranch, nChainIndex);
-    }
+    uint256 nRootHash = CheckMerkleBranch (hashAuxBlock, vChainMerkleBranch, nChainIndex);
+
 
     std::vector<unsigned char> vchRootHash(nRootHash.begin(), nRootHash.end());
-    if(miningHashes.size() == 0) {
-        std::reverse(vchRootHash.begin(), vchRootHash.end()); // correct endian
-    }
    
     // Check that we are in the parent block merkle tree
     if (CheckMerkleBranch(coinbaseTx->GetHash(), vMerkleBranch, 0)
@@ -74,30 +59,20 @@ CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
 
     bool isValid = false;
     std::string errorMsg = "";
-    if(miningHashes.size() == 0) {
-      // Check that there is at least one input.
-      if (coinbaseTx->vin.empty()) {
-          errorMsg = "Aux POW coinbase has no inputs";
-      }
-      const CScript script = coinbaseTx->vin[0].scriptSig;
+
+    // Check that there is at least one input.
+    if (coinbaseTx->vout.size() <= 2)
+      return error("Aux POW coinbase has no outputs");
+
+    for (size_t i = 2; i < coinbaseTx->vout.size(); i++) {
+      const CScript script = coinbaseTx->vout[i].scriptPubKey;
       errorMsg = validateParentScript(nChainId, vchRootHash, script);
       if(errorMsg.compare("") == 0) {
         isValid = true;
-      }
-    } else {
-      // Check that there is at least one input.
-      if (coinbaseTx->vout.size() <= 2)
-        return error("Aux POW coinbase has no outputs");
-
-      for (size_t i = 2; i < coinbaseTx->vout.size(); i++) {
-        const CScript script = coinbaseTx->vout[i].scriptPubKey;
-        errorMsg = validateParentScript(nChainId, vchRootHash, script);
-        if(errorMsg.compare("") == 0) {
-          isValid = true;
-          break;
-        }
+        break;
       }
     }
+
 
     if(!isValid) {
       return error(errorMsg.c_str());

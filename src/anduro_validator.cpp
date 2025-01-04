@@ -12,59 +12,42 @@ bool validateAnduroSignature(std::string signatureHex, std::string messageIn, st
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
     if (!witnessVal.read(prevWitnessHexStr)) {
-        LogPrintf("invalid witness params \n");
+        LogPrintf("invalid previous currentkeys params \n");
         return false;
     }
 
-    std::vector<std::string> allKeysArray;
-    const auto allKeysArrayRequest = witnessVal.get_obj().find_value("all_keys").get_array();
-    for (size_t i = 0; i < allKeysArrayRequest.size(); i++) {
-        allKeysArray.push_back(allKeysArrayRequest[i].get_str());
-    }
-    int thresold =  ((allKeysArray.size()-(allKeysArray.size() % 2))/2) + 1;
+    LogPrintf("witness received %s \n", signatureHex);
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
-    UniValue allSignatures(UniValue::VARR);
-    if (!allSignatures.read(signatureHexStr)) {
-        LogPrintf("invalid signature params \n");
+    UniValue witness(UniValue::VOBJ);
+    if (!witness.read(signatureHexStr)) {
+        LogPrintf("invalid witness received 123 \n");
         return false;
     }
-    for (unsigned int idx = 0; idx < allSignatures.size(); idx++) {
-        const UniValue& o = allSignatures[idx].get_obj();
-        RPCTypeCheckObj(o,
-        {
-            {"redeempath", UniValueType(UniValue::VSTR)},
-            {"signature", UniValueType(UniValue::VSTR)},
-        });
-        std::string redeemPath =  o.find_value("redeempath").get_str();
-        std::string signature =  o.find_value("signature").get_str();
 
-        if(signature.compare("") == 0) {
-            continue;
-        }
-        if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
-            uint256 message = prepareMessageHash(messageIn);
-            XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
-            if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
-                LogPrintf("failed verfication \n");
-            } else {
-                thresold -= 1;
-                if(thresold == 0) {
-                    break;
-                }
-            }
-        }
-    }
-    return thresold == 0 ? true : false;
+    std::string signature = witness.get_obj().find_value("signature").get_str();
+    std::string pubkey =  witness.get_obj().find_value("redeempath").get_str();
+
+    uint256 message = prepareMessageHash(messageIn);
+    LogPrintf("validateAnduroSignature message %s \n", message.ToString());
+    LogPrintf("validateAnduroSignature pubkey %s \n", pubkey);
+    LogPrintf("validateAnduroSignature signature %s \n", signature);
+    XOnlyPubKey xPubkey(CPubKey(ParseHex(pubkey)));
+    auto tweaked = xPubkey.CreateTapTweak(nullptr);
+    XOnlyPubKey tweaked_key = tweaked->first;
+    if(!tweaked_key.VerifySchnorr(message,ParseHex(signature))) {
+        LogPrintf("failed verfication \n");
+        return false;
+    } 
+    return true;
 }
 
 bool validatePreconfSignature(std::string signatureHex, std::string messageIn, std::string prevWitnessHex) {
-
     std::vector<unsigned char> wData(ParseHex(prevWitnessHex));
     const std::string prevWitnessHexStr(wData.begin(), wData.end());
     UniValue witnessVal(UniValue::VOBJ);
     if (!witnessVal.read(prevWitnessHexStr)) {
-        LogPrintf("invalid witness params \n");
+        LogPrintf("validatePreconfSignature: invalid witness params \n");
         return false;
     }
 
@@ -78,37 +61,36 @@ bool validatePreconfSignature(std::string signatureHex, std::string messageIn, s
    
     std::vector<unsigned char> sData(ParseHex(signatureHex));
     const std::string signatureHexStr(sData.begin(), sData.end());
-    UniValue allSignatures(UniValue::VARR);
+    UniValue allSignatures(UniValue::VOBJ);
     if (!allSignatures.read(signatureHexStr)) {
-        LogPrintf("invalid signature params \n");
+        LogPrintf("validatePreconfSignature: invalid signature params \n");
         return false;
     }
-    for (unsigned int idx = 0; idx < allSignatures.size(); idx++) {
-        const UniValue& o = allSignatures[idx].get_obj();
-        RPCTypeCheckObj(o,
-        {
-            {"redeempath", UniValueType(UniValue::VSTR)},
-            {"signature", UniValueType(UniValue::VSTR)},
-        });
-        std::string redeemPath =  o.find_value("redeempath").get_str();
-        std::string signature =  o.find_value("signature").get_str();
 
+    std::string signature = allSignatures.get_obj().find_value("signature").get_str();
+    std::string pubkey =  allSignatures.get_obj().find_value("redeempath").get_str();
+    LogPrintf("validatePreconfSignature: pubkey %s \n", pubkey);
 
-        if(getRedeemPathAvailable(allKeysArray,redeemPath)) {
-            uint256 message = prepareMessageHash(messageIn);
-
-            XOnlyPubKey xPubkey(CPubKey(ParseHex(redeemPath)));
-            if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
-                LogPrintf("failed verfication \n");
-            } else {
-                thresold -= 1;
-                if(thresold == 0) {
-                    break;
-                }
-            }
-        }
+    LogPrintf("all keys \n");
+    for (size_t i = 0; i < allKeysArray.size(); i++) {
+        LogPrintf("allKeysArray[i] %s \n", allKeysArray[i]);
     }
-    return thresold == 0 ? true : false;
+    LogPrintf("all keys end \n");
+    if(getRedeemPathAvailable(allKeysArray,pubkey)) {
+        uint256 message = prepareMessageHash(messageIn);
+        LogPrintf("validatePreconfSignature message %s \n", message.ToString());
+        LogPrintf("validatePreconfSignature pubkey %s \n", pubkey);
+        LogPrintf("validatePreconfSignature signature %s \n", signature);
+        XOnlyPubKey xPubkey(CPubKey(ParseHex(pubkey)));
+        if(!xPubkey.VerifySchnorr(message,ParseHex(signature))) {
+            LogPrintf("validatePreconfSignature: failed verfication \n");
+        } else {
+            return true;
+        }
+    } else {
+        LogPrintf("validatePreconfSignature: key not available \n");
+    }
+    return false;
 }
 
 /**
@@ -118,6 +100,9 @@ uint256 prepareMessageHash(std::string message) {
     uint256 messageBuffer;
     CSHA256().Write((unsigned char*)message.data(), message.size()).Finalize(messageBuffer.begin());
     return messageBuffer;
+//     std::vector<unsigned char> vchRootHash(messageBuffer.begin(), messageBuffer.end());
+//     std::reverse(vchRootHash.begin(), vchRootHash.end());
+//     return uint256(vchRootHash);
 }
 
 /**

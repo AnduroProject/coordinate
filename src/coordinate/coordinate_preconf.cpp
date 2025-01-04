@@ -125,6 +125,10 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     int blockindex = preconf[0].minedBlockHeight;
     int finalizedStatus = preconf[0].finalized;
 
+    if(finalizedStatus == 1) {
+        removePreConfWitness();
+    }
+
     if(blockindex<0) {
           return false;
     }
@@ -180,9 +184,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         }
     }
 
-    if(finalizedStatus == 1) {
-        removePreConfWitness();
-    }
+
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);

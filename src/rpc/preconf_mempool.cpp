@@ -127,8 +127,6 @@ static RPCHelpMan sendpreconflist()
                 }
             }
 
-
-
             uint32_t finalized = 0;
             if(!request.params[2].isNull()) {
                 if(!ParseUInt32(request.params[2].get_str(),&finalized)) {
@@ -159,7 +157,6 @@ static RPCHelpMan sendpreconflist()
                 if (receivedTx.compare("") != 0) {
                     preconfObj.txids.push_back(uint256S(receivedTx));
                 } else {
-
                     preconfObj.txids.push_back(uint256::ZERO);
                 }
                 preconfObj.blockHeight =  fedParams.find_value("signed_block_height").getInt<int64_t>();
@@ -170,10 +167,9 @@ static RPCHelpMan sendpreconflist()
                 
             }
             preconf.push_back(preconfObj);
+            LogPrintf("finalized received in preconf %i \n", preconfObj.finalized);
+            LogPrintf("witness received in preconf %s \n", preconfObj.witness);
             return includePreConfSigWitness(preconf, chainman);
-    
-
-            return false;
         },
     };
 }

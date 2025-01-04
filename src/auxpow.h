@@ -71,9 +71,6 @@ public:
   /** Parent block header (on which the real PoW is done).  */
   CPureBlockHeader parentBlock;
 
-  /** mining hashes from pool to verify parent coinbase anchoring hash  */
-  std::vector<uint256> miningHashes;
-
   /* Prevent accidental conversion.  */
   inline explicit CAuxPow (CTransactionRef&& txIn)
     : coinbaseTx (std::move (txIn))
@@ -105,7 +102,6 @@ public:
     /* Additional data for the auxpow itself.  */
     READWRITE (obj.vChainMerkleBranch, obj.nChainIndex, obj.parentBlock);
 
-    READWRITE (obj.miningHashes);
   }
 
   /**

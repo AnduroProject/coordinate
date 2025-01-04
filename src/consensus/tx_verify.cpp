@@ -178,7 +178,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                             strprintf("%s: inputs missing/spent", __func__));
             }
         }
-        if(tx.vin.size() > 1 || tx.vout.size() > 1) {
+        if(tx.vin.size() > 1 || tx.vout.size() > 2) {
            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid pegin transaction");
         }
         std::string err;
@@ -186,6 +186,23 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             return state.Invalid(TxValidationResult::TX_CONSENSUS, err);
         }
         txfee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+
+        const CAmount value_out = tx.GetValueOut();
+        const std::vector<std::vector<unsigned char> >& stack = tx.vin[0].scriptWitness.stack;
+
+        CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+        CAmount value;
+        try {
+            stream >> value;
+        } catch (...) {
+            err = "Could not deserialize value.";
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, err);
+        }
+
+        if(value_out > value) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
+        }
+        
      } else {
         if (!inputs.HaveInputs(tx)) {
             return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
@@ -199,7 +216,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             if(isConnectBlock) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
             } else {
-            assert(!coin.IsSpent());
+                assert(!coin.IsSpent());
             }
 
             if(!coin.isPreconf) {
@@ -211,7 +228,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
             }
             // Check for negative or overflow input values
             if(!coin.IsBitAssetController()) { 
-            nValueIn += coin.out.nValue;
+                nValueIn += coin.out.nValue;
             }
             if (!MoneyRange(coin.out.nValue)) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
