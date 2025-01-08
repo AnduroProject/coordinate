@@ -7,7 +7,7 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 
-class SignedBlock {
+class SignedBlockHeader {
     public:
         int32_t nVersion; /*!< signed block version*/
         uint32_t nTime; /*!< signed bock time */
@@ -16,15 +16,14 @@ class SignedBlock {
         uint256 hashPrevSignedBlock; /*!< previous signed block */
         uint256 hashMerkleRoot; /*!< signed block merkle root */
         CAmount currentFee; /*!< current signed block fee*/
-        std::vector<CTransactionRef> vtx; /*!< signed bock transaction list */
-        SignedBlock() {
-         SetNull();
+
+        SignedBlockHeader() {
+           SetNull();
         }
 
-        SERIALIZE_METHODS(SignedBlock, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee, obj.vtx); }
+        SERIALIZE_METHODS(SignedBlockHeader, obj) { READWRITE(obj.nVersion, obj.nTime, obj.nHeight, obj.blockIndex, obj.hashPrevSignedBlock, obj.hashMerkleRoot, obj.currentFee); }
 
-        void SetNull()
-        {
+        void SetNull() {
             nVersion = 0;
             nHeight = 0;
             nTime = 0;
@@ -32,10 +31,27 @@ class SignedBlock {
             hashPrevSignedBlock.SetNull();
             hashMerkleRoot.SetNull();
             currentFee = 0;
-            static_cast<void>(vtx.empty());
         }
 
         uint256 GetHash() const;
+};
+
+class SignedBlock : public SignedBlockHeader{
+    public:
+        std::vector<CTransactionRef> vtx; /*!< signed bock transaction list */
+        SignedBlock() {
+         SetNull();
+        }
+
+        SERIALIZE_METHODS(SignedBlock, obj) {  
+            READWRITE(AsBase<SignedBlockHeader>(obj), obj.vtx);
+        }
+
+        void SetNull()
+        {
+            SignedBlockHeader::SetNull();
+            vtx.clear();
+        }
 };
 
 
