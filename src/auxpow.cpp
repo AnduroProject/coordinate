@@ -51,6 +51,7 @@ CAuxPow::check(const uint256& hashAuxBlock, int nChainId,
 
 
     std::vector<unsigned char> vchRootHash(nRootHash.begin(), nRootHash.end());
+    std::reverse (vchRootHash.begin (), vchRootHash.end ()); // correct endian
    
     // Check that we are in the parent block merkle tree
     if (CheckMerkleBranch(coinbaseTx->GetHash(), vMerkleBranch, 0)
