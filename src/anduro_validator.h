@@ -16,7 +16,7 @@ bool getRedeemPathAvailable(std::vector<std::string> fullQuorum, std::string sig
  * @param[in] message  presigned block message
  */
 uint256 prepareMessageHash(std::string message);
-
+uint256 prepareMessageHashRev(std::string message);
 /**
  * This function used to validate presigned signature
  * @param[in] witnessHex  block witness which hold signature path and signature
