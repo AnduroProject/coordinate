@@ -481,7 +481,7 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 }
 
 /**
- * This function get next pre confs
+ * This function get next invalid tx
  */
 std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
     std::vector<uint256> invalidTxs;
@@ -505,6 +505,50 @@ std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
     return invalidTxObj.invalidTxs;
 }
 
+/**
+ * This function will get all validate invalid tx details for block
+ */
+bool validateInvalidTx(ChainstateManager& chainman, const CCoinsViewCache& inputs, std::vector<uint256> invalidTx) {
+    LOCK(cs_main);
+    CChain& active_chain = chainman.ActiveChain();
+    int lastHeight = active_chain.Height();
+    if(lastHeight < 3 ) {
+        return false;
+    }
+
+    int currentHeight = lastHeight - 3;
+    CBlock prevblock;
+    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+        return false;
+    } 
+
+    bool isValid = true;
+    for (size_t i = 0; i < invalidTx.size(); i++) {
+        uint256 hash = invalidTx[i];
+        // check invalid tx available in previous block
+        auto it = std::find_if(prevblock.vtx.begin(), prevblock.vtx.end(), 
+        [hash] (const CTransactionRef& vtx) { 
+            return vtx->GetHash() == hash;
+        });
+        if (it == prevblock.vtx.end()) {
+            isValid = false;
+            break;
+        }
+
+        // check invalid tx not available in coins
+        CTransactionRef tx = std::move(*it);
+        for (unsigned int i = 0; i < tx->vin.size(); ++i) {
+            const COutPoint &prevout = tx->vin[i].prevout;
+            const Coin& coin = inputs.AccessCoin(prevout);
+            if(!coin.IsSpent()) {
+                isValid = false;
+                break;
+            }
+        }
+    }
+    
+    return isValid;
+}
 
 /**
  * This function is to get reconsiled block hash

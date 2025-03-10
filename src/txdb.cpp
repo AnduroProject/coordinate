@@ -379,6 +379,11 @@ bool SignedBlocksDB::WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs){
     return WriteBatch(batch, true);
 }
 
+bool SignedBlocksDB::DeleteInvalidTx(const uint64_t nHeight){
+    std::pair<uint8_t, uint64_t> key = std::make_pair(DB_BLOCK_INVALID_TX, nHeight);
+    return Erase(key);
+}
+
 bool SignedBlocksDB::GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx)
 {
     return Read(std::make_pair(DB_BLOCK_INVALID_TX, nHeight), invalidTx);

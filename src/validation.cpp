@@ -2605,6 +2605,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             includedSignedBlock.push_back(finalizedSignedBlock.GetHash());
         }
     }
+    
     if(includedSignedBlock.size() > 0) {
         for (SignedBlock& finalizedSignedBlock : getFinalizedSignedBlocks()) {
             if(std::find(includedSignedBlock.begin(), includedSignedBlock.end(), finalizedSignedBlock.GetHash()) == includedSignedBlock.end()){
@@ -2624,6 +2625,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         UpdatedCoinsTip(view,pindex->nHeight);
     }
 
+    if(block.invalidTx.size() > 0) {
+        if(!validateInvalidTx(m_chainman, view, block.invalidTx)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Invalid tx not available in previous block");
+        }
+    }
+  
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
@@ -2649,7 +2656,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
             CAmount txfee = 0;
             TxValidationState tx_state;
-            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee, true)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 if(state.GetRejectReason().compare("bad-txns-coins-not-exist") == 0) {
                     invaidTx.push_back(tx.GetHash());
@@ -2709,7 +2716,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
              continue;
         }
 
-                // New asset created - set asset ID # and update CoordinateAssetDB
+        // New asset created - set asset ID # and update CoordinateAssetDB
         uint32_t nNewAssetID = 0;
         if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
             if (tx.vout.size() < 2) {
@@ -2801,7 +2808,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         CAmount amountAssetIn = CAmount(0);
         int nControlN = -1;
         uint32_t nAssetID = 0;
-       CAmount preconfCurrentFee = CAmount(0);
+        CAmount preconfCurrentFee = CAmount(0);
         UpdateCoins(tx, view, i == 0 ? undoDummy : blockundo.vtxundo.back(), pindex->nHeight, amountAssetIn, nControlN, nAssetID, nNewAssetID, preconfCurrentFee);
     }
     const auto time_3{SteadyClock::now()};
@@ -2921,6 +2928,10 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             signTxIndex.pos = i;
             psignedblocktree->WriteTxPosition(signTxIndex,ptx->GetHash());
         }
+    }
+
+    if(pindex->nHeight > 4) {
+        psignedblocktree->DeleteInvalidTx(pindex->nHeight - 4);
     }
 
     resetCommitment(pindex->nHeight, m_chainman);
@@ -4724,7 +4735,6 @@ bool ChainstateManager::ProcessNewBlock(const std::shared_ptr<const CBlock>& blo
         // malleability that cause CheckBlock() to fail; see e.g. CVE-2012-2459 and
         // https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2019-February/016697.html.  Because CheckBlock() is
         // not very expensive, the anti-DoS benefits of caching failure (of a definitely-invalid block) are not substantial.
-        LogPrintf("ProcessNewBlock \n");
         bool ret = CheckBlock(*block, state, GetConsensus());
         if (ret) {
 
