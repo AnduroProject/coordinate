@@ -7,6 +7,44 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 
+
+class ReconciliationInvalidTx {
+    public:
+        uint256 txHash; /*!< invalid transaction hash */
+        uint32_t pos; /*!< transaction position in the block  */
+        ReconciliationInvalidTx() {
+         SetNull();
+        }
+
+        SERIALIZE_METHODS(ReconciliationInvalidTx, obj) { READWRITE(obj.txHash, obj.pos); }
+
+        void SetNull()
+        {
+            txHash.SetNull();
+            pos = 0;
+        }
+};
+
+class ReconciliationBlock {
+    public:
+        uint256 blockHash; /*!< reconciliation block height */
+        uint32_t nTx; /*!< total number of transaction  */
+        std::vector<ReconciliationInvalidTx> tx; /*!< invalid transaction list with position */
+
+        ReconciliationBlock() {
+         SetNull();
+        }
+
+        SERIALIZE_METHODS(ReconciliationBlock, obj) { READWRITE(obj.blockHash, obj.nTx, obj.tx); }
+
+        void SetNull()
+        {
+            blockHash.SetNull();
+            nTx = 0;
+            static_cast<void>(tx.empty());
+        }
+};
+
 class SignedBlock {
     public:
         int32_t nVersion; /*!< signed block version*/

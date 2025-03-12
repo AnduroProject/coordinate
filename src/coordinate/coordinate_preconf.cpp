@@ -8,6 +8,8 @@
 #include <consensus/merkle.h>
 #include <coordinate/invalid_tx.h>
 #include <undo.h>
+#include <consensus/merkle.h>
+#include <merkleblock.h>
 
 using node::BlockManager;
 
@@ -483,8 +485,8 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 /**
  * This function get next invalid tx
  */
-std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
-    std::vector<uint256> invalidTxs;
+std::vector<ReconciliationInvalidTx> getInvalidTx(ChainstateManager& chainman) {
+    std::vector<ReconciliationInvalidTx> invalidTxs;
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int lastHeight = active_chain.Height();
@@ -508,7 +510,7 @@ std::vector<uint256> getInvalidTx(ChainstateManager& chainman) {
 /**
  * This function will get all validate invalid tx details for block
  */
-bool validateInvalidTx(ChainstateManager& chainman, const CCoinsViewCache& inputs, std::vector<uint256> invalidTx) {
+bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBlock reconciliationBlock) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
     int lastHeight = active_chain.Height();
@@ -522,28 +524,91 @@ bool validateInvalidTx(ChainstateManager& chainman, const CCoinsViewCache& input
         return false;
     } 
 
-    bool isValid = true;
-    for (size_t i = 0; i < invalidTx.size(); i++) {
-        uint256 hash = invalidTx[i];
-        // check invalid tx available in previous block
-        auto it = std::find_if(prevblock.vtx.begin(), prevblock.vtx.end(), 
-        [hash] (const CTransactionRef& vtx) { 
-            return vtx->GetHash() == hash;
+    if(prevblock.GetHash() != reconciliationBlock.blockHash) {
+        LogPrintf("Reconciliation block hash mismatch");
+        return false;
+    }
+
+    if(reconciliationBlock.tx.size() == 0) {
+        LogPrintf("no invalid tx available");
+        return true;
+    }
+
+    std::vector<uint256> preBlockTxs;
+    preBlockTxs.resize(prevblock.vtx.size());
+    for (size_t i = 0; i < prevblock.vtx.size(); i++) {
+        preBlockTxs[i] = prevblock.vtx[i]->GetHash();
+    }
+    
+    std::vector<uint256> reconcileBlockTxs;
+    reconcileBlockTxs.resize(prevblock.vtx.size());
+    std::vector<uint256> invalidTx;
+    for (size_t s = 0; s < prevblock.vtx.size(); s++) {
+        auto it = std::find_if(reconciliationBlock.tx.begin(), reconciliationBlock.tx.end(), 
+        [s] (const ReconciliationInvalidTx& tx) { 
+            return tx.pos == s;
         });
-        if (it == prevblock.vtx.end()) {
+        if (it == reconciliationBlock.tx.end()) {
+            reconcileBlockTxs[s].SetNull();
+        } else {
+            ReconciliationInvalidTx tx = std::move(*it);
+            reconcileBlockTxs[s] = tx.txHash;
+            invalidTx.push_back(tx.txHash);
+        }
+    }
+
+    uint256 blockMerkleRoot = ComputeMerkleRoot(preBlockTxs);
+    uint256 reconcileMerkleRoot = ComputeMerkleRoot(reconcileBlockTxs);
+
+    bool isValid = true;
+    for (size_t i = 0; i < invalidTx.size(); i++)
+    {
+        uint256 input = invalidTx[i];
+
+        std::vector<bool> vMatch;
+        std::vector<uint256> vHashes;
+        std::vector<uint256> rvHashes;
+        vMatch.reserve(preBlockTxs.size());
+        vHashes.reserve(preBlockTxs.size());
+        rvHashes.reserve(preBlockTxs.size());
+
+        for (unsigned int i = 0; i < preBlockTxs.size(); i++)
+        {
+            const uint256& hash = preBlockTxs[i];
+            if(hash == input) {
+                vMatch.push_back(true);
+            } else {
+                vMatch.push_back(false);
+            }
+            vHashes.push_back(hash);
+            rvHashes.push_back(reconcileBlockTxs[i]);
+        }
+
+        CPartialMerkleTree txn(vHashes, vMatch);
+        CPartialMerkleTree rTxn(rvHashes, vMatch);
+
+
+        std::vector<uint256> vAvailableMatch;
+        std::vector<unsigned int> vAvailableIndex;
+        uint256 hashRoot(txn.ExtractMatches(vAvailableMatch, vAvailableIndex));
+        if(hashRoot != blockMerkleRoot) {
+            LogPrintf("proof belong to block is invalid");
             isValid = false;
             break;
         }
 
-        // check invalid tx not available in coins
-        CTransactionRef tx = std::move(*it);
-        for (unsigned int i = 0; i < tx->vin.size(); ++i) {
-            const COutPoint &prevout = tx->vin[i].prevout;
-            const Coin& coin = inputs.AccessCoin(prevout);
-            if(!coin.IsSpent()) {
-                isValid = false;
-                break;
-            }
+        if (std::find(vAvailableMatch.begin(), vAvailableMatch.end(), input) == vAvailableMatch.end()) {
+            isValid = false;
+            break;
+        }
+
+        std::vector<uint256> rAvailableMatch;
+        std::vector<unsigned int> rAvailableIndex;
+        uint256 hashReconcile(rTxn.ExtractMatches(rAvailableMatch, rAvailableIndex));
+        if(hashReconcile != reconcileMerkleRoot) {
+            LogPrintf("proof belong to reconcile block is invalid");
+            isValid = false;
+            break;
         }
     }
     
@@ -553,25 +618,34 @@ bool validateInvalidTx(ChainstateManager& chainman, const CCoinsViewCache& input
 /**
  * This function is to get reconsiled block hash
  */
-uint256 getReconsiledBlock(ChainstateManager& chainman) {
+ReconciliationBlock getReconsiledBlock(ChainstateManager& chainman) {
     LOCK(cs_main);
+
+    ReconciliationBlock block;
     CChain& active_chain = chainman.ActiveChain();
     int lastHeight = active_chain.Height();
 
     if(lastHeight < 3 ) {
-        return uint256();
+        return block;
     }
 
-    int currentHeight = lastHeight - 2;
+    int currentHeight = lastHeight - 3;
     if(currentHeight < 0) {
-        return uint256();
+        return block;
     }
     CBlock prevblock;
     if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
-        return uint256();
+        return block;
     } 
 
-    return prevblock.GetHash();
+    InvalidTx invalidTxObj;
+    chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTxObj);
+
+    block.blockHash = prevblock.GetHash();
+    block.nTx = prevblock.vtx.size();
+    block.tx = invalidTxObj.invalidTxs;
+
+    return block;
 }
 
 CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
@@ -647,7 +721,12 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
             const CTxUndo* txundo = &blockUndo.vtxundo.at(i - 1);
             const bool have_undo = txundo != nullptr;
             if(invalidTx.invalidTxs.size()>0) {
-                if(std::find(invalidTx.invalidTxs.begin(), invalidTx.invalidTxs.end(), tx->GetHash()) != invalidTx.invalidTxs.end()) {
+                uint256 invHash = tx->GetHash();
+                auto it = std::find_if(invalidTx.invalidTxs.begin(), invalidTx.invalidTxs.end(), 
+                [invHash] (const ReconciliationInvalidTx& d) { 
+                    return d.txHash == invHash;
+                });
+                if(it != invalidTx.invalidTxs.end()) {
                     continue;
                 }
             }

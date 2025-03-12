@@ -3,10 +3,11 @@
 
 #include <serialize.h>
 #include <uint256.h>
+#include <coordinate/signed_block.h>
 
 class InvalidTx {
     public:
-        std ::vector<uint256> invalidTxs; /*!< all invalid tx hash for mined block */
+        std ::vector<ReconciliationInvalidTx> invalidTxs; /*!< all invalid tx hash for mined block */
         uint64_t nHeight; /*!< mined block height */
         InvalidTx() {
          SetNull();

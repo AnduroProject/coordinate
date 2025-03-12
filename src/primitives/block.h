@@ -73,8 +73,7 @@ public:
     // network and disk
     std::vector<CTransactionRef> vtx;
     std::vector<SignedBlock> preconfBlock;
-    std::vector<uint256> invalidTx;
-    uint256 reconsiliationBlock;
+    ReconciliationBlock reconciliationBlock;
 
     // memory only
     mutable bool fChecked;
@@ -93,18 +92,16 @@ public:
     SERIALIZE_METHODS(CBlock, obj)
     {
         READWRITE(AsBase<CBlockHeader>(obj), obj.vtx);
-        READWRITE(obj.invalidTx);
         READWRITE(obj.preconfBlock);
-        READWRITE(obj.reconsiliationBlock);
+        READWRITE(obj.reconciliationBlock);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
-        invalidTx.clear();
         preconfBlock.clear();
-        reconsiliationBlock.SetNull();
+        reconciliationBlock.SetNull();
         fChecked = false;
     }
 

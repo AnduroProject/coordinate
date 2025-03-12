@@ -238,23 +238,21 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
  * This function will get all invalid mined tx details for block
  * @param[in] chainman  used to find previous blocks based on active chain state
  */
-std::vector<uint256> getInvalidTx(ChainstateManager& chainman);
-
+std::vector<ReconciliationInvalidTx> getInvalidTx(ChainstateManager& chainman);
 
 /**
  * This function will get all validate invalid tx details for block
  * @param[in] chainman  used to find previous blocks based on active chain state
- * @param[in] inputs  coins cache to make sure the invalid tx input not available
- * @param[in] invalidTx  next block invalid tx
+ * @param[in] reconciliationBlock  reconcile block details
  */
-bool validateInvalidTx(ChainstateManager& chainman, const CCoinsViewCache& inputs, std::vector<uint256> invalidTx);
+bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBlock reconciliationBlock);
 
 
 /**
- * This function will get reconsile mined block hash
+ * This function will get reconsile mined block information
  * @param[in] chainman  used to find previous blocks based on active chain state
  */
-uint256 getReconsiledBlock(ChainstateManager& chainman);
+ReconciliationBlock getReconsiledBlock(ChainstateManager& chainman);
 
 /**
  * This function will get preconf fee for block based on signed block height
