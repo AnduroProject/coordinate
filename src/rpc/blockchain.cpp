@@ -274,7 +274,7 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
         invalidTxs.push_back(rTx.txHash.ToString());
     }
     result.pushKV("invalidtxs", invalidTxs);
-    result.pushKV("reconciliationBlock", block.reconciliationBlock.blockHash.ToString());
+    result.pushKV("reconcileMerkleRoot", block.reconciliationBlock.reconcileMerkleRoot.ToString());
 
     UniValue txs(UniValue::VARR);
 

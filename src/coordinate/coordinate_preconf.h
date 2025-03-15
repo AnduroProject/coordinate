@@ -233,13 +233,6 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
  */
 bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman);
 
-
-/**
- * This function will get all invalid mined tx details for block
- * @param[in] chainman  used to find previous blocks based on active chain state
- */
-std::vector<ReconciliationInvalidTx> getInvalidTx(ChainstateManager& chainman);
-
 /**
  * This function will get all validate invalid tx details for block
  * @param[in] chainman  used to find previous blocks based on active chain state

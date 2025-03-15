@@ -88,7 +88,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
 
     // invalid transaciton merkle root preparation
     invalidTxLeaves.resize(block.reconciliationBlock.nTx + 1);
-    invalidTxLeaves[0] = block.reconciliationBlock.blockHash;
+    invalidTxLeaves[0] = block.reconciliationBlock.reconcileMerkleRoot;
     for (size_t s = 0; s < block.reconciliationBlock.nTx; s++) {
         auto it = std::find_if(block.reconciliationBlock.tx.begin(), block.reconciliationBlock.tx.end(), 
         [s] (const ReconciliationInvalidTx& tx) { 
@@ -130,7 +130,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
 
     // invalid transaciton merkle root preparation
     invalidTxLeaves.resize(block.reconciliationBlock.nTx + 1);
-    invalidTxLeaves[0] = block.reconciliationBlock.blockHash;
+    invalidTxLeaves[0] = block.reconciliationBlock.reconcileMerkleRoot;
     for (size_t s = 0; s < block.reconciliationBlock.nTx; s++) {
         auto it = std::find_if(block.reconciliationBlock.tx.begin(), block.reconciliationBlock.tx.end(), 
         [s] (const ReconciliationInvalidTx& tx) { 

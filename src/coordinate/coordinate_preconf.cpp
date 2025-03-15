@@ -524,11 +524,6 @@ bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBloc
         return false;
     } 
 
-    if(prevblock.GetHash() != reconciliationBlock.blockHash) {
-        LogPrintf("Reconciliation block hash mismatch");
-        return false;
-    }
-
     if(reconciliationBlock.tx.size() == 0) {
         LogPrintf("no invalid tx available");
         return true;
@@ -536,14 +531,12 @@ bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBloc
 
     std::vector<uint256> preBlockTxs;
     preBlockTxs.resize(prevblock.vtx.size());
-    for (size_t i = 0; i < prevblock.vtx.size(); i++) {
-        preBlockTxs[i] = prevblock.vtx[i]->GetHash();
-    }
     
     std::vector<uint256> reconcileBlockTxs;
     reconcileBlockTxs.resize(prevblock.vtx.size());
     std::vector<uint256> invalidTx;
     for (size_t s = 0; s < prevblock.vtx.size(); s++) {
+        preBlockTxs[s] = prevblock.vtx[s]->GetHash();
         auto it = std::find_if(reconciliationBlock.tx.begin(), reconciliationBlock.tx.end(), 
         [s] (const ReconciliationInvalidTx& tx) { 
             return tx.pos == s;
@@ -559,6 +552,12 @@ bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBloc
 
     uint256 blockMerkleRoot = ComputeMerkleRoot(preBlockTxs);
     uint256 reconcileMerkleRoot = ComputeMerkleRoot(reconcileBlockTxs);
+
+    if(reconciliationBlock.reconcileMerkleRoot == blockMerkleRoot) {
+        LogPrintf("Reconciliation block hash mismatch");
+        return false;
+    }
+
 
     bool isValid = true;
     for (size_t i = 0; i < invalidTx.size(); i++)
@@ -641,7 +640,14 @@ ReconciliationBlock getReconsiledBlock(ChainstateManager& chainman) {
     InvalidTx invalidTxObj;
     chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTxObj);
 
-    block.blockHash = prevblock.GetHash();
+    std::vector<uint256> txLeaves;
+    txLeaves.resize(prevblock.vtx.size());
+    for (size_t s = 0; s < prevblock.vtx.size(); s++) {
+        txLeaves[s] = prevblock.vtx[s]->GetHash();
+    }
+    uint256 blockTxMerkleRoot = ComputeMerkleRoot(txLeaves);
+
+    block.reconcileMerkleRoot = blockTxMerkleRoot;
     block.nTx = prevblock.vtx.size();
     block.tx = invalidTxObj.invalidTxs;
 

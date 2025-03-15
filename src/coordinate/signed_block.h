@@ -27,7 +27,7 @@ class ReconciliationInvalidTx {
 
 class ReconciliationBlock {
     public:
-        uint256 blockHash; /*!< reconciliation block height */
+        uint256 reconcileMerkleRoot; /*!< reconciliation block transaction merkle root */
         uint32_t nTx; /*!< total number of transaction  */
         std::vector<ReconciliationInvalidTx> tx; /*!< invalid transaction list with position */
 
@@ -35,11 +35,11 @@ class ReconciliationBlock {
          SetNull();
         }
 
-        SERIALIZE_METHODS(ReconciliationBlock, obj) { READWRITE(obj.blockHash, obj.nTx, obj.tx); }
+        SERIALIZE_METHODS(ReconciliationBlock, obj) { READWRITE(obj.reconcileMerkleRoot, obj.nTx, obj.tx); }
 
         void SetNull()
         {
-            blockHash.SetNull();
+            reconcileMerkleRoot.SetNull();
             nTx = 0;
             static_cast<void>(tx.empty());
         }
