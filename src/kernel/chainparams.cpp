@@ -294,7 +294,7 @@ public:
             .nTxCount = 66484552,
             .dTxRate  = 0.1804908356632494,
         };
-        parentGenesisBlockHash = uint256S("000000000933ea01ad0ee984209779baaec3ced90fa3f408719526f8d77f4943");
+        parentGenesisBlockHash = uint256S("00000000da84f2bafbbc53dee25a72ae507ff4914b867c565be350b0da8bf043");
         parentPowLimit = uint256S("00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
     }
 };
