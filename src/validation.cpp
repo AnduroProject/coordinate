@@ -2627,7 +2627,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     int64_t nSigOpsCost = 0;
     blockundo.vtxundo.reserve(block.vtx.size() - 1);
     std::vector<CoordinateAsset> vAsset;
-    std::vector<uint256> invaidTx;
+    std::vector<ReconciliationInvalidTx> invaidTx;
 
     //validate signed block before it get included in mined block
     std::vector<uint256> includedSignedBlock;
@@ -2665,6 +2665,12 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
         }
     } else {
         UpdatedCoinsTip(view,pindex->nHeight);
+    }
+
+    if(block.reconciliationBlock.tx.size() > 0) {
+        if(!validateReconciliationBlock(m_chainman, block.reconciliationBlock)) {
+            return state.Invalid(BlockValidationResult::BLOCK_CONSENSUS, "ConnectBlock(): Reconciliation block not available in previous block");
+        }
     }
 
     for (unsigned int i = 0; i < block.pegins.size(); i++)
@@ -2720,10 +2726,13 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             }
             CAmount txfee = 0;
             TxValidationState tx_state;
-            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee)) {
+            if (!Consensus::CheckTxInputs(tx, tx_state, view, pindex->nHeight, txfee, true)) {
                 // Any transaction validation failure in ConnectBlock is a block consensus failure
                 if(state.GetRejectReason().compare("bad-txns-coins-not-exist") == 0) {
-                    invaidTx.push_back(tx.GetHash());
+                    ReconciliationInvalidTx invalidTxObj;
+                    invalidTxObj.pos = i;
+                    invalidTxObj.txHash = tx.GetHash();
+                    invaidTx.push_back(invalidTxObj);
                     isValidTx = false;
                 } else {
                     state.Invalid(BlockValidationResult::BLOCK_CONSENSUS,
@@ -2999,6 +3008,9 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
 
     resetCommitment(pindex->nHeight, m_chainman);
 
+    if(pindex->nHeight > 5) {
+        psignedblocktree->DeleteInvalidTx(pindex->nHeight - 5);
+    }
 
     return true;
 }

@@ -6,7 +6,7 @@
 
 class InvalidTx {
     public:
-        std ::vector<uint256> invalidTxs; /*!< all invalid tx hash for mined block */
+        std ::vector<ReconciliationInvalidTx> invalidTxs; /*!< all invalid tx hash for mined block */
         uint64_t nHeight; /*!< mined block height */
         InvalidTx() {
          SetNull();
@@ -20,5 +20,6 @@ class InvalidTx {
             nHeight = 0;
         }
 };
+
 
 #endif // BITCOIN_INVALIDTX_H

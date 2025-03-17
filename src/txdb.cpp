@@ -384,6 +384,11 @@ bool SignedBlocksDB::GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx)
     return Read(std::make_pair(DB_BLOCK_INVALID_TX, nHeight), invalidTx);
 }
 
+bool SignedBlocksDB::DeleteInvalidTx(const uint64_t nHeight){
+    std::pair<uint8_t, uint64_t> key = std::make_pair(DB_BLOCK_INVALID_TX, nHeight);
+    return Erase(key);
+}
+
 
 bool SignedBlocksDB::WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash){
     CDBBatch batch(*this);

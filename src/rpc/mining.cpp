@@ -1020,12 +1020,13 @@ static RPCHelpMan getblocktemplate()
 
     }
     result.pushKV("reward", rewardresult);
-    result.pushKV("reconsiliationblock", getReconsiledBlock(chainman).ToString());
+
+    ReconciliationBlock reconcileObj = getReconsiledBlock(chainman);
+    result.pushKV("reconsiliationblock", reconcileObj.reconcileMerkleRoot.ToString());
 
     UniValue invalidTxArr(UniValue::VARR);
-    std::vector<uint256> invalidTx = getInvalidTx(chainman);
-    for (size_t i = 0; i < invalidTx.size(); i++) {
-        invalidTxArr.push_back(invalidTx[i].ToString()); 
+    for (size_t i = 0; i < reconcileObj.tx.size(); i++) {
+        invalidTxArr.push_back(reconcileObj.tx[i].txHash.ToString()); 
     }
     result.pushKV("invalidtx", invalidTxArr);
     return result;

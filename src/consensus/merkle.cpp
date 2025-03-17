@@ -70,7 +70,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     std::vector<uint256> txLeaves;
     std::vector<uint256> peginLeaves;
     std::vector<uint256> preconfBlockLeaves;
-    std::vector<uint256> invalidTxeaves;
+    std::vector<uint256> invalidTxLeaves;
     leaves.resize(4);
 
     // preconf merkle root preparation
@@ -95,12 +95,21 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
     leaves[2] = ComputeMerkleRoot(std::move(peginLeaves));
 
     // invalid transaciton merkle root preparation
-    invalidTxeaves.resize(block.invalidTx.size() + 1);
-    invalidTxeaves[0] = block.reconsiliationBlock;
-    for (size_t s = 0; s < block.invalidTx.size(); s++) {
-        invalidTxeaves[s+1] = block.invalidTx[s];
+    invalidTxLeaves.resize(block.reconciliationBlock.nTx + 1);
+    invalidTxLeaves[0] = block.reconciliationBlock.reconcileMerkleRoot;
+    for (size_t s = 0; s < block.reconciliationBlock.nTx; s++) {
+        auto it = std::find_if(block.reconciliationBlock.tx.begin(), block.reconciliationBlock.tx.end(), 
+        [s] (const ReconciliationInvalidTx& tx) { 
+            return tx.pos == s;
+        });
+        if (it == block.reconciliationBlock.tx.end()) {
+            invalidTxLeaves[s+1].SetNull();
+        } else {
+            ReconciliationInvalidTx tx = std::move(*it);
+            invalidTxLeaves[s+1] = tx.txHash;
+        }
     }
-    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves));
+    leaves[3] = ComputeMerkleRoot(std::move(invalidTxLeaves));
     return ComputeMerkleRoot(std::move(leaves));
 }
 
@@ -110,7 +119,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
     std::vector<uint256> txLeaves;
     std::vector<uint256> peginLeaves;
     std::vector<uint256> preconfBlockLeaves;
-    std::vector<uint256> invalidTxeaves;
+    std::vector<uint256> invalidTxLeaves;
     leaves.resize(4);
 
     // preconf merkle root preparation
@@ -138,12 +147,21 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
 
 
     // invalid transaciton merkle root preparation
-    invalidTxeaves.resize(block.invalidTx.size()+1);
-    invalidTxeaves[0] = block.reconsiliationBlock;
-    for (size_t s = 0; s < block.invalidTx.size(); s++) {
-        invalidTxeaves[s+1] = block.invalidTx[s];
+    invalidTxLeaves.resize(block.reconciliationBlock.nTx + 1);
+    invalidTxLeaves[0] = block.reconciliationBlock.reconcileMerkleRoot;
+    for (size_t s = 0; s < block.reconciliationBlock.nTx; s++) {
+        auto it = std::find_if(block.reconciliationBlock.tx.begin(), block.reconciliationBlock.tx.end(), 
+        [s] (const ReconciliationInvalidTx& tx) { 
+            return tx.pos == s;
+        });
+        if (it == block.reconciliationBlock.tx.end()) {
+            invalidTxLeaves[s+1].SetNull();
+        } else {
+            ReconciliationInvalidTx tx = std::move(*it);
+            invalidTxLeaves[s+1] = tx.txHash;
+        }
     }
-    leaves[3] = ComputeMerkleRoot(std::move(invalidTxeaves));
+    leaves[3] = ComputeMerkleRoot(std::move(invalidTxLeaves));
 
 
     return ComputeMerkleRoot(std::move(leaves));

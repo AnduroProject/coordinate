@@ -111,6 +111,7 @@ public:
     bool GetSignedBlockHash(const uint256 signedBlockHashes, uint256& blockHash);
     bool WriteInvalidTx(const std::vector<InvalidTx>& invalidTxs);
     bool GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx);
+    bool DeleteInvalidTx(const uint64_t nHeight);
     bool WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash);
     bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
 

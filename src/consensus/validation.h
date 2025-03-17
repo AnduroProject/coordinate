@@ -155,7 +155,7 @@ static inline int64_t GetBlockWeight(const CBlock& block)
     m_block.preconfBlock.clear();
     m_block.pegins.clear();
     m_block.currentKeys="";
-    m_block.invalidTx.clear();
+    m_block.reconciliationBlock.SetNull();
     return ::GetSerializeSize(m_block, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS) * (WITNESS_SCALE_FACTOR - 1) + ::GetSerializeSize(block, PROTOCOL_VERSION);
 }
 static inline int64_t GetTransactionInputWeight(const CTxIn& txin)

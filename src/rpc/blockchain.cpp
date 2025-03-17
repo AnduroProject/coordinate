@@ -270,11 +270,11 @@ UniValue blockToJSON(BlockManager& blockman, const CBlock& block, const CBlockIn
 
     // invalid tx info
     UniValue invalidTxs(UniValue::VARR);
-    for (const uint256& txId : block.invalidTx) {
-        invalidTxs.push_back(txId.GetHex());
+    for (const ReconciliationInvalidTx& rTx : block.reconciliationBlock.tx) {
+        invalidTxs.push_back(rTx.txHash.ToString());
     }
     result.pushKV("invalidtxs", invalidTxs);
-    result.pushKV("reconsiliationblock", block.reconsiliationBlock.GetHex());
+    result.pushKV("reconcileMerkleRoot", block.reconciliationBlock.reconcileMerkleRoot.ToString());
 
     UniValue pegins(UniValue::VARR);
     for (size_t i = 0; i < block.pegins.size(); ++i) {

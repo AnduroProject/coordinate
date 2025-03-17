@@ -74,8 +74,7 @@ public:
     std::vector<CTransactionRef> vtx;
     std::vector<CTransactionRef> pegins;
     std::vector<SignedBlock> preconfBlock;
-    std::vector<uint256> invalidTx;
-    uint256 reconsiliationBlock;
+    ReconciliationBlock reconciliationBlock;
 
     // memory only
     mutable bool fChecked;
@@ -95,9 +94,8 @@ public:
     {
         READWRITE(AsBase<CBlockHeader>(obj), obj.vtx);
         READWRITE(obj.pegins);
-        READWRITE(obj.invalidTx);
         READWRITE(obj.preconfBlock);
-        READWRITE(obj.reconsiliationBlock);
+        READWRITE(obj.reconciliationBlock);
     }
 
     void SetNull()
@@ -105,9 +103,7 @@ public:
         CBlockHeader::SetNull();
         vtx.clear();
         pegins.clear();
-        invalidTx.clear();
-        preconfBlock.clear();
-        reconsiliationBlock.SetNull();
+        reconciliationBlock.SetNull();
         fChecked = false;
     }
 
