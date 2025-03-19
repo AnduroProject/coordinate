@@ -750,13 +750,14 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset Asset Precision");
         }
         coordinateOutputs = 2;
-    } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
-        coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
-    } else if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-        if (tx.vout.size() <= 1) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
+    } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+        if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+            if (tx.vout.size() <= 1) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
+            }
         }
-    }
+        coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
+    } 
 
     if((m_pool.is_preconf && tx.nVersion != TRANSACTION_PRECONF_VERSION) || (!m_pool.is_preconf && tx.nVersion == TRANSACTION_PRECONF_VERSION)) {
         return state.Invalid(TxValidationResult::TX_CONSENSUS, "transaction version not supported");
@@ -1328,7 +1329,7 @@ bool MemPoolAccept::SubmitPackage(const ATMPArgs& args, std::vector<Workspace>& 
                         MempoolAcceptResult::Success(std::move(ws.m_replaced_transactions), ws.m_vsize,
                                          ws.m_base_fees, effective_feerate, effective_feerate_wtxids));
         GetMainSignals().TransactionAddedToMempool(ws.m_ptx, m_pool.GetAndIncrementSequence());
-        if(ws.m_ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+        if(ws.m_ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || ws.m_ptx->nVersion == TRANSACTION_PRECONF_VERSION) {
             includeMempoolAsset(*ws.m_ptx, m_active_chainstate);
         }
     }
@@ -1373,7 +1374,7 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.is_preconf ? 0 : m_pool.GetAndIncrementSequence());
     // adding asset coin info to back track child transaction in checkTransaction Function
-    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || ptx->nVersion == TRANSACTION_PRECONF_VERSION) {
         includeMempoolAsset(*ptx, m_active_chainstate);
     }
     
@@ -2049,12 +2050,8 @@ void UpdateCoins(const CTransaction& tx, CCoinsViewCache& inputs, CTxUndo &txund
             bool isPreconf = false;
             uint32_t nAssetID = 0;
             bool is_spent = inputs.SpendCoin(txin.prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &txundo.vprevout.back());
-            if(tx.nVersion == TRANSACTION_PRECONF_VERSION && !is_spent) {
-               return;
-            } else {
-               assert(is_spent);
-            }
-    
+            assert(is_spent);
+            
             // Update nAssetIDOut if SpendCoin returns a non-zero asset ID
             if (nAssetID)
                 nAssetIDOut = nAssetID;
@@ -3049,6 +3046,12 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CTransactionRef ptx = block.vtx[i];
         const CTransaction &tx = *ptx;
         if(i != 0) {
+
+            if (!AreCoordinateTransactionStandard(tx,view)) {
+                LogPrintf("Invalid transaction standard \n");
+                return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid transaction standard");
+            }
+
             // valiate has coins
             for (size_t o = 0; o < ptx->vout.size(); o++) {
                 if (view.HaveCoin(COutPoint(ptx->GetHash(), o))) {
@@ -3085,6 +3088,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
                     tx.GetHash().ToString(), state.ToString());
             }
 
+            removeMempoolAsset(tx);
         }
 
         CTxUndo undoDummy;
@@ -5099,12 +5103,51 @@ bool Chainstate::RollforwardBlock(const CBlockIndex* pindex, CCoinsViewCache& in
     if (!m_blockman.ReadBlockFromDisk(block, *pindex)) {
         return error("ReplayBlock(): ReadBlockFromDisk failed at %d, hash=%s", pindex->nHeight, pindex->GetBlockHash().ToString());
     }
-    CAmount amountAssetIn = CAmount(0);
-    CAmount preconfRefund = CAmount(0);
-    int nControlN = -1;
+
+    for (const SignedBlock& finalizedSignedBlock : block.preconfBlock) {
+        for (size_t x = 0; x < finalizedSignedBlock.vtx.size(); x++) {
+            CAmount amountAssetIn = CAmount(0);
+            int nControlN = -1;
+            const CTransactionRef &tx = finalizedSignedBlock.vtx[x];
+            CAmount refund = getRefundForPreconfTx(*tx,finalizedSignedBlock.currentFee,inputs);
+
+            if (!tx->IsCoinBase()) {
+                for (const CTxIn &txin : tx->vin) {
+                    bool fBitAsset = false;
+                    bool fBitAssetControl = false;
+                    bool isPreconf = false;
+                    uint32_t nAssetID = 0;
+                    Coin coin;
+                    inputs.SpendCoin(txin.prevout,fBitAsset, fBitAssetControl, isPreconf, nAssetID,  &coin);
+                    if (fBitAsset)
+                        amountAssetIn += coin.out.nValue;
+                    if (fBitAssetControl)
+                        nControlN = x;
+
+                }
+            }
+            // Pass check = true as every addition may be an overwrite.
+            AddCoins(inputs, *tx, pindex->nHeight, refund, amountAssetIn, nControlN, true);
+        }
+    }
+
+
+
+    for (unsigned int i = 0; i < block.pegins.size(); i++)
+    {
+        const CTransactionRef &tx = block.pegins[i];
+        CTxUndo undoDummy;
+        CAmount amountAssetIn = CAmount(0);
+        int nControlN = -1;
+        CAmount refund = CAmount(0);
+        AddCoins(inputs, *tx, pindex->nHeight, refund, amountAssetIn, nControlN, true);
+    }
 
     for (size_t x = 0; x < block.vtx.size(); x++) {
-            const CTransactionRef &tx = block.vtx[x];
+        CAmount amountAssetIn = CAmount(0);
+        CAmount preconfRefund = CAmount(0);
+        int nControlN = -1;
+        const CTransactionRef &tx = block.vtx[x];
         if (!tx->IsCoinBase()) {
             for (const CTxIn &txin : tx->vin) {
                 bool fBitAsset = false;

@@ -202,32 +202,24 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
         }
 
 
-        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION ) {
             // check first input is asset
             if(fBitAssetControl) {
                 LogPrintf("Asset controller value not accepted \n");
                 return false;
             }
-            if(i == 0 && !fBitAsset) {
-                LogPrintf("Transfer should have first element as asset \n");
-                return false;
-            }
-
-            if(i == 0) {
-              // check first index asset id
-              currentAssetID = nAssetID;
-            } else {
-                if(fBitAsset) {
-                     // prevent to include multiple asset id
-                    if(currentAssetID != nAssetID) {
-                       LogPrintf(" Multiple asset is detected and it is invalid \n");
-                       return false;
-                    }
-                }
-            }
 
             if(fBitAsset) {
-                // find spent asset value
+                if(i == 0) {
+                    // check first index asset id
+                    currentAssetID = nAssetID;
+                } else {
+                    // prevent to include multiple asset id
+                    if(currentAssetID != nAssetID) {
+                        LogPrintf(" Multiple asset is detected and it is invalid \n");
+                        return false;
+                    }
+                }
                 amountAssetInOut = amountAssetInOut +  coinValue;
             }
     
@@ -238,10 +230,20 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
             return false;
         }
     }
+
+    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && amountAssetInOut == 0) {
+        LogPrintf("Asset inputs missing \n");
+        return false;
+    }
+
+    if(amountAssetInOut > 0 && !(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION)) {
+        LogPrintf("Invalid transaction hold asset inptu \n");
+    }
     
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+    if(amountAssetInOut > 0) {
         CAmount amountAssetOut = CAmount(0); 
-        for (unsigned int i = 0; i < tx.vout.size(); i++) {
+        size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
+        for (unsigned int i = startValue; i < tx.vout.size(); i++) {
             if(amountAssetOut == amountAssetInOut) {
                 break;
             }

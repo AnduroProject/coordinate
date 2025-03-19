@@ -43,7 +43,8 @@ void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate
     bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
     if(has_asset_amount) {
         CAmount amountAssetOut = 0;
-        for (unsigned long i = 0; i < tx.vout.size(); i++) {
+        size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
+        for (unsigned long i = startValue; i < tx.vout.size(); i++) {
             if(amountAssetOut == amountAssetIn) {
                 break;
             }
@@ -102,14 +103,15 @@ int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate)
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         return 2;
     }
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION) {
         uint32_t totalOutputs = 0;
         uint32_t currentAssetID = 0;
         CAmount amountAssetIn = 0;
         bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
         if(has_asset_amount) {
             CAmount amountAssetOut = 0;
-            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+            size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
+            for (unsigned int i = startValue; i < tx.vout.size(); i++) {
                 if(amountAssetOut == amountAssetIn) {
                     break;
                 }

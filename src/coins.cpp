@@ -135,10 +135,16 @@ void AddCoins(CCoinsViewCache& cache, const CTransaction &tx, int nHeight, const
             
         // One of the input coins is a BitAsset, coins adding up to the asset
         // input amount will be marked as BitAssets
+        if(tx.nVersion == TRANSACTION_PRECONF_VERSION && !tx.IsCoinBase()) {
+            bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, 0)) : fCoinbase;
+            CTxOut refund(preconfRefund, tx.vout[0].scriptPubKey);
+            cache.AddCoin(COutPoint(txid, 0), Coin(refund, nHeight, fCoinbase, false, false, true, false, 0), overwrite);
+        } 
 
         // Label BitAsset outputs until we account for all BitAsset input
         CAmount amountAssetOut = CAmount(0);
-        for (size_t i = 0; i < tx.vout.size(); ++i) {
+        size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
+        for (size_t i = startValue; i < tx.vout.size(); ++i) {
             bool overwrite = check_for_overwrite ? cache.HaveCoin(COutPoint(txid, i)) : fCoinbase;
             bool fAsset = amountAssetIn > amountAssetOut;
             bool fControl = nControlN >= 0 && (int)i == nControlN;
