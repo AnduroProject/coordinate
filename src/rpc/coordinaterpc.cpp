@@ -8,6 +8,8 @@
 #include <anduro_deposit.h>
 #include <coordinate/coordinate_mempool_entry.h>
 #include <anduro_validator.h>
+#include <consensus/merkle.h>
+#include <merkleblock.h>
 
 using node::NodeContext;
 
@@ -128,6 +130,111 @@ static RPCHelpMan anduroDepositAddress()
             HelpExampleCli("andurodepositaddress", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            // raw block proof
+            std::vector<uint256> leaves;
+            leaves.resize(1);
+            leaves[0].SetNull();
+            leaves.push_back(uint256S("992f701a2959345ab1579445a14c12d06ade6d65f0b89bdc3dbb32ec35e4ae30"));
+            leaves.push_back(uint256S("013e8776b43a71e9d9dc80662c4b4bf6bb87093794f41c24ee8786aed8626eb5"));
+            leaves.push_back(uint256S("4679dfbd42be169a953d6586f995cdd6c50b89c2a9a87e55d05faaa484309021"));
+            leaves.push_back(uint256S("7df3aa51463c3ca96639efb43fb445dca1662f427e9344f4f4a66e4a80de4db1"));
+            leaves.push_back(uint256S("88611613c3c74af87397c7af13b08bfce4bd4f4081c1d8ae2613ec715b830c95"));
+
+            uint256 root = ComputeMerkleRoot(leaves);
+       
+            // invalid block proof after 3 blocks
+            std::vector<uint256> rleaves;
+            rleaves.resize(6);
+            rleaves[0].SetNull();
+            rleaves[1].SetNull();
+            rleaves[2].SetNull();
+            rleaves[3].SetNull();
+            rleaves[4] = uint256S("7df3aa51463c3ca96639efb43fb445dca1662f427e9344f4f4a66e4a80de4db1");
+            rleaves[5].SetNull();
+            uint256 rroot = ComputeMerkleRoot(rleaves);
+
+
+            LogPrintf("root is %s \n", root.ToString());
+            LogPrintf("reconcile root is %s \n", rroot.ToString());
+
+
+            // check proof for Raw block
+            std::vector<uint256> input;
+            // input.resize(1);
+            // input[0].SetNull();
+            input.push_back(uint256S("4679dfbd42be169a953d6586f995cdd6c50b89c2a9a87e55d05faaa484309021"));
+
+            // prepare proof
+            std::vector<bool> vMatch;
+            std::vector<uint256> vHashes;
+            vMatch.reserve(leaves.size());
+            vHashes.reserve(leaves.size());
+
+            for (unsigned int i = 0; i < leaves.size(); i++)
+            {
+                const uint256& hash = leaves[i];
+                if (std::find(input.begin(), input.end(), hash) != input.end()) {
+                    vMatch.push_back(true);
+                } else {
+                    vMatch.push_back(false);
+                }
+                vHashes.push_back(hash);
+                LogPrintf("element is %s \n", hash.ToString());
+            }
+
+            std::vector<uint256> rvHashes;
+            rvHashes.reserve(rleaves.size());
+            for (unsigned int i = 0; i < rleaves.size(); i++) {
+                const uint256& hash = rleaves[i];
+                rvHashes.push_back(hash);
+                LogPrintf("reconcile element is %s \n", hash.ToString());
+            }
+
+            DataStream ssMB{};
+            CPartialMerkleTree txn(vHashes, vMatch);
+            ssMB << txn;
+
+            DataStream ssMB1{};
+            CPartialMerkleTree txn1(rvHashes, vMatch);
+            ssMB1 << txn1;
+
+            LogPrintf("proof is %s \n", HexStr(ssMB));
+            LogPrintf("reconcile proof is %s \n", HexStr(ssMB1));
+
+            DataStream ssEB{ParseHexV(HexStr(ssMB), "proof")};
+            CPartialMerkleTree pMerkleBlock;
+            ssEB >> pMerkleBlock;
+
+            DataStream ssEB1{ParseHexV(HexStr(ssMB1), "proof")};
+            CPartialMerkleTree pMerkleBlock1;
+            ssEB1 >> pMerkleBlock1;
+
+            std::vector<uint256> vMatchE;
+            std::vector<unsigned int> vIndexE;
+            uint256 finalVerify(pMerkleBlock.ExtractMatches(vMatchE, vIndexE));
+            if(finalVerify != root) {
+                LogPrintf("invalid proof %s \n", finalVerify.ToString());
+                return getDepositAddress();
+            }
+
+            for (unsigned int i = 0; i < vMatchE.size(); i++) {
+                const uint256& hash = vMatchE[i];
+                LogPrintf("result element is %s \n", hash.ToString());
+            }
+
+            std::vector<uint256> vMatchE1;
+            std::vector<unsigned int> vIndexE1;
+            uint256 finalVerify1(pMerkleBlock1.ExtractMatches(vMatchE1, vIndexE1));
+            if(finalVerify1 != rroot) {
+                LogPrintf("invalid reconcile proof %s \n", finalVerify1.ToString());
+               // return getDepositAddress();
+            }
+
+            for (unsigned int i = 0; i < vMatchE1.size(); i++) {
+                const uint256& hash = vMatchE1[i];
+                LogPrintf("result reconcile element is %s \n", hash.ToString());
+            }
+
             return getDepositAddress();
         }
     };

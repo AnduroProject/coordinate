@@ -178,7 +178,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
     for (unsigned int i = 0; i < tx.vin.size(); ++i) {
         const COutPoint &prevout = tx.vin[i].prevout;
         const Coin& coin = inputs.AccessCoin(prevout);
-        if(isConnectBlock) {
+        if(isConnectBlock && coin.IsSpent()) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
         } else {
            assert(!coin.IsSpent());

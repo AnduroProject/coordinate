@@ -166,9 +166,8 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             minerFee = minerFee + (totalPreconfFee - federationFee);
         }
     }
-    
-    pblock->invalidTx = getInvalidTx(m_chainstate.m_chainman);
-    pblock->reconsiliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
+
+    pblock->reconciliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
     std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
     for (size_t i = 0; i < nextPreconfs.size(); i++) {
         pblock->preconfBlock.push_back(nextPreconfs[i]);
