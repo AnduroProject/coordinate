@@ -11,6 +11,8 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
+#include <iostream>
+#include <util/strencodings.h>
 
 typedef std::vector<unsigned char> valtype;
 
@@ -1662,7 +1664,10 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     if (sigversion == SigVersion::WITNESS_V0 && amount < 0) return HandleMissingData(m_mdb);
 
     uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
-
+    std::cout << "sighash " << sighash.ToString() << "\n";
+    std::cout << "pubkey " << HexStr(pubkey) << "\n";
+    std::string sigStr(vchSig.begin(), vchSig.end());
+    std::cout << "signature " << sigStr << "\n";
     if (!VerifyECDSASignature(vchSig, pubkey, sighash))
         return false;
 
