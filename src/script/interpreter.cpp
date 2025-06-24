@@ -1668,11 +1668,11 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     std::cout << "pubkey " << HexStr(pubkey) << "\n";
     std::cout << "signature " << HexStr(vchSig) << "\n";
     if (!VerifyECDSASignature(vchSig, pubkey, sighash)) {
-        std::cout << "invalid signature \n"
+        std::cout << "invalid signature \n";
         return false;
     }
         
-    std::cout << "valid signature \n"
+    std::cout << "valid signature \n";
     return true;
 }
 
