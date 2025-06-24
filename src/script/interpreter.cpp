@@ -1150,6 +1150,9 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         }
                     }
 
+                    std::cout << "sig count " << nSigsCount << "\n";
+                    std::cout << "key count " << nKeysCount << "\n";
+
                     bool fSuccess = true;
                     while (fSuccess && nSigsCount > 0)
                     {
@@ -1177,15 +1180,21 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         // If there are more signatures left than keys left,
                         // then too many signatures have failed. Exit early,
                         // without checking any further signatures.
-                        if (nSigsCount > nKeysCount)
+                        if (nSigsCount > nKeysCount) {
+                            std::cout << "remaining sig count " << nSigsCount << "\n";
+                            std::cout << "remaining key count " << nKeysCount << "\n";
                             fSuccess = false;
+                        }
+                           
                     }
 
                     // Clean up stack of actual arguments
                     while (i-- > 1) {
                         // If the operation failed, we require that all signatures must be empty vector
-                        if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && !ikey2 && stacktop(-1).size())
+                        if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && !ikey2 && stacktop(-1).size()) {
+                            std::cout << "SCRIPT_ERR_SIG_NULLFAIL" << "\n";
                             return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
+                        }
                         if (ikey2 > 0)
                             ikey2--;
                         popstack(stack);
