@@ -1211,8 +1211,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     // to removing it from the stack.
                     if (stack.size() < 1)
                         return set_error(serror, SCRIPT_ERR_INVALID_STACK_OPERATION);
-                    // if ((flags & SCRIPT_VERIFY_NULLDUMMY) && stacktop(-1).size())
-                    //     return set_error(serror, SCRIPT_ERR_SIG_NULLDUMMY);
+                    if ((flags & SCRIPT_VERIFY_NULLDUMMY) && stacktop(-1).size())
+                        return set_error(serror, SCRIPT_ERR_SIG_NULLDUMMY);
                     popstack(stack);
 
                     stack.push_back(fSuccess ? vchTrue : vchFalse);
@@ -1679,26 +1679,6 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     std::cout << "sighash " << sighash.ToString() << "\n";
     std::cout << "pubkey " << HexStr(pubkey) << "\n";
     std::cout << "signature " << HexStr(vchSig) << "\n";
-
-    // std::string messageIn = "dc391523e1d63984ee233c8db4f67c22cf5f50be99833d13bbdb36535b2aba29";
-    // uint256 messageBuffer;
-    // CSHA256().Write((unsigned char*)messageIn.data(), messageIn.size()).Finalize(messageBuffer.begin());
-
-    // CPubKey apubkey = CPubKey(ParseHex("025386965c9c22119fadf7563919acbeae3b6cdef95595d06fdf3259aa840826e9"));
-    // if(!apubkey.Verify(messageBuffer,ParseHex("304402205b8a55a61b82f1de4604e0b1e7447ff4fdcd634ee64cd383ddb93b023f3c0b3f02201766916692e6ec4827cb601ade55faa4d0a353c0ce82e6bab1aa2365aad2ac68"))) {
-    //      std::cout << "custom invalid signature \n";
-    // } else {
-    //      std::cout << "custom valid signature \n";
-    // }
-    
-    // std::vector<unsigned char> vchRootHash(messageBuffer.begin(), messageBuffer.end());
-    // std::reverse(vchRootHash.begin(), vchRootHash.end());
-
-    // if(!apubkey.Verify(uint256(vchRootHash),ParseHex("304402205b8a55a61b82f1de4604e0b1e7447ff4fdcd634ee64cd383ddb93b023f3c0b3f02201766916692e6ec4827cb601ade55faa4d0a353c0ce82e6bab1aa2365aad2ac68"))) {
-    //      std::cout << "custom invalid signature +++ \n";
-    // } else {
-    //      std::cout << "custom valid signature +++ \n";
-    // }
 
     if (!VerifyECDSASignature(vchSig, pubkey, sighash)) {
         std::cout << "invalid signature \n";
