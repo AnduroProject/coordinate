@@ -1159,6 +1159,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         valtype& vchSig    = stacktop(-isig);
                         valtype& vchPubKey = stacktop(-ikey);
 
+                        std::cout << "signature check" << HexStr(vchSig) << "\n";
+
                         // Note how this makes the exact order of pubkey/signature evaluation
                         // distinguishable by CHECKMULTISIG NOT if the STRICTENC flag is set.
                         // See the script_(in)valid tests for details.
@@ -1166,6 +1168,8 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             // serror is set
                             return false;
                         }
+
+                        std::cout << "signature check1" << HexStr(vchSig) << "\n";
 
                         // Check signature
                         bool fOk = checker.CheckECDSASignature(vchSig, vchPubKey, scriptCode, sigversion);
