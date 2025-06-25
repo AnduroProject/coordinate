@@ -11,9 +11,6 @@
 #include <pubkey.h>
 #include <script/script.h>
 #include <uint256.h>
-#include <iostream>
-#include <util/strencodings.h>
-
 typedef std::vector<unsigned char> valtype;
 
 namespace {
@@ -1150,15 +1147,11 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         }
                     }
 
-                    std::cout << "sig count " << nSigsCount << "\n";
-                    std::cout << "key count " << nKeysCount << "\n";
-
                     bool fSuccess = true;
                     while (fSuccess && nSigsCount > 0)
                     {
                         valtype& vchSig    = stacktop(-isig);
                         valtype& vchPubKey = stacktop(-ikey);
-                        std::cout << "public key 1" << HexStr(vchPubKey) << "\n"; 
 
                         // Note how this makes the exact order of pubkey/signature evaluation
                         // distinguishable by CHECKMULTISIG NOT if the STRICTENC flag is set.
@@ -1167,8 +1160,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                             // serror is set
                             return false;
                         }
-
-                        std::cout << "public key" << HexStr(vchPubKey) << "\n";
 
                         // Check signature
                         bool fOk = checker.CheckECDSASignature(vchSig, vchPubKey, scriptCode, sigversion);
@@ -1184,8 +1175,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                         // then too many signatures have failed. Exit early,
                         // without checking any further signatures.
                         if (nSigsCount > nKeysCount) {
-                            std::cout << "remaining sig count " << nSigsCount << "\n";
-                            std::cout << "remaining key count " << nKeysCount << "\n";
                             fSuccess = false;
                         }
                            
@@ -1195,7 +1184,6 @@ bool EvalScript(std::vector<std::vector<unsigned char> >& stack, const CScript& 
                     while (i-- > 1) {
                         // If the operation failed, we require that all signatures must be empty vector
                         if (!fSuccess && (flags & SCRIPT_VERIFY_NULLFAIL) && !ikey2 && stacktop(-1).size()) {
-                            std::cout << "SCRIPT_ERR_SIG_NULLFAIL" << "\n";
                             return set_error(serror, SCRIPT_ERR_SIG_NULLFAIL);
                         }
                         if (ikey2 > 0)
@@ -1676,16 +1664,10 @@ bool GenericTransactionSignatureChecker<T>::CheckECDSASignature(const std::vecto
     if (sigversion == SigVersion::WITNESS_V0 && amount < 0) return HandleMissingData(m_mdb);
 
     uint256 sighash = SignatureHash(scriptCode, *txTo, nIn, nHashType, amount, sigversion, this->txdata);
-    std::cout << "sighash " << sighash.ToString() << "\n";
-    std::cout << "pubkey " << HexStr(pubkey) << "\n";
-    std::cout << "signature " << HexStr(vchSig) << "\n";
 
     if (!VerifyECDSASignature(vchSig, pubkey, sighash)) {
-        std::cout << "invalid signature \n";
         return false;
     }
-        
-    std::cout << "valid signature \n";
     return true;
 }
 
