@@ -1374,7 +1374,8 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
 
     GetMainSignals().TransactionAddedToMempool(ptx, m_pool.is_preconf ? 0 : m_pool.GetAndIncrementSequence());
     // adding asset coin info to back track child transaction in checkTransaction Function
-    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || ptx->nVersion == TRANSACTION_PRECONF_VERSION) {
+    if(ptx->nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || ptx->nVersion == TRANSACTION_PRECONF_VERSION || ptx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        LogPrintf("new asset utxo cache added in custom struct \n");
         includeMempoolAsset(*ptx, m_active_chainstate);
     }
     
@@ -1849,9 +1850,9 @@ bool CheckParentProofOfWork(uint256 hash, unsigned int nBits)
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // if(Params().GetChainType() != ChainType::REGTEST) {
+    if(Params().GetChainType() != ChainType::REGTEST) {
         return 0;
-    // }
+    }
 
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
@@ -2865,7 +2866,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
             nNewAssetID = asset.nID;
         }
 
-        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
             removeMempoolAsset(tx);
         }
         CTxUndo undoDummy;

@@ -173,7 +173,7 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
     if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
         return true;
     }
-    LogPrintf("transaction version is %i", tx.nVersion);
+    LogPrintf("transaction version is %i \n", tx.nVersion);
     CAmount amountAssetInOut = CAmount(0); 
     uint32_t currentAssetID = 0;
     for (unsigned int i = 0; i < tx.vin.size(); i++) {

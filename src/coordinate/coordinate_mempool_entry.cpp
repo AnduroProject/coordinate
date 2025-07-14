@@ -38,6 +38,15 @@ void removeMempoolAsset(const CTransaction& tx) {
  * This is the function which include mempool asset
  */
 void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate) {
+    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+        CoordinateMempoolEntry assetMempoolObj;
+        assetMempoolObj.assetID = UINT32_MAX;
+        assetMempoolObj.txid = tx.GetHash();
+        assetMempoolObj.vout = 1;
+        assetMempoolObj.nValue = tx.vout[1].nValue;
+        coordinateMempoolEntry.push_back(assetMempoolObj);
+        return;
+    }
     uint32_t currentAssetID = 0;
     CAmount amountAssetIn = 0;
     bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
