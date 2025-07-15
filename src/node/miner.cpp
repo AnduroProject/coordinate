@@ -176,7 +176,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     int resize = 2;
     CMutableTransaction coinbaseTx;
     std::vector<AnduroPreCommitment> pending_commitments = listPendingCommitment(nHeight);
-    if(Params().GetChainType() != ChainType::REGTEST) {
+    // if(Params().GetChainType() != ChainType::REGTEST) {
         // get next block presigned data
         LogPrintf("commitment queue count %i\n", pending_commitments.size());
         // prevent to get block template if not presigned signature available for next block
@@ -206,10 +206,10 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
             pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
             pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
         }
-    } else {
-        pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
-        pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
-    }
+    // } else {
+    //     pblock->currentKeys = getCurrentKeys(m_chainstate.m_chainman);
+    //     pblock->currentIndex = getCurrentIndex(m_chainstate.m_chainman);
+    // }
 
     coinbaseTx.vin.resize(1);
     coinbaseTx.vin[0].prevout.SetNull();
@@ -223,7 +223,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
     coinbaseTx.vout[oIncr].nValue = minerFee;
 
     
-    if(Params().GetChainType() != ChainType::REGTEST) {
+    // if(Params().GetChainType() != ChainType::REGTEST) {
         // including anduro signature information
         std::string preCommitmentWitness = "";
         if(nHeight > 2) {
@@ -233,7 +233,7 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock(const CScript& sc
         std::vector<unsigned char> data = ParseHex(preCommitmentWitness);
         CTxOut out(0, CScript() << OP_RETURN << data);
         coinbaseTx.vout[oIncr] = out;
-    }
+    // }
 
     coinbaseTx.vin[0].scriptSig = CScript() << nHeight << OP_0;
     pblock->vtx[0] = MakeTransactionRef(std::move(coinbaseTx));
