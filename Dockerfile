@@ -33,8 +33,8 @@
     COPY ./src/coordinated ./coordinated
     RUN chmod +x ./coordinated
 
-    COPY ./src/coordinated-cli ./coordinated-cli
-    RUN chmod +x ./coordinated-cli
+    COPY ./src/coordinate-cli ./coordinate-cli
+    RUN chmod +x ./coordinate-cli
 
     ENTRYPOINT ["./coordinated"]
 
