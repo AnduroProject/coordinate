@@ -30,14 +30,12 @@
     RUN mkdir -p /opt/coordinate
     WORKDIR /opt/coordinate
 
-    COPY . ./
+    COPY ./src/coordinated ./coordinated
+    RUN chmod +x ./coordinated
 
-    #Configure sidechain node
-    WORKDIR /opt/coordinate
-    RUN ./autogen.sh \
-     && ./configure --without-gui \
-     && make
+    COPY ./src/coordinated-cli ./coordinated-cli
+    RUN chmod +x ./coordinated-cli
 
-    ENTRYPOINT ["./src/coordinated"]
+    ENTRYPOINT ["./coordinated"]
 
     CMD []
