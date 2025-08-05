@@ -230,7 +230,7 @@ public:
         consensus.nMinimumChainWork = uint256S("0000000000000000000000000000000000000000000000000000000100010001");
         consensus.defaultAssumeValid = uint256S("0xadf5e3d0307009dce5cb4f6cd61e3821d52c95f74afa956572296acf5e91deab"); // 2344474
 
-        pchMessageStart[0] = 0xf8;
+        pchMessageStart[0] = 0xb9;
         pchMessageStart[1] = 0xbe;
         pchMessageStart[2] = 0xb9;
         pchMessageStart[3] = 0xd8;
