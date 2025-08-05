@@ -66,7 +66,6 @@ CAuxPow::check(const uint256& hashAuxBlock, int nChainId,
       return error("Aux POW coinbase has no outputs");
 
     for (size_t i = 2; i < coinbaseTx->vout.size(); i++) {
-      LogPrintf("tx output %i \n",i);
       const CScript script = coinbaseTx->vout[i].scriptPubKey;
       errorMsg = validateParentScript(nChainId, vchRootHash, script);
       if(errorMsg.compare("") == 0) {
@@ -133,7 +132,6 @@ std::string CAuxPow::validateParentScript(int nChainId, std::vector<unsigned cha
     if (nChainIndex != getExpectedIndex (nNonce, nChainId, merkleHeight)) {
       return "Aux POW wrong index";
     }
-    LogPrintf("Aux POW validation completed \n");
     return "";
 }
 

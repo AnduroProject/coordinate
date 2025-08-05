@@ -219,6 +219,12 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                 assert(!coin.IsSpent());
             }
 
+            if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION || tx.nVersion == 2) {
+                if(coin.IsBitAsset()) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
+                }
+            }
+
             if(!coin.isPreconf) {
                 // If prev is coinbase, check that it's matured
                 if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
