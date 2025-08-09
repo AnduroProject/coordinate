@@ -107,6 +107,7 @@ BASE_SCRIPTS = [
     'mempool_persist.py',
     'rpc_p2qrh.py',
     # vv Tests less than 60s vv
+    'rpc_p2qrh.py',
     'rpc_psbt.py',
     'wallet_fundrawtransaction.py',
     'wallet_bumpfee.py',

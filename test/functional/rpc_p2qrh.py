@@ -3,6 +3,7 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Test the RPC call related to the uptime command.
+
 Test corresponds to code in rpc/server.cpp.
 """
 
@@ -45,25 +46,25 @@ class TestP2Qrh(BitcoinTestFramework):
         self._test_mempool_accept()
         self._submit_tx_and_mine()
         self._view_blockhash_info()
-
+    
     def _list_available_methods(self):
         """List available RPC methods to debug the issue"""
         node = self.nodes[0]
-
+        
         # Get all available commands
         all_help = node.help()
         self.log.info("All available RPC commands:")
         self.log.info(all_help)
-
+        
         # Check if wallet-related commands are available
         wallet_commands = [cmd for cmd in all_help.split('\n') if 'wallet' in cmd.lower()]
         self.log.info(f"Wallet-related commands: {wallet_commands}")
-
+    
     def _create_wallet(self):
         try:
             # Capture the response from createwallet
             response = self.nodes[0].createwallet(wallet_name=self.WALLET_NAME, descriptors=True, passphrase=self.WALLET_PASSPHRASE, load_on_startup=True)
-
+            
             # Log the response
             self.log.info(f"createwallet response: {response}")
         except Exception as e:
@@ -79,11 +80,11 @@ class TestP2Qrh(BitcoinTestFramework):
         try:
             # Parse the JSON response
             data = json.loads(self.BITCOIN_ADDRESS_INFO)
-
+            
             # Extract the relevant information
             taptree_return = data.get('taptree_return', {})
             utxo_return = data.get('utxo_return', {})
-
+            
             # Extract individual fields (equivalent to your bash exports)
             self.quantum_root = taptree_return.get('tree_root_hex')
             self.leaf_script_priv_key_hex = taptree_return.get('leaf_script_priv_key_hex')
@@ -91,7 +92,7 @@ class TestP2Qrh(BitcoinTestFramework):
             self.control_block_hex = taptree_return.get('control_block_hex')
             self.funding_script_pubkey = utxo_return.get('script_pubkey_hex')
             self.p2qrh_addr = utxo_return.get('bech32m_address')
-
+            
             # Log the extracted values for debugging
             self.log.info(f"quantum_root: {self.quantum_root}")
             self.log.info(f"leaf_script_priv_key_hex: {self.leaf_script_priv_key_hex}")
@@ -99,7 +100,7 @@ class TestP2Qrh(BitcoinTestFramework):
             self.log.info(f"control_block_hex: {self.control_block_hex}")
             self.log.info(f"funding_script_pubkey: {self.funding_script_pubkey}")
             self.log.info(f"p2qrh_addr: {self.p2qrh_addr}")
-
+            
             # Verify all required fields were extracted
             required_fields = [
                 self.quantum_root,
@@ -109,7 +110,7 @@ class TestP2Qrh(BitcoinTestFramework):
                 self.funding_script_pubkey,
                 self.p2qrh_addr
             ]
-
+            
             if all(required_fields):
                 self.log.info("All required fields successfully extracted")
             else:
@@ -120,9 +121,9 @@ class TestP2Qrh(BitcoinTestFramework):
                 if not self.control_block_hex: missing_fields.append("control_block_hex")
                 if not self.funding_script_pubkey: missing_fields.append("script_pubkey_hex")
                 if not self.p2qrh_addr: missing_fields.append("bech32m_address")
-
+                
                 self.log.error(f"Missing required fields: {missing_fields}")
-
+                
         except json.JSONDecodeError as e:
             self.log.error(f"Failed to parse JSON: {e}")
         except Exception as e:
@@ -144,7 +145,7 @@ class TestP2Qrh(BitcoinTestFramework):
             scan_objects = [{"desc": desc}]
             response = self.nodes[0].scantxoutset(action="start", scanobjects=scan_objects)
             self.log.info(f"scantxoutset response: {response}")
-
+            
             # Extract the funding transaction ID from the first unspent
             if response.get('unspents') and len(response['unspents']) > 0:
                 self.funding_tx_id = response['unspents'][0]['txid']
@@ -157,9 +158,9 @@ class TestP2Qrh(BitcoinTestFramework):
     def _get_funding_utxo_details(self):
         try:
             response = self.nodes[0].getrawtransaction(txid=self.funding_tx_id, verbosity=1)
-
+            
             self.log.info(f"Funding utxo details: {response}")
-
+            
             # Extract the value from the specific UTXO index and convert to satoshis
             if 'vout' in response and len(response['vout']) > self.FUNDING_UTXO_INDEX:
                 utxo = response['vout'][self.FUNDING_UTXO_INDEX]
@@ -172,7 +173,7 @@ class TestP2Qrh(BitcoinTestFramework):
                     self.log.error("No 'value' field found in UTXO")
             else:
                 self.log.error(f"UTXO index {self.FUNDING_UTXO_INDEX} not found in transaction outputs")
-
+                
         except Exception as e:
             self.log.error(f"Error getting funding utxo details: {e}")
 
@@ -180,11 +181,11 @@ class TestP2Qrh(BitcoinTestFramework):
         try:
             response = self.generate(self.nodes[0], nblocks=self.BLOCK_COUNT_AFTER_COINBASE_FUNDING)
             self.log.info(f"Generating post-coinbase blocks: {response}")
-
+            
             # Count the block IDs in the response
             block_count = len(response)
             self.log.info(f"Generated {block_count} blocks")
-
+            
         except Exception as e:
             self.log.error(f"Error generating post-coinbase blocks: {e}")
 
@@ -204,7 +205,7 @@ class TestP2Qrh(BitcoinTestFramework):
             self.log.info(f"testmempoolaccept response: {response}")
         except Exception as e:
             self.log.error(f"Error testing testmempoolaccept: {e}")
-
+    
     def _submit_tx_and_mine(self):
         try:
             self.p2qrh_spending_tx_id = self.nodes[0].sendrawtransaction(self.tx_hex)

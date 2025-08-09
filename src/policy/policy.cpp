@@ -98,7 +98,7 @@ bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType)
             return false;
         if (m < 1 || m > n)
             return false;
-    } else if (whichType == TxoutType::WITNESS_V2_P2TSH) {
+    } else if (whichType == TxoutType::WITNESS_V3_P2QRH) {
         // Accept as standard
         return true;
     }
@@ -352,8 +352,8 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
             CScript subscript(stack.back().begin(), stack.back().end());
             if (subscript.GetSigOpCount(true) > MAX_P2SH_SIGOPS) {
                 return false;
-            } 
-        } else if (whichType == TxoutType::WITNESS_V2_P2TSH) {
+            }
+        } else if (whichType == TxoutType::WITNESS_V3_P2QRH) {
             // Accept as standard
             continue;
         }
@@ -448,12 +448,12 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
             }
         }
 
-        // Check policy limits for P2TSH spends:
-        // - MAX_STANDARD_P2TSH_STACK_ITEM_SIZE limit for stack item size
+        // Check policy limits for P2QRH spends:
+        // - MAX_STANDARD_P2QRH_STACK_ITEM_SIZE limit for stack item size
         // - Script path only (no key path spending)
         // - No annexes
-        if (witnessversion == 2 && witnessprogram.size() == WITNESS_V2_P2TSH_SIZE) {
-            // P2TSH spend (non-P2SH-wrapped, version 3, witness program size 32)
+        if (witnessversion == 3 && witnessprogram.size() == WITNESS_V3_P2QRH_SIZE) {
+            // P2QRH spend (non-P2SH-wrapped, version 3, witness program size 32)
             std::span stack{tx.vin[i].scriptWitness.stack};
             if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
                 // Annexes are nonstandard as long as no semantics are defined for them.
@@ -467,21 +467,14 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
                 if ((control_block[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSCRIPT) {
                     // Leaf version 0xc0 (aka Tapscript, see BIP 342)
                     for (const auto& item : stack) {
-                        // Allow larger items for SLH-DSA signatures (OP_SUCCESS127)
-                        if (item.size() > MAX_STANDARD_P2TSH_STACK_ITEM_SIZE) {
-                            // Check if this is an SLH-DSA signature by looking at the script
-                            // You'd need to parse the script to see if it contains OP_SUCCESS127
-                            // For now, we could allow larger items when OP_SUCCESS127 is present
-                            return false; // Keep existing behavior until SLH-DSA is implemented
-                        }
+                        if (item.size() > MAX_STANDARD_P2QRH_STACK_ITEM_SIZE) return false;
                     }
                 }
             } else {
-                // P2TSH only supports script path spending, no key path spending allowed
+                // P2QRH only supports script path spending, no key path spending allowed
                 return false;
             }
         }
-   
     }
     return true;
 }
