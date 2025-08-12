@@ -300,7 +300,7 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     // -> segwit versions 2+ are not specified yet
     s << OP_2 << ToByteVector(xpk);
     BOOST_CHECK(ExtractDestination(s, address));
-
+    
     // P2TSH as witness version 2, expect WitnessV2P2TSH
     // Create a uint256 from the xpk bytes and construct WitnessV2P2TSH properly
     uint256 hash;
