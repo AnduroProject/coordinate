@@ -66,7 +66,7 @@ jobs:
           curl
 
       - name: autogen
-        run: pwd && ./authgen.sh
+        run: pwd && ./autogen.sh
 
       - name: configure
         run: ./configure --without-ui
