@@ -51,7 +51,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.MT_AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.MT_AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.MT_AWS_SESSION_TOKEN }}  # Only if using temporary credential
+          aws-session-token: ${{ secrets.MT_AWS_SESSION_TOKEN }}  # Only if using temporary credentials
           aws-region: ${{ env.AWS_REGION }}
       
       
