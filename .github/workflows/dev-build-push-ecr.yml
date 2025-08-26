@@ -1,0 +1,68 @@
+name: DEV - N.V - Coordinate core Build and Push
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'   # semantic version tags like v1.0.0
+  pull_request:
+    branches:
+      - dev
+  workflow_dispatch:
+  # workflow_dispatch:
+  #   inputs:
+  #     environment:
+  #       description: 'Deployment environment'
+  #       required: true
+  #       default: 'dev'
+  #       type: choice
+  #       options:
+  #         - dev
+
+env:
+  AWS_REGION: us-east-1
+  DOCKER_REGISTRY: 992382389965.dkr.ecr.us-east-1.amazonaws.com
+  ENV_TYPE: dev
+  SERVICE_NAME: "mara-sidechain-beta-coordinate-core"
+
+jobs:
+  build-and-push:
+    name: Build and Push Docker Image
+    # if: ${{ github.event.pull_request.merged == true }}
+    runs-on: governance-testenv-github-self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha
+      
+      - name: Set Up AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.MT_AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.MT_AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.MT_AWS_SESSION_TOKEN }}  # Only if using temporary credential
+          aws-region: ${{ env.AWS_REGION }}
+      
+      
+      - name: Log In to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ env.AWS_REGION }} | \
+          sudo docker login --username AWS --password-stdin ${{ env.DOCKER_REGISTRY }}
+      - name: Build Docker Image
+        run: |
+          sudo docker build -t ${{ steps.meta.outputs.tags }} .
+          # sudo docker tag ${{ env.SERVICE_NAME }}:latest ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ steps.meta.outputs.tags }}
+      - name: Push Docker Image to ECR
+        run: |
+          sudo docker push ${{ steps.meta.outputs.tags }}
