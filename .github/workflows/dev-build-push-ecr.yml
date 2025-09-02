@@ -96,4 +96,3 @@ jobs:
       - name: Push Docker Image to ECR
         run: |
           sudo docker push ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ steps.tag.outputs.new_tag }}
-          sudo docker push ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:latest
