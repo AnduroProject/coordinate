@@ -18,6 +18,10 @@ on:
   #       options:
   #         - dev
 
+permissions:
+  contents: write
+  pull-requests: write
+
 env:
   AWS_REGION: us-east-1
   DOCKER_REGISTRY: 992382389965.dkr.ecr.us-east-1.amazonaws.com
