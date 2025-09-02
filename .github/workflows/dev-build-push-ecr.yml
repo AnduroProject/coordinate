@@ -91,9 +91,9 @@ jobs:
           sudo docker login --username AWS --password-stdin ${{ env.DOCKER_REGISTRY }}
       - name: Build Docker Image
         run: |
-          sudo docker build -t ${{ steps.tag.outputs.new_tag }} .
+          sudo docker build -t ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ steps.tag.outputs.new_tag }} .
           # sudo docker tag ${{ env.SERVICE_NAME }}:latest ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ steps.tag.outputs.new_tag }}
       - name: Push Docker Image to ECR
         run: |
-          sudo docker push ${{ steps.tag.outputs.new_tag }}
-          sudo docker push latest
+          sudo docker push ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:${{ steps.tag.outputs.new_tag }}
+          sudo docker push ${{ env.DOCKER_REGISTRY }}/${{ env.SERVICE_NAME }}:latest
