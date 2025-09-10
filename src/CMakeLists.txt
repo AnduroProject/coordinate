@@ -140,6 +140,7 @@ add_library(bitcoin_consensus STATIC EXCLUDE_FROM_ALL
   script/script_error.cpp
   uint256.cpp
 )
+
 target_link_libraries(bitcoin_consensus
   PRIVATE
     core_interface
