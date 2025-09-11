@@ -1,22 +1,11 @@
 name: DEV - N.V - Coordinate core Build and Push
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'   # semantic version tags like v1.0.0
   pull_request:
+    types:
+      - closed
     branches:
       - dev
-  workflow_dispatch:
-  # workflow_dispatch:
-  #   inputs:
-  #     environment:
-  #       description: 'Deployment environment'
-  #       required: true
-  #       default: 'dev'
-  #       type: choice
-  #       options:
-  #         - dev
 
 permissions:
   contents: write
@@ -31,7 +20,7 @@ env:
 jobs:
   build-and-push:
     name: Build and Push Docker Image
-    # if: ${{ github.event.pull_request.merged == true }}
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: governance-testenv-github-self-hosted
 
     steps:
