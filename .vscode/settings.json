@@ -90,7 +90,9 @@
         "thread": "cpp",
         "filesystem": "cpp",
         "examples_util.h": "c",
-        "execution": "cpp"
+        "execution": "cpp",
+        "forward_list": "cpp",
+        "print": "cpp"
     },
     "cmake.sourceDirectory": "/Users/jk/MIKE/maranodegit/src/crc32c",
     "C_Cpp.errorSquiggles": "disabled"
