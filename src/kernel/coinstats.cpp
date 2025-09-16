@@ -106,7 +106,7 @@ static void ApplyStats(CCoinsStats& stats, const uint256& hash, const std::map<u
     for (auto it = outputs.begin(); it != outputs.end(); ++it) {
         stats.nTransactionOutputs++;
         if (stats.total_amount.has_value()) {
-            if(!it->second.fBitAsset) {
+            if(!it->second.fBitAsset && !it->second.isPegin) {
                 stats.total_amount = CheckedAdd(*stats.total_amount, it->second.out.nValue);
             }
         }
