@@ -3051,10 +3051,8 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CTransactionRef ptx = block.vtx[i];
         const CTransaction &tx = *ptx;
         if(i != 0) {
-            if (tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-                if (tx.vout.size() < 2) {
+            if (tx.nVersion == TRANSACTION_PRECONF_VERSION && tx.vout.size() < 2) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid preconf creation - vout too small");
-                }
             }
 
             if (!AreCoordinateTransactionStandard(tx,view)) {
