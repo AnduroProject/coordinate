@@ -153,7 +153,7 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
             reason = "bare-multisig";
             return false;
         } else if (IsDust(txout, dust_relay_fee)) {
-            if (tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_PRECONF_VERSION) {
+            if ((tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_PRECONF_VERSION) || txout.nValue == 0) {
                reason = "dust";
                return false;
             }
