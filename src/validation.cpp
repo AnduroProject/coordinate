@@ -737,7 +737,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     int coordinateOutputs = 0;
     if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
 
-        if (tx.vout.size() < 2) {
+        if (!tx.HasValidOutputCount()) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid CoordinateAsset creation - vout too small");
         }
 
@@ -751,10 +751,9 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         }
         coordinateOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-        if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-            if (tx.vout.size() < 2) {
-                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
-            }
+        if(tx.nVersion == TRANSACTION_PRECONF_VERSION && !tx.HasValidOutputCount()) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
+            
         }
         coordinateOutputs = getAssetOutputCount(tx,m_active_chainstate);
     } 
@@ -2789,7 +2788,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
                 // New asset created - set asset ID # and update CoordinateAssetDB
         uint32_t nNewAssetID = 0;
         if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
-            if (tx.vout.size() < 2) {
+            if (!tx.HasValidOutputCount()) {
                 return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid CoordinateAsset creation - vout too small");
             }
 
@@ -3051,7 +3050,7 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CTransactionRef ptx = block.vtx[i];
         const CTransaction &tx = *ptx;
         if(i != 0) {
-            if (tx.nVersion == TRANSACTION_PRECONF_VERSION && tx.vout.size() < 2) {
+            if (tx.nVersion == TRANSACTION_PRECONF_VERSION && !tx.HasValidOutputCount()) {
                     return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid preconf creation - vout too small");
             }
 
