@@ -752,7 +752,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
         coordinateOutputs = 2;
     } else if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION) {
         if(tx.nVersion == TRANSACTION_PRECONF_VERSION) {
-            if (tx.vout.size() <= 1) {
+            if (tx.vout.size() < 2) {
                 return state.Invalid(TxValidationResult::TX_CONSENSUS, "Preconf transaction atleast have 2 output");
             }
         }
@@ -3051,6 +3051,11 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
         CTransactionRef ptx = block.vtx[i];
         const CTransaction &tx = *ptx;
         if(i != 0) {
+            if (tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+                if (tx.vout.size() < 2) {
+                    return state.Invalid(BlockValidationResult::BLOCK_CACHED_INVALID, "ConnectBlock(): Invalid preconf creation - vout too small");
+                }
+            }
 
             if (!AreCoordinateTransactionStandard(tx,view)) {
                 LogPrintf("Invalid transaction standard \n");
