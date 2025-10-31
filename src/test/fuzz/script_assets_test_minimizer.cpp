@@ -17,6 +17,8 @@
 #include <string>
 #include <vector>
 
+using util::SplitString;
+
 // This fuzz "test" can be used to minimize test cases for script_assets_test in
 // src/test/script_tests.cpp. While it written as a fuzz test, and can be used as such,
 // fuzzing the inputs is unlikely to construct useful test cases.
@@ -33,7 +35,7 @@
 //
 // (libFuzzer build)
 // $ mkdir dump-min
-// $ FUZZ=script_assets_test_minimizer ./src/test/fuzz/fuzz -merge=1 -use_value_profile=1 dump-min/ dump/
+// $ FUZZ=script_assets_test_minimizer ./bin/fuzz -merge=1 -use_value_profile=1 dump-min/ dump/
 // $ (echo -en '[\n'; cat dump-min/* | head -c -2; echo -en '\n]') >script_assets_test.json
 
 namespace {
@@ -54,7 +56,7 @@ CMutableTransaction TxFromHex(const std::string& str)
 {
     CMutableTransaction tx;
     try {
-        SpanReader{SERIALIZE_TRANSACTION_NO_WITNESS, CheckedParseHex(str)} >> tx;
+        SpanReader{CheckedParseHex(str)} >> TX_NO_WITNESS(tx);
     } catch (const std::ios_base::failure&) {
         throw std::runtime_error("Tx deserialization failure");
     }
@@ -68,7 +70,7 @@ std::vector<CTxOut> TxOutsFromJSON(const UniValue& univalue)
     for (size_t i = 0; i < univalue.size(); ++i) {
         CTxOut txout;
         try {
-            SpanReader{0, CheckedParseHex(univalue[i].get_str())} >> txout;
+            SpanReader{CheckedParseHex(univalue[i].get_str())} >> txout;
         } catch (const std::ios_base::failure&) {
             throw std::runtime_error("Prevout invalid format");
         }
@@ -96,6 +98,7 @@ const std::map<std::string, unsigned int> FLAG_NAMES = {
     {std::string("CHECKSEQUENCEVERIFY"), (unsigned int)SCRIPT_VERIFY_CHECKSEQUENCEVERIFY},
     {std::string("WITNESS"), (unsigned int)SCRIPT_VERIFY_WITNESS},
     {std::string("TAPROOT"), (unsigned int)SCRIPT_VERIFY_TAPROOT},
+    {std::string("P2TSH"), (unsigned int)SCRIPT_VERIFY_P2TSH},
 };
 
 std::vector<unsigned int> AllFlags()
@@ -111,11 +114,14 @@ std::vector<unsigned int> AllFlags()
         if (i & 16) flag |= SCRIPT_VERIFY_CHECKSEQUENCEVERIFY;
         if (i & 32) flag |= SCRIPT_VERIFY_WITNESS;
         if (i & 64) flag |= SCRIPT_VERIFY_TAPROOT;
+        if (i & 128) flag |= SCRIPT_VERIFY_P2TSH;
 
         // SCRIPT_VERIFY_WITNESS requires SCRIPT_VERIFY_P2SH
         if (flag & SCRIPT_VERIFY_WITNESS && !(flag & SCRIPT_VERIFY_P2SH)) continue;
         // SCRIPT_VERIFY_TAPROOT requires SCRIPT_VERIFY_WITNESS
         if (flag & SCRIPT_VERIFY_TAPROOT && !(flag & SCRIPT_VERIFY_WITNESS)) continue;
+        // SCRIPT_VERIFY_P2TSH requires SCRIPT_VERIFY_WITNESS
+        if (flag & SCRIPT_VERIFY_P2TSH && !(flag & SCRIPT_VERIFY_WITNESS)) continue;
 
         ret.push_back(flag);
     }

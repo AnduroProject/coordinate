@@ -1,5 +1,5 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -24,9 +24,11 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::SCRIPTHASH: return "scripthash";
     case TxoutType::MULTISIG: return "multisig";
     case TxoutType::NULL_DATA: return "nulldata";
+    case TxoutType::ANCHOR: return "anchor";
     case TxoutType::WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
+    case TxoutType::WITNESS_V2_P2TSH: return "witness_v2_p2tsh";
     case TxoutType::WITNESS_UNKNOWN: return "witness_unknown";
     } // no default case, so the compiler can warn about missing cases
     assert(false);
@@ -103,9 +105,9 @@ static bool MatchMultisig(const CScript& script, int& required_sigs, std::vector
     return (it + 1 == script.end());
 }
 
-std::optional<std::pair<int, std::vector<Span<const unsigned char>>>> MatchMultiA(const CScript& script)
+std::optional<std::pair<int, std::vector<std::span<const unsigned char>>>> MatchMultiA(const CScript& script)
 {
-    std::vector<Span<const unsigned char>> keyspans;
+    std::vector<std::span<const unsigned char>> keyspans;
 
     // Redundant, but very fast and selective test.
     if (script.size() == 0 || script[0] != 32 || script.back() != OP_NUMEQUAL) return {};
@@ -164,6 +166,31 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
         if (witnessversion == 1 && witnessprogram.size() == WITNESS_V1_TAPROOT_SIZE) {
             vSolutionsRet.push_back(std::move(witnessprogram));
             return TxoutType::WITNESS_V1_TAPROOT;
+        }
+        if (witnessversion == 2 && witnessprogram.size() == WITNESS_V2_P2TSH_SIZE) {
+            // Only classify as P2TSH if this is a native witness output (not a redeem script)
+            // Check if this looks like a redeem script (P2SH-wrapped)
+            bool is_likely_redeem_script = false;
+
+            // If this is being called in P2SH context, the script might be a redeem script
+            // We can check if the script has characteristics of a redeem script
+            if (scriptPubKey.size() > 34 && scriptPubKey[0] == 0x22) {
+                // This looks like a pushed redeem script (0x22 = 34 bytes)
+                is_likely_redeem_script = true;
+            }
+
+            if (!is_likely_redeem_script) {
+                vSolutionsRet.push_back(std::move(witnessprogram));
+                return TxoutType::WITNESS_V2_P2TSH;
+            } else {
+                // Treat as WITNESS_UNKNOWN if it looks like a redeem script
+                vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});
+                vSolutionsRet.push_back(std::move(witnessprogram));
+                return TxoutType::WITNESS_UNKNOWN;
+            }
+        }
+        if (scriptPubKey.IsPayToAnchor()) {
+            return TxoutType::ANCHOR;
         }
         if (witnessversion != 0) {
             vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});

@@ -50,11 +50,7 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
     int nMinHeight = -1;
     int64_t nMinTime = -1;
 
-    // tx.nVersion is signed integer so requires cast to unsigned otherwise
-    // we would be doing a signed comparison and half the range of nVersion
-    // wouldn't support BIP 68.
-    bool fEnforceBIP68 = static_cast<uint32_t>(tx.nVersion) >= 2
-                      && flags & LOCKTIME_VERIFY_SEQUENCE;
+    bool fEnforceBIP68 = tx.version >= 2 && flags & LOCKTIME_VERIFY_SEQUENCE;
 
     // Do not enforce sequence numbers as a relative lock time
     // unless we have been instructed to
@@ -150,7 +146,7 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
 {
     int64_t nSigOps = GetLegacySigOpCount(tx) * WITNESS_SCALE_FACTOR;
 
-    if (tx.IsCoinBase() || tx.nVersion == TRANSACTION_PEGIN_VERSION)
+    if (tx.IsCoinBase())
         return nSigOps;
 
     if (flags & SCRIPT_VERIFY_P2SH) {
@@ -167,10 +163,9 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, bool isConnectBlock)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmount& utxoFee, bool isConnectBlock)
 {
-    // are the actual inputs available?
-     if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
+    if(tx.version == TRANSACTION_PEGIN_VERSION) {
         for (const CTxIn& txin : tx.vin) {
             const COutPoint &prevout = txin.prevout;
             if (inputs.isPeginSpent(prevout)) {
@@ -190,7 +185,7 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
         const CAmount value_out = tx.GetValueOut();
         const std::vector<std::vector<unsigned char> >& stack = tx.vin[0].scriptWitness.stack;
 
-        CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+        DataStream stream(stack[2]);
         CAmount value;
         try {
             stream >> value;
@@ -219,19 +214,36 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                 assert(!coin.IsSpent());
             }
 
-            if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION || tx.nVersion == 2) {
-                if(coin.IsBitAsset()) {
+
+            if (tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+                if (coin.IsBitAsset()) {
                     return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
                 }
             }
 
-            if(!coin.isPreconf) {
+
+            if(tx.version == TRANSACTION_PRECONF_VERSION || tx.version == 2) {
+                if (coin.IsBitAsset() || coin.IsBitAssetController()) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
+                }
+            }
+
+            if (!coin.isPreconf) {
                 // If prev is coinbase, check that it's matured
                 if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
                     return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
                         strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
                 }
             }
+
+            if(coin.IsBitAsset() && tx.vin[i].prevout.assetId.empty()){
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Asset information is missing");
+            }
+
+            if(coin.IsBitAsset() && tx.vin[i].prevout.assetId != coin.GetAssetID()){
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Asset mistmatch");
+            }
+            
             // Check for negative or overflow input values
             if(!coin.IsBitAssetController()) { 
                 nValueIn += coin.out.nValue;
@@ -247,16 +259,16 @@ bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, 
                 strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
         }
 
-        // Tally transaction fees
         const CAmount txfee_aux = nValueIn - value_out;
         if (!MoneyRange(txfee_aux)) {
             return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
         }
 
         txfee = txfee_aux;
-     }
 
-
-
+        if((tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION || tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) && tx.vin.size() < tx.vout.size()) {
+            utxoFee = CAmount(tx.vout.size() - tx.vin.size()) * UTXO_FEE;
+        }
+    }
     return true;
 }

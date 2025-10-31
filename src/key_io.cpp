@@ -1,4 +1,4 @@
-// Copyright (c) 2014-2021 The Bitcoin Core developers
+// Copyright (c) 2014-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -12,8 +12,8 @@
 #include <util/strencodings.h>
 
 #include <algorithm>
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 
 /// Maximum witness length for Bech32 addresses.
 static constexpr std::size_t BECH32_WITNESS_PROG_MAX_LEN = 40;
@@ -74,6 +74,14 @@ public:
         std::vector<unsigned char> data = {(unsigned char)id.GetWitnessVersion()};
         data.reserve(1 + (program.size() * 8 + 4) / 5);
         ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, program.begin(), program.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
+     std::string operator()(const WitnessV2P2TSH& id) const
+    {
+        std::vector<unsigned char> data = {2};  // Version 2
+        data.reserve(53);  // Reserve space for the hash
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, id.begin(), id.end());
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
     }
 
@@ -139,9 +147,18 @@ public:
         return bech32::Encode(bech32::Encoding::BECH32M, m_params.ParentBech32HRP(), data);
     }
 
+    std::string operator()(const WitnessV2P2TSH& id) const
+    {
+        std::vector<unsigned char> data = {2};  // Version 2
+        data.reserve(53);  // Reserve space for the hash
+        ConvertBits<8, 5, true>([&](unsigned char c) { data.push_back(c); }, id.begin(), id.end());
+        return bech32::Encode(bech32::Encoding::BECH32M, m_params.Bech32HRP(), data);
+    }
+
     std::string operator()(const CNoDestination& no) const { return {}; }
     std::string operator()(const PubKeyDestination& pk) const { return {}; }
 };
+
 
 CTxDestination DecodeDestination(const std::string& str, const CChainParams& params, std::string& error_str, std::vector<int>* error_locations)
 {
@@ -243,6 +260,21 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
                 return tap;
             }
 
+             if (version == 2 && data.size() == WITNESS_V2_P2TSH_SIZE) {
+                WitnessV2P2TSH tsh;
+                if (data.size() == tsh.size()) {
+                    std::copy(data.begin(), data.end(), tsh.begin());
+                    return tsh;
+                }
+                error_str = strprintf("Invalid P2TSH address program size (%d %s)", data.size(), byte_str);
+                return CNoDestination();
+            }
+
+
+            if (CScript::IsPayToAnchor(version, data)) {
+                return PayToAnchor();
+            }
+
             if (version > 16) {
                 error_str = "Invalid Bech32 address witness version";
                 return CNoDestination();
@@ -266,6 +298,8 @@ CTxDestination DecodeDestination(const std::string& str, const CChainParams& par
     if (error_locations) *error_locations = std::move(res.second);
     return CNoDestination();
 }
+
+
 
 CTxDestination ParentDecodeDestination(const std::string& str, const CChainParams& params, std::string& error_str, std::vector<int>* error_locations)
 {
@@ -390,6 +424,7 @@ CTxDestination ParentDecodeDestination(const std::string& str, const CChainParam
     if (error_locations) *error_locations = std::move(res.second);
     return CNoDestination();
 }
+
 } // namespace
 
 
@@ -415,7 +450,7 @@ std::string EncodeSecret(const CKey& key)
 {
     assert(key.IsValid());
     std::vector<unsigned char> data = Params().Base58Prefix(CChainParams::SECRET_KEY);
-    data.insert(data.end(), key.begin(), key.end());
+    data.insert(data.end(), UCharCast(key.begin()), UCharCast(key.end()));
     if (key.IsCompressed()) {
         data.push_back(1);
     }
@@ -457,6 +492,9 @@ CExtKey DecodeExtKey(const std::string& str)
             key.Decode(data.data() + prefix.size());
         }
     }
+    if (!data.empty()) {
+        memory_cleanse(data.data(), data.size());
+    }
     return key;
 }
 
@@ -480,7 +518,6 @@ std::string ParentEncodeDestination(const CTxDestination& dest)
 {
     return std::visit(ParentDestinationEncoder(Params()), dest);
 }
-
 
 CTxDestination DecodeDestination(const std::string& str, std::string& error_msg, std::vector<int>* error_locations)
 {

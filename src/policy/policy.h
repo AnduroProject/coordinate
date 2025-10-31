@@ -6,12 +6,12 @@
 #ifndef BITCOIN_POLICY_POLICY_H
 #define BITCOIN_POLICY_POLICY_H
 
+
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
 #include <primitives/transaction.h>
 #include <script/interpreter.h>
 #include <script/solver.h>
-
 #include <cstdint>
 #include <string>
 
@@ -20,15 +20,27 @@ class CFeeRate;
 class CScript;
 
 /** Default for -blockmaxweight, which controls the range of block weights the mining code will create **/
-static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{MAX_BLOCK_WEIGHT - 10000};
+static constexpr unsigned int DEFAULT_BLOCK_MAX_WEIGHT{MAX_BLOCK_WEIGHT};
+/** Default for -blockreservedweight **/
+static constexpr unsigned int DEFAULT_BLOCK_RESERVED_WEIGHT{8000};
+/** This accounts for the block header, var_int encoding of the transaction count and a minimally viable
+ * coinbase transaction. It adds an additional safety margin, because even with a thorough understanding
+ * of block serialization, it's easy to make a costly mistake when trying to squeeze every last byte.
+ * Setting a lower value is prevented at startup. */
+static constexpr unsigned int MINIMUM_BLOCK_RESERVED_WEIGHT{2000};
 /** Default for -blockmintxfee, which sets the minimum feerate for a transaction in blocks created by mining code **/
 static constexpr unsigned int DEFAULT_BLOCK_MIN_TX_FEE{1000};
 
 static constexpr unsigned int DEFAULT_SIGNED_BLOCK_WEIGHT{1024000};
 
+static constexpr unsigned int DEFAULT_SIGNED_BLOCK_RESERVE{5};
+
+static constexpr unsigned int NUMOF_NEWASSET_IN_BLOCK{256};
+
+static constexpr unsigned int UTXO_FEE{100};
+
 /** The maximum weight for transactions we're willing to relay/mine */
 static constexpr int32_t MAX_STANDARD_TX_WEIGHT{400000};
-/** The maximum weight for transactions we're willing to relay/mine for asset */
 static constexpr unsigned int MAX_STANDARD_TX_WEIGHT_ASSET{4000000};
 /** The minimum non-witness size for transactions we're willing to relay/mine: one larger than 64  */
 static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
@@ -36,6 +48,8 @@ static constexpr unsigned int MIN_STANDARD_TX_NONWITNESS_SIZE{65};
 static constexpr unsigned int MAX_P2SH_SIGOPS{15};
 /** The maximum number of sigops we're willing to relay/mine in a single tx */
 static constexpr unsigned int MAX_STANDARD_TX_SIGOPS_COST{MAX_BLOCK_SIGOPS_COST/5};
+/** The maximum number of potentially executed legacy signature operations in a single standard tx */
+static constexpr unsigned int MAX_TX_LEGACY_SIGOPS{2'500};
 /** Default for -incrementalrelayfee, which sets the minimum feerate increase for mempool limiting or replacement **/
 static constexpr unsigned int DEFAULT_INCREMENTAL_RELAY_FEE{1000};
 /** Default for -bytespersigop */
@@ -48,6 +62,8 @@ static constexpr unsigned int MAX_STANDARD_P2WSH_STACK_ITEMS{100};
 static constexpr unsigned int MAX_STANDARD_P2WSH_STACK_ITEM_SIZE{80};
 /** The maximum size in bytes of each witness stack item in a standard BIP 342 script (Taproot, leaf version 0xc0) */
 static constexpr unsigned int MAX_STANDARD_TAPSCRIPT_STACK_ITEM_SIZE{80};
+/** The maximum size in bytes of each witness stack item in a standard P2TSH script */
+static constexpr unsigned int MAX_STANDARD_P2TSH_STACK_ITEM_SIZE{8000};
 /** The maximum size in bytes of a standard witnessScript */
 static constexpr unsigned int MAX_STANDARD_P2WSH_SCRIPT_SIZE{3600};
 /** The maximum size of a standard ScriptSig */
@@ -71,10 +87,9 @@ static constexpr unsigned int DEFAULT_DESCENDANT_SIZE_LIMIT_KVB{101};
 /** Default for -datacarrier */
 static const bool DEFAULT_ACCEPT_DATACARRIER = true;
 /**
- * Default setting for -datacarriersize. 80 bytes of data, +1 for OP_RETURN,
- * +2 for the pushdata opcodes.
+ * Default setting for -datacarriersize in vbytes.
  */
-static const unsigned int MAX_OP_RETURN_RELAY = 83;
+static const unsigned int MAX_OP_RETURN_RELAY = MAX_STANDARD_TX_WEIGHT / WITNESS_SCALE_FACTOR;
 /**
  * An extra transaction can be added to a package, as long as it only has one
  * ancestor and is no larger than this. Not really any reason to make this
@@ -82,6 +97,10 @@ static const unsigned int MAX_OP_RETURN_RELAY = 83;
  */
 static constexpr unsigned int EXTRA_DESCENDANT_TX_SIZE_LIMIT{10000};
 
+/**
+ * Maximum number of ephemeral dust outputs allowed.
+ */
+static constexpr unsigned int MAX_DUST_OUTPUTS_PER_TX{1};
 
 /**
  * Mandatory script verification flags that all new transactions must comply with for
@@ -97,13 +116,14 @@ static constexpr unsigned int MANDATORY_SCRIPT_VERIFY_FLAGS{SCRIPT_VERIFY_P2SH |
                                                              SCRIPT_VERIFY_CHECKLOCKTIMEVERIFY |
                                                              SCRIPT_VERIFY_CHECKSEQUENCEVERIFY |
                                                              SCRIPT_VERIFY_WITNESS |
-                                                             SCRIPT_VERIFY_TAPROOT};
+                                                             SCRIPT_VERIFY_TAPROOT |
+                                                             SCRIPT_VERIFY_P2TSH};
 
 /**
  * Standard script verification flags that standard transactions will comply
  * with. However we do not ban/disconnect nodes that forward txs violating
  * the additional (non-mandatory) rules here, to improve forwards and
- * backwards compatability.
+ * backwards compatibility.
  */
 static constexpr unsigned int STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERIFY_FLAGS |
                                                              SCRIPT_VERIFY_STRICTENC |
@@ -118,7 +138,8 @@ static constexpr unsigned int STANDARD_SCRIPT_VERIFY_FLAGS{MANDATORY_SCRIPT_VERI
                                                              SCRIPT_VERIFY_CONST_SCRIPTCODE |
                                                              SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_TAPROOT_VERSION |
                                                              SCRIPT_VERIFY_DISCOURAGE_OP_SUCCESS |
-                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE};
+                                                             SCRIPT_VERIFY_DISCOURAGE_UPGRADABLE_PUBKEYTYPE |
+                                                             SCRIPT_VERIFY_P2TSH};
 
 /** For convenience, standard but not mandatory verify flags. */
 static constexpr unsigned int STANDARD_NOT_MANDATORY_VERIFY_FLAGS{STANDARD_SCRIPT_VERIFY_FLAGS & ~MANDATORY_SCRIPT_VERIFY_FLAGS};
@@ -130,13 +151,15 @@ CAmount GetDustThreshold(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
 bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFee);
 
-bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_datacarrier_bytes, TxoutType& whichType);
+bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType);
 
+/** Get the vout index numbers of all dust outputs */
+std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate);
 
 // Changing the default transaction version requires a two step process: first
 // adapting relay policy by bumping TX_MAX_STANDARD_VERSION, and then later
 // allowing the new transaction version in the wallet/RPC.
-static constexpr decltype(CTransaction::nVersion) TX_MAX_STANDARD_VERSION{2};
+static constexpr decltype(CTransaction::version) TX_MAX_STANDARD_VERSION{3};
 
 /**
 * Check for standard transaction types
@@ -174,5 +197,7 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
 }
 
 bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs);
+
+uint256 getAssetHash(const std::vector<unsigned char>& assetId);
 
 #endif // BITCOIN_POLICY_POLICY_H

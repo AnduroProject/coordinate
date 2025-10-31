@@ -27,7 +27,7 @@ std::vector<bool> BytesToBits(const std::vector<unsigned char>& bytes)
     return ret;
 }
 
-CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<uint256>* txids)
+CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<Txid>* txids)
 {
     header = block.GetBlockHeader();
 
@@ -39,7 +39,7 @@ CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std:
 
     for (unsigned int i = 0; i < block.vtx.size(); i++)
     {
-        const uint256& hash = block.vtx[i]->GetHash();
+        const Txid& hash{block.vtx[i]->GetHash()};
         if (txids && txids->count(hash)) {
             vMatch.push_back(true);
         } else if (filter && filter->IsRelevantAndUpdate(*block.vtx[i])) {
@@ -54,6 +54,35 @@ CMerkleBlock::CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std:
     txn = CPartialMerkleTree(vHashes, vMatch);
 }
 
+CMerkleBlock::CMerkleBlock(const CBlock& block,  std::vector<CTransactionRef> vtx, CBloomFilter* filter, const std::set<Txid>* txids)
+{
+    header = block.GetBlockHeader();
+
+    std::vector<bool> vMatch;
+    std::vector<uint256> vHashes;
+
+    vMatch.reserve(vtx.size());
+    vHashes.reserve(vtx.size());
+
+    for (unsigned int i = 0; i < vtx.size(); i++)
+    {
+        const Txid& hash{vtx[i]->GetHash()};
+        if (txids && txids->count(hash)) {
+            vMatch.push_back(true);
+        } else if (filter && filter->IsRelevantAndUpdate(*vtx[i])) {
+            vMatch.push_back(true);
+            vMatchedTxn.emplace_back(i, hash);
+        } else {
+            vMatch.push_back(false);
+        }
+        vHashes.push_back(hash);
+    }
+
+    txn = CPartialMerkleTree(vHashes, vMatch);
+}
+
+
+// NOLINTNEXTLINE(misc-no-recursion)
 uint256 CPartialMerkleTree::CalcHash(int height, unsigned int pos, const std::vector<uint256> &vTxid) {
     //we can never have zero txs in a merkle block, we always need the coinbase tx
     //if we do not have this assert, we can hit a memory access violation when indexing into vTxid
@@ -74,6 +103,7 @@ uint256 CPartialMerkleTree::CalcHash(int height, unsigned int pos, const std::ve
     }
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 void CPartialMerkleTree::TraverseAndBuild(int height, unsigned int pos, const std::vector<uint256> &vTxid, const std::vector<bool> &vMatch) {
     // determine whether this node is the parent of at least one matched txid
     bool fParentOfMatch = false;
@@ -92,6 +122,7 @@ void CPartialMerkleTree::TraverseAndBuild(int height, unsigned int pos, const st
     }
 }
 
+// NOLINTNEXTLINE(misc-no-recursion)
 uint256 CPartialMerkleTree::TraverseAndExtract(int height, unsigned int pos, unsigned int &nBitsUsed, unsigned int &nHashUsed, std::vector<uint256> &vMatch, std::vector<unsigned int> &vnIndex) {
     if (nBitsUsed >= vBits.size()) {
         // overflowed the bits array - failure

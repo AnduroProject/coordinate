@@ -17,6 +17,8 @@
 
 #include <boost/test/unit_test.hpp>
 
+using util::SplitString;
+
 static UniValue JSON(std::string_view json)
 {
     UniValue value;
@@ -150,14 +152,14 @@ BOOST_AUTO_TEST_CASE(rpc_rawparams)
     BOOST_CHECK_THROW(CallRPC("decoderawtransaction"), std::runtime_error);
     BOOST_CHECK_THROW(CallRPC("decoderawtransaction null"), std::runtime_error);
     BOOST_CHECK_THROW(CallRPC("decoderawtransaction DEADBEEF"), std::runtime_error);
-    std::string rawtx = "0100000001a15d57094aa7a21a28cb20b59aab8fc7d1149a3bdbcddba9c622e4f5f6a99ece010000006c493046022100f93bb0e7d8db7bd46e40132d1f8242026e045f03a0efe71bbb8e3f475e970d790221009337cd7f1f929f00cc6ff01f03729b069a7c21b59b1736ddfee5db5946c5da8c0121033b9b137ee87d5a812d6f506efdd37f0affa7ffc310711c06c7f3e097c9447c52ffffffff0100e1f505000000001976a9140389035a9225b3839e2bbf32d826a1e222031fd888ac00000000";
-    BOOST_CHECK_NO_THROW(r = CallRPC(std::string("decoderawtransaction ")+rawtx));
-    BOOST_CHECK_EQUAL(r.get_obj().find_value("size").getInt<int>(), 193);
-    BOOST_CHECK_EQUAL(r.get_obj().find_value("version").getInt<int>(), 1);
-    BOOST_CHECK_EQUAL(r.get_obj().find_value("locktime").getInt<int>(), 0);
-    BOOST_CHECK_THROW(CallRPC(std::string("decoderawtransaction ")+rawtx+" extra"), std::runtime_error);
-    BOOST_CHECK_NO_THROW(r = CallRPC(std::string("decoderawtransaction ")+rawtx+" false"));
-    BOOST_CHECK_THROW(r = CallRPC(std::string("decoderawtransaction ")+rawtx+" false extra"), std::runtime_error);
+
+    std::string rawtx = "020000000001018eee3117ad6619f59b5ffe82469fac06568b509d6589b08c0cff39f8bb374fb0000000000000fdffffff0200e1f505000000001600149cda0de94e384ca38c057124a489523b4d92637cc0ca4403000000001600141a0a0776e138371bb68034648589f2940fc7e43f0247304402204e96d50850737750de5bfbc797cdac06045657945dc487b5cb83233e77d40f19022010db62f9daa3eecabdb543c81d39636b71e77228f5dbfd3adc66e59b7ab8763101210263f7df4d9b8ba0035e28325e2643b762d97185ff147df713fc58dceb6746544fe8030000";
+    BOOST_CHECK_NO_THROW(r = CallRPC(std::string("decoderawtransaction ") + rawtx));
+    BOOST_CHECK_EQUAL(r.get_obj().find_value("size").getInt<int>(), 223);
+    BOOST_CHECK_EQUAL(r.get_obj().find_value("version").getInt<int>(), 2);
+    BOOST_CHECK_EQUAL(r.get_obj().find_value("locktime").getInt<int>(), 1000);
+    BOOST_CHECK_THROW(CallRPC(std::string("decoderawtransaction ") + rawtx + " extra"), std::runtime_error);
+    BOOST_CHECK_THROW(r = CallRPC(std::string("decoderawtransaction ") + rawtx + " false extra"), std::runtime_error);
 
     // Only check failure cases for sendrawtransaction, there's no network to send to...
     BOOST_CHECK_THROW(CallRPC("sendrawtransaction"), std::runtime_error);
@@ -291,6 +293,7 @@ BOOST_AUTO_TEST_CASE(rpc_parse_monetary_values)
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("1e-8")), COIN/100000000);
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("0.1e-7")), COIN/100000000);
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("0.01e-6")), COIN/100000000);
+    BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("0.00000000000000000000000000000000000001e+30")), 1);
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("0.0000000000000000000000000000000000000000000000000000000000000000000000000001e+68")), COIN/100000000);
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("10000000000000000000000000000000000000000000000000000000000000000e-64")), COIN);
     BOOST_CHECK_EQUAL(AmountFromValue(ValueFromString("0.000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000e64")), COIN);
@@ -425,6 +428,7 @@ BOOST_AUTO_TEST_CASE(rpc_getblockstats_calculate_percentiles_by_weight)
 {
     int64_t total_weight = 200;
     std::vector<std::pair<CAmount, int64_t>> feerates;
+    feerates.reserve(200);
     CAmount result[NUM_GETBLOCKSTATS_PERCENTILES] = { 0 };
 
     for (int64_t i = 0; i < 100; i++) {
@@ -550,35 +554,89 @@ BOOST_AUTO_TEST_CASE(help_example)
 {
     // test different argument types
     const RPCArgList& args = {{"foo", "bar"}, {"b", true}, {"n", 1}};
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", args), "> coordinate-cli -named test foo=bar b=true n=1\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", args), "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"foo\":\"bar\",\"b\":true,\"n\":1}}' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", args), "> bitcoin-cli -named test foo=bar b=true n=1\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", args), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"foo\":\"bar\",\"b\":true,\"n\":1}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
 
     // test shell escape
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b'ar"}}), "> coordinate-cli -named test foo='b'''ar'\n");
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b\"ar"}}), "> coordinate-cli -named test foo='b\"ar'\n");
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b ar"}}), "> coordinate-cli -named test foo='b ar'\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b'ar"}}), "> bitcoin-cli -named test foo='b'''ar'\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b\"ar"}}), "> bitcoin-cli -named test foo='b\"ar'\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"foo", "b ar"}}), "> bitcoin-cli -named test foo='b ar'\n");
 
     // test object params
     UniValue obj_value(UniValue::VOBJ);
     obj_value.pushKV("foo", "bar");
     obj_value.pushKV("b", false);
     obj_value.pushKV("n", 1);
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", obj_value}}), "> coordinate-cli -named test name='{\"foo\":\"bar\",\"b\":false,\"n\":1}'\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", obj_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":{\"foo\":\"bar\",\"b\":false,\"n\":1}}}' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", obj_value}}), "> bitcoin-cli -named test name='{\"foo\":\"bar\",\"b\":false,\"n\":1}'\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", obj_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":{\"foo\":\"bar\",\"b\":false,\"n\":1}}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
 
     // test array params
     UniValue arr_value(UniValue::VARR);
     arr_value.push_back("bar");
     arr_value.push_back(false);
     arr_value.push_back(1);
-    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", arr_value}}), "> coordinate-cli -named test name='[\"bar\",false,1]'\n");
-    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", arr_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"1.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":[\"bar\",false,1]}}' -H 'content-type: text/plain;' http://127.0.0.1:8332/\n");
+    BOOST_CHECK_EQUAL(HelpExampleCliNamed("test", {{"name", arr_value}}), "> bitcoin-cli -named test name='[\"bar\",false,1]'\n");
+    BOOST_CHECK_EQUAL(HelpExampleRpcNamed("test", {{"name", arr_value}}), "> curl --user myusername --data-binary '{\"jsonrpc\": \"2.0\", \"id\": \"curltest\", \"method\": \"test\", \"params\": {\"name\":[\"bar\",false,1]}}' -H 'content-type: application/json' http://127.0.0.1:8332/\n");
 
     // test types don't matter for shell
     BOOST_CHECK_EQUAL(HelpExampleCliNamed("foo", {{"arg", true}}), HelpExampleCliNamed("foo", {{"arg", "true"}}));
 
     // test types matter for Rpc
     BOOST_CHECK_NE(HelpExampleRpcNamed("foo", {{"arg", true}}), HelpExampleRpcNamed("foo", {{"arg", "true"}}));
+}
+
+static void CheckRpc(const std::vector<RPCArg>& params, const UniValue& args, RPCHelpMan::RPCMethodImpl test_impl)
+{
+    auto null_result{RPCResult{RPCResult::Type::NONE, "", "None"}};
+    const RPCHelpMan rpc{"dummy", "dummy description", params, null_result, RPCExamples{""}, test_impl};
+    JSONRPCRequest req;
+    req.params = args;
+
+    rpc.HandleRequest(req);
+}
+
+BOOST_AUTO_TEST_CASE(rpc_arg_helper)
+{
+    constexpr bool DEFAULT_BOOL = true;
+    constexpr auto DEFAULT_STRING = "default";
+    constexpr uint64_t DEFAULT_UINT64_T = 3;
+
+    //! Parameters with which the RPCHelpMan is instantiated
+    const std::vector<RPCArg> params{
+        // Required arg
+        {"req_int", RPCArg::Type::NUM, RPCArg::Optional::NO, ""},
+        {"req_str", RPCArg::Type::STR, RPCArg::Optional::NO, ""},
+        // Default arg
+        {"def_uint64_t", RPCArg::Type::NUM, RPCArg::Default{DEFAULT_UINT64_T}, ""},
+        {"def_string", RPCArg::Type::STR, RPCArg::Default{DEFAULT_STRING}, ""},
+        {"def_bool", RPCArg::Type::BOOL, RPCArg::Default{DEFAULT_BOOL}, ""},
+        // Optional arg without default
+        {"opt_double", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, ""},
+        {"opt_string", RPCArg::Type::STR, RPCArg::Optional::OMITTED, ""}
+    };
+
+    //! Check that `self.Arg` returns the same value as the `request.params` accessors
+    RPCHelpMan::RPCMethodImpl check_positional = [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
+            BOOST_CHECK_EQUAL(self.Arg<int>("req_int"), request.params[0].getInt<int>());
+            BOOST_CHECK_EQUAL(self.Arg<std::string>("req_str"), request.params[1].get_str());
+            BOOST_CHECK_EQUAL(self.Arg<uint64_t>("def_uint64_t"), request.params[2].isNull() ? DEFAULT_UINT64_T : request.params[2].getInt<uint64_t>());
+            BOOST_CHECK_EQUAL(self.Arg<std::string>("def_string"), request.params[3].isNull() ? DEFAULT_STRING : request.params[3].get_str());
+            BOOST_CHECK_EQUAL(self.Arg<bool>("def_bool"), request.params[4].isNull() ? DEFAULT_BOOL : request.params[4].get_bool());
+            if (!request.params[5].isNull()) {
+                BOOST_CHECK_EQUAL(self.MaybeArg<double>("opt_double").value(), request.params[5].get_real());
+            } else {
+                BOOST_CHECK(!self.MaybeArg<double>("opt_double"));
+            }
+            if (!request.params[6].isNull()) {
+                BOOST_CHECK(self.MaybeArg<std::string>("opt_string"));
+                BOOST_CHECK_EQUAL(*self.MaybeArg<std::string>("opt_string"), request.params[6].get_str());
+            } else {
+                BOOST_CHECK(!self.MaybeArg<std::string>("opt_string"));
+            }
+            return UniValue{};
+        };
+    CheckRpc(params, UniValue{JSON(R"([5, "hello", null, null, null, null, null])")}, check_positional);
+    CheckRpc(params, UniValue{JSON(R"([5, "hello", 4, "test", true, 1.23, "world"])")}, check_positional);
 }
 
 BOOST_AUTO_TEST_SUITE_END()

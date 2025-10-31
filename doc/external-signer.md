@@ -11,8 +11,10 @@ When using a hardware wallet, consult the manufacturer website for (alternative)
 Start Bitcoin Core:
 
 ```sh
-$ coordinated -signer=../HWI/hwi.py
+$ bitcoind -signer=../HWI/hwi.py
 ```
+
+`bitcoin node` can also be substituted for `bitcoind`.
 
 ### Device setup
 
@@ -23,7 +25,7 @@ Follow the hardware manufacturers instructions for the initial device setup, as 
 Get a list of signing devices / services:
 
 ```
-$ coordinate-cli enumeratesigners
+$ bitcoin-cli enumeratesigners
 {
   "signers": [
     {
@@ -37,16 +39,18 @@ The master key fingerprint is used to identify a device.
 Create a wallet, this automatically imports the public keys:
 
 ```sh
-$ coordinate-cli createwallet "hww" true true "" true true true
+$ bitcoin-cli createwallet "hww" true true "" true true true
 ```
+
+`bitcoin rpc` can also be substituted for `bitcoin-cli`.
 
 ### Verify an address
 
 Display an address on the device:
 
 ```sh
-$ coordinate-cli -rpcwallet=<wallet> getnewaddress
-$ coordinate-cli -rpcwallet=<wallet> walletdisplayaddress <address>
+$ bitcoin-cli -rpcwallet=<wallet> getnewaddress
+$ bitcoin-cli -rpcwallet=<wallet> walletdisplayaddress <address>
 ```
 
 Replace `<address>` with the result of `getnewaddress`.
@@ -56,7 +60,7 @@ Replace `<address>` with the result of `getnewaddress`.
 Under the hood this uses a [Partially Signed Bitcoin Transaction](psbt.md).
 
 ```sh
-$ coordinate-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
+$ bitcoin-cli -rpcwallet=<wallet> sendtoaddress <address> <amount>
 ```
 
 This prompts your hardware wallet to sign, and fail if it's not connected. If successful
@@ -149,6 +153,9 @@ Example, display the first native SegWit receive address on Testnet:
 ```
 
 The command MUST be able to figure out the address type from the descriptor.
+
+The command MUST return an object containing `{"address": "[the address]"}`.
+As a sanity check, for devices that support this, it SHOULD ask the device to derive the address.
 
 If <descriptor> contains a master key fingerprint, the command MUST fail if it does not match the fingerprint known by the device.
 

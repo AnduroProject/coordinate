@@ -1,6 +1,6 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2009-2014 The Bitcoin developers
-// Copyright (c) 2014-2021 Daniel Kraft
+// Copyright (c) 2014-2023 Daniel Kraft
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -34,27 +34,13 @@ static const unsigned char pchMergedMiningHeader[] = { 0xfa, 0xbe, 'm', 'm' };
 
 /**
  * Data for the merge-mining auxpow.  This uses a merkle tx (the parent block's
- * coinbase tx) and a second merkle branch to link the actual coordinate block
+ * coinbase tx) and a second merkle branch to link the actual Namecoin block
  * header to the parent block header, which is mined to satisfy the PoW.
  */
 class CAuxPow
 {
 
 private:
-
-  /**
-   * Check a merkle branch.  This used to be in CBlock, but was removed
-   * upstream.  Thus include it here now.
-   */
-  static uint256 CheckMerkleBranch (uint256 hash,
-                                    const std::vector<uint256>& vMerkleBranch,
-                                    int nIndex);
-
-  friend UniValue AuxpowToJSON(const CAuxPow& auxpow, bool verbose,
-                               Chainstate& active_chainstate);
-  friend class auxpow_tests::CAuxPowForTest;
-
-public:
 
   /** The parent block's coinbase transaction.  */
   CTransactionRef coinbaseTx;
@@ -70,6 +56,20 @@ public:
 
   /** Parent block header (on which the real PoW is done).  */
   CPureBlockHeader parentBlock;
+
+  /**
+   * Check a merkle branch.  This used to be in CBlock, but was removed
+   * upstream.  Thus include it here now.
+   */
+  static uint256 CheckMerkleBranch (uint256 hash,
+                                    const std::vector<uint256>& vMerkleBranch,
+                                    int nIndex);
+
+  friend UniValue AuxpowToJSON(const CAuxPow& auxpow, bool verbose,
+                               Chainstate& active_chainstate);
+  friend class auxpow_tests::CAuxPowForTest;
+
+public:
 
   /* Prevent accidental conversion.  */
   inline explicit CAuxPow (CTransactionRef&& txIn)
@@ -97,11 +97,11 @@ public:
     int nIndex = 0;
 
     /* Data from the coinbase transaction as Merkle tx.  */
-    READWRITE (obj.coinbaseTx, hashBlock, obj.vMerkleBranch, nIndex);
+    READWRITE (TX_WITH_WITNESS (obj.coinbaseTx), hashBlock,
+               obj.vMerkleBranch, nIndex);
 
     /* Additional data for the auxpow itself.  */
     READWRITE (obj.vChainMerkleBranch, obj.nChainIndex, obj.parentBlock);
-
   }
 
   /**
@@ -163,6 +163,7 @@ public:
   static CPureBlockHeader& initAuxPow (CBlockHeader& header);
 
   std::string validateParentScript(int nChainId, std::vector<unsigned char> vchRootHash, const CScript script) const;
+
 };
 
 #endif // BITCOIN_AUXPOW_H

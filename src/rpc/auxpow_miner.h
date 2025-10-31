@@ -1,10 +1,11 @@
-// Copyright (c) 2018-2020 Daniel Kraft
+// Copyright (c) 2018-2024 Daniel Kraft
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_RPC_AUXPOW_MINER_H
 #define BITCOIN_RPC_AUXPOW_MINER_H
 
+#include <interfaces/mining.h>
 #include <node/miner.h>
 #include <rpc/request.h>
 #include <script/script.h>
@@ -19,6 +20,7 @@
 #include <vector>
 
 class ChainstateManager;
+
 namespace auxpow_tests
 {
 class AuxpowMinerForTest;
@@ -39,10 +41,10 @@ private:
 
   /** The lock used for state in this object.  */
   mutable RecursiveMutex cs;
-  /** All currently "active" block templates.  */
-  std::vector<std::unique_ptr<node::CBlockTemplate>> templates;
+  /** All currently "active" blocks.  */
+  std::vector<std::unique_ptr<CBlock>> blocks;
   /** Maps block hashes to pointers in vTemplates.  Does not own the memory.  */
-  std::map<uint256, const CBlock*> blocks;
+  std::map<uint256, const CBlock*> mapBlocks;
   /** Maps coinbase script hashes to pointers in vTemplates.  Does not own the memory.  */
   std::map<CScriptID, const CBlock*> curBlocks;
 
@@ -60,7 +62,8 @@ private:
    * that should be returned to a miner for working on at the moment.  Also
    * fills in the difficulty target value.
    */
-  const CBlock* getCurrentBlock (const ChainstateManager& chainman,
+  const CBlock* getCurrentBlock (ChainstateManager& chainman,
+                                 interfaces::Mining& miner,
                                  const CTxMemPool& mempool,
                                  const CScript& scriptPubKey, uint256& target)
       EXCLUSIVE_LOCKS_REQUIRED (cs);
@@ -86,13 +89,6 @@ public:
   UniValue createAuxBlock (const JSONRPCRequest& request,
                            const CScript& scriptPubKey);
 
-  /**
-   * Performs the main work for the "createauxblock" RPC:  Construct a new block
-   * to work on with the given address for the block reward and return the
-   * block hex
-   */
-  UniValue createAuxBlockHex (const JSONRPCRequest& request,
-                           const CScript& scriptPubKey);
   /**
    * Performs the main work for the "submitauxblock" RPC:  Look up the block
    * previously created for the given hash, attach the given auxpow to it

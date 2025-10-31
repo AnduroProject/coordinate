@@ -35,6 +35,7 @@ static RPCHelpMan gettxoutproof()
                 },
             },
             {"blockhash", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "If specified, looks for txid in the block with this hash"},
+            {"type", RPCArg::Type::NUM, RPCArg::Optional::OMITTED, "0 - normal transaction \n 1 - signedblock transaction \n 2 - pegin transaction"  },
         },
         RPCResult{
             RPCResult::Type::STR, "data", "A string that is a serialized, hex-encoded data for the proof."
@@ -42,21 +43,65 @@ static RPCHelpMan gettxoutproof()
         RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            std::set<uint256> setTxids;
+            std::set<Txid> setTxids;
             UniValue txids = request.params[0].get_array();
+            int transaction_type = request.params[2].isNull() ? 0 : request.params[2].getInt<int>();
             if (txids.empty()) {
                 throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter 'txids' cannot be empty");
             }
             for (unsigned int idx = 0; idx < txids.size(); idx++) {
-                auto ret = setTxids.insert(ParseHashV(txids[idx], "txid"));
+                auto ret = setTxids.insert(Txid::FromUint256(ParseHashV(txids[idx], "txid")));
                 if (!ret.second) {
                     throw JSONRPCError(RPC_INVALID_PARAMETER, std::string("Invalid parameter, duplicated txid: ") + txids[idx].get_str());
                 }
             }
 
+            if((transaction_type == 1 || transaction_type == 2) && request.params[1].isNull()) {
+                throw JSONRPCError(RPC_INVALID_PARAMETER, "Parameter 'block hash' required for signed block and pegin");
+            }
+
             const CBlockIndex* pblockindex = nullptr;
             uint256 hashBlock;
             ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            
+            if(transaction_type == 1 || transaction_type == 2) {
+                SignedTxindex signedTxIndex;
+                for (const auto& tx : setTxids) {
+                    chainman.ActiveChainstate().psignedblocktree->getTxPosition(tx,signedTxIndex);
+                    if(signedTxIndex.pos == -1) {
+                        throw JSONRPCError(RPC_INVALID_PARAMETER, "Invalid signed block hash");
+                    }
+                }
+
+                LOCK(cs_main);
+                CChain& active_chain = chainman.ActiveChain();
+                CBlock block;
+                if (!chainman.m_blockman.ReadBlock(block, *active_chain[signedTxIndex.blockIndex])) {
+                    throw JSONRPCError(RPC_INVALID_PARAMETER, "block not found");
+                }
+
+                std::vector<CTransactionRef> vtx;
+                if(transaction_type == 1) {
+                    SignedBlock signed_block;
+                    for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
+                        if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
+                            signed_block = preconfBlockItem;
+                            break;
+                        }
+                    }
+                    vtx = signed_block.vtx;
+                } else {
+                    vtx = block.pegins;
+                }
+
+
+                DataStream ssMB{};
+                CMerkleBlock mb(block, vtx, setTxids);
+                ssMB << mb;
+                std::string strHex = HexStr(ssMB);
+                return strHex;
+            }
+
             if (!request.params[1].isNull()) {
                 LOCK(cs_main);
                 hashBlock = ParseHashV(request.params[1], "blockhash");
@@ -70,7 +115,7 @@ static RPCHelpMan gettxoutproof()
 
                 // Loop through txids and try to find which block they're in. Exit loop once a block is found.
                 for (const auto& tx : setTxids) {
-                    const Coin& coin = AccessByTxid(active_chainstate.CoinsTip(), tx);
+                    const Coin& coin = AccessByTxid(active_chainstate.CoinsTip(), Txid::FromUint256(tx));
                     if (!coin.IsSpent()) {
                         pblockindex = active_chainstate.m_chain[coin.nHeight];
                         break;
@@ -98,7 +143,7 @@ static RPCHelpMan gettxoutproof()
             }
 
             CBlock block;
-            if (!chainman.m_blockman.ReadBlockFromDisk(block, *pblockindex)) {
+            if (!chainman.m_blockman.ReadBlock(block, *pblockindex)) {
                 throw JSONRPCError(RPC_INTERNAL_ERROR, "Can't read block from disk");
             }
 
@@ -121,10 +166,12 @@ static RPCHelpMan gettxoutproof()
     };
 }
 
+
 static RPCHelpMan verifytxoutproof()
 {
-    return RPCHelpMan{"verifytxoutproof",
-        "\nVerifies that a proof points to a transaction in a block, returning the transaction it commits to\n"
+    return RPCHelpMan{
+        "verifytxoutproof",
+        "Verifies that a proof points to a transaction in a block, returning the transaction it commits to\n"
         "and throwing an RPC error if the block is not in our best chain\n",
         {
             {"proof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex-encoded proof generated by gettxoutproof"},
@@ -138,70 +185,24 @@ static RPCHelpMan verifytxoutproof()
         RPCExamples{""},
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            LogPrintf("no matches found 0\n");
-
             DataStream ssMB{ParseHexV(request.params[0], "proof")};
             CMerkleBlock merkleBlock;
             ssMB >> merkleBlock;
 
-            LogPrintf("no matches found 1\n");
-
-            ChainstateManager& chainman = EnsureAnyChainman(request.context);
-            LOCK(cs_main);
-
-            LogPrintf("no matches found 2\n");
-
-            const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(merkleBlock.header.GetHash());
-            if (!pindex || !chainman.ActiveChain().Contains(pindex) || pindex->nTx == 0) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Raw Block not found in chain");
-            }
-
-            LogPrintf("no matches found 3\n");
-
-            CChain& active_chain = chainman.ActiveChain();
-            if(active_chain.Height() < (pindex->nHeight + 4)){
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block is not finalized");
-            }
-
-            LogPrintf("no matches found 4\n");
-
-            CBlock finalblock;
-            if (!chainman.m_blockman.ReadBlockFromDisk(finalblock, *CHECK_NONFATAL(active_chain[(pindex->nHeight + 4)]))) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Finalized Block not found in chain");
-            } 
-
-          
-            
             UniValue res(UniValue::VARR);
 
             std::vector<uint256> vMatch;
             std::vector<unsigned int> vIndex;
-            uint256 producedRoot = merkleBlock.txn.ExtractMatches(vMatch, vIndex);
+            merkleBlock.txn.ExtractMatches(vMatch, vIndex);
+            // if (merkleBlock.txn.ExtractMatches(vMatch, vIndex) != merkleBlock.header.hashMerkleRoot)
+            //     return res;
 
-            LogPrintf("no matches found 5 %s\n", producedRoot.ToString());
-            LogPrintf("no matches found 5 %s\n", finalblock.reconciliationBlock.reconcileMerkleRoot.ToString());
-               
-            
-            if (producedRoot != finalblock.reconciliationBlock.reconcileMerkleRoot) {
-                return res;
-            }
+            ChainstateManager& chainman = EnsureAnyChainman(request.context);
+            LOCK(cs_main);
 
- 
-            bool isValid = true;
-            for (size_t i = 0; i < vMatch.size(); i++) {
-                uint256 invHash = vMatch[i];
-                auto it = std::find_if(finalblock.reconciliationBlock.tx.begin(), finalblock.reconciliationBlock.tx.end(), 
-                [invHash] (const ReconciliationInvalidTx& d) { 
-                    return d.txHash == invHash;
-                });
-                if(it != finalblock.reconciliationBlock.tx.end()) {
-                    isValid = false;
-                    break;
-                }
-            }
-
-            if(!isValid){
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Transaction proof indicate, that the tx was invalid");
+            const CBlockIndex* pindex = chainman.m_blockman.LookupBlockIndex(merkleBlock.header.GetHash());
+            if (!pindex || !chainman.ActiveChain().Contains(pindex) || pindex->nTx == 0) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found in chain");
             }
 
             // Check if proof is valid, only add results if so
@@ -215,6 +216,7 @@ static RPCHelpMan verifytxoutproof()
         },
     };
 }
+
 
 void RegisterTxoutProofRPCCommands(CRPCTable& t)
 {

@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 Daniel Kraft
+// Copyright (c) 2018-2024 Daniel Kraft
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -14,18 +14,16 @@
 #include <rpc/protocol.h>
 #include <rpc/request.h>
 #include <rpc/server_util.h>
-#include <rpc/server.h>
-#include <rpc/util.h>
 #include <util/strencodings.h>
 #include <util/time.h>
-#include <auxpow.h>
+#include <validation.h>
+
 #include <cassert>
-#include <logging.h>
 
 namespace
 {
 
-using node::BlockAssembler;
+using interfaces::Mining;
 
 void auxMiningCheck(const node::NodeContext& node)
 {
@@ -35,12 +33,11 @@ void auxMiningCheck(const node::NodeContext& node)
   if (connman.GetNodeCount (ConnectionDirection::Both) == 0
         && !Params ().MineBlocksOnDemand ())
     throw JSONRPCError (RPC_CLIENT_NOT_CONNECTED,
-                        "Coordinate is not connected!");
+                        "Namecoin is not connected!");
 
-  if (chainman.IsInitialBlockDownload ()
-        && !Params ().MineBlocksOnDemand ())
+  if (chainman.IsInitialBlockDownload () && !Params ().MineBlocksOnDemand ())
     throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
-                        "Coordinate is downloading blocks...");
+                        "Namecoin is downloading blocks...");
 
   /* This should never fail, since the chain is already
      past the point of merge-mining start.  Check nevertheless.  */
@@ -55,7 +52,7 @@ void auxMiningCheck(const node::NodeContext& node)
 }  // anonymous namespace
 
 const CBlock*
-AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
+AuxpowMiner::getCurrentBlock (ChainstateManager& chainman, Mining& miner,
                               const CTxMemPool& mempool,
                               const CScript& scriptPubKey, uint256& target)
 {
@@ -78,16 +75,19 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
           {
             /* Clear old blocks since they're obsolete now.  */
             blocks.clear ();
-            templates.clear ();
+            mapBlocks.clear ();
             curBlocks.clear ();
           }
 
         /* Create new block with nonce = 0 and extraNonce = 1.  */
-        std::unique_ptr<node::CBlockTemplate> newBlock
-            = BlockAssembler (chainman.ActiveChainstate (), &mempool)
-                .CreateNewBlock (scriptPubKey);
-        if (newBlock == nullptr)
+        node::BlockCreateOptions opt;
+        opt.coinbase_output_script = scriptPubKey;
+        std::unique_ptr<interfaces::BlockTemplate> newTemplate
+            = miner.createNewBlock (opt);
+        if (newTemplate == nullptr)
           throw JSONRPCError (RPC_OUT_OF_MEMORY, "out of memory");
+        blocks.push_back (std::make_unique<CBlock> (newTemplate->getBlock ()));
+        CBlock& newBlock = *blocks.back ();
 
         /* Update state only when CreateNewBlock succeeded.  */
         txUpdatedLast = mempool.GetTransactionsUpdated ();
@@ -95,14 +95,13 @@ AuxpowMiner::getCurrentBlock (const ChainstateManager& chainman,
         startTime = GetTime ();
 
         /* Finalise it by setting the version and building the merkle root.  */
-        newBlock->block.hashMerkleRoot = BlockMerkleRoot (newBlock->block);
-        newBlock->block.SetAuxpowVersion(true);
+        newBlock.hashMerkleRoot = BlockMerkleRoot (newBlock);
+        newBlock.SetAuxpowVersion (true);
 
         /* Save in our map of constructed blocks.  */
-        pblockCur = &newBlock->block;
+        pblockCur = &newBlock;
         curBlocks.emplace(scriptID, pblockCur);
-        blocks[pblockCur->GetHash ()] = pblockCur;
-        templates.push_back (std::move (newBlock));
+        mapBlocks[pblockCur->GetHash ()] = pblockCur;
       }
   }
 
@@ -128,16 +127,16 @@ AuxpowMiner::lookupSavedBlock (const std::string& hashHex) const
 {
   AssertLockHeld (cs);
 
-  uint256 hash;
-  hash.SetHex (hashHex);
+  const auto hash = uint256::FromHex (hashHex);
+  if (!hash)
+    throw JSONRPCError (RPC_INVALID_PARAMETER, "invalid block hash hex");
 
-  const auto iter = blocks.find (hash);
-  if (iter == blocks.end ())
+  const auto iter = mapBlocks.find (*hash);
+  if (iter == mapBlocks.end ())
     throw JSONRPCError (RPC_INVALID_PARAMETER, "block hash unknown");
 
   return iter->second;
 }
-
 
 UniValue
 AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
@@ -145,19 +144,16 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
 {
   LOCK (cs);
 
-  const auto& node = EnsureAnyNodeContext (request.context);
+  const auto& node = EnsureAnyNodeContext (request);
   auxMiningCheck (node);
   const auto& mempool = EnsureMemPool (node);
-  const auto& chainman = EnsureChainman (node);
+  auto& chainman = EnsureChainman (node);
+  auto& mining = EnsureMining (node);
 
   uint256 target;
-  const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
+  const CBlock* pblock = getCurrentBlock (chainman, mining, mempool,
+                                          scriptPubKey, target);
 
-  CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 1);
-  CBlock block = *pblock;
-  CAuxPow::initAuxPow(block);
-  ssTx << block;
-  
   UniValue result(UniValue::VOBJ);
   result.pushKV ("hash", pblock->GetHash ().GetHex ());
   result.pushKV ("chainid", pblock->GetChainId ());
@@ -167,32 +163,7 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   result.pushKV ("bits", strprintf ("%08x", pblock->nBits));
   result.pushKV ("height", static_cast<int64_t> (pindexPrev->nHeight + 1));
   result.pushKV ("_target", HexStr (target));
-  return result;
-}
 
-
-UniValue
-AuxpowMiner::createAuxBlockHex (const JSONRPCRequest& request,
-                             const CScript& scriptPubKey)
-{
-  LOCK (cs);
-
-  const auto& node = EnsureAnyNodeContext (request.context);
-  auxMiningCheck (node);
-  const auto& mempool = EnsureMemPool (node);
-  const auto& chainman = EnsureChainman (node);
-
-  uint256 target;
-  const CBlock* pblock = getCurrentBlock (chainman, mempool, scriptPubKey, target);
-
-  CDataStream ssTx(SER_NETWORK, PROTOCOL_VERSION | 1);
-  CBlock block = *pblock;
-  CAuxPow::initAuxPow(block);
-  ssTx << block;
-  
-  UniValue result(UniValue::VOBJ);
-  result.pushKV ("hex", HexStr(ssTx));
-  result.pushKV ("aux", createAuxBlock(request, scriptPubKey));
   return result;
 }
 
@@ -201,7 +172,7 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
                              const std::string& hashHex,
                              const std::string& auxpowHex) const
 {
-  const auto& node = EnsureAnyNodeContext (request.context);
+  const auto& node = EnsureAnyNodeContext (request);
   auxMiningCheck (node);
   auto& chainman = EnsureChainman (node);
 
@@ -213,18 +184,13 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
   }
 
   const std::vector<unsigned char> vchAuxPow = ParseHex (auxpowHex);
-  CDataStream ss(vchAuxPow, SER_GETHASH, PROTOCOL_VERSION);
+  DataStream ss(vchAuxPow);
   std::unique_ptr<CAuxPow> pow(new CAuxPow ());
   ss >> *pow;
   shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
 
-  if(!shared_block->auxpow) {
-    return false;
-  }
-  LogPrintf("AuxpowMiner::submitAuxBlock \n");
-  return chainman.ProcessNewBlock (shared_block, /*force_processing=*/true,
-                                   /*min_pow_checked=*/true, nullptr);
+  return chainman.ProcessNewBlock (shared_block, true, true, nullptr);
 }
 
 AuxpowMiner&

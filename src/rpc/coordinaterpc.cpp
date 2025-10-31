@@ -6,10 +6,10 @@
 #include <key_io.h>
 #include <rpc/auxpow_miner.h>
 #include <core_io.h>
-#include <anduro_deposit.h>
+#include <coordinate/anduro_deposit.h>
 #include <coordinate/coordinate_mempool_entry.h>
 #include <coordinate/coordinate_pegin.h>
-#include <anduro_validator.h>
+#include <coordinate/anduro_validator.h>
 
 #include <rpc/request.h>
 #include <support/events.h>
@@ -116,41 +116,6 @@ static RPCHelpMan createAuxBlock()
             }
             const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
             return AuxpowMiner::get ().createAuxBlock(request, scriptPubKey);
-        }
-    };
-}
-
-static RPCHelpMan createAuxBlockHex()
-{
-    return RPCHelpMan{
-        "createauxblockhex",
-        "The mining pool to request new coordinate block hex",
-        {
-            {"paytoaddress", RPCArg::Type::STR, RPCArg::Optional::NO, "The coordinate address that the mining pool wants to send the Babylon mining rewards to. Will be written to coordinate coinbase transaction."},
-        },
-        RPCResult{
-            RPCResult::Type::OBJ, "", "",
-            {
-               {RPCResult::Type::STR_HEX, "hex", "The coordinate block hex"},
-                {RPCResult::Type::OBJ, "aux", "aux object",
-                    {
-                        {RPCResult::Type::NUM, "n", "block_height"},
-                    }
-                }
-            },
-        },
-        RPCExamples{
-            HelpExampleCli("createauxblockhex", "90869d013db27608c7428251c6755e5a1d9e9313") +
-            HelpExampleRpc("createauxblockhex", "\"90869d013db27608c7428251c6755e5a1d9e9313\"")
-        },
-        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
-        {
-            const CTxDestination coinbaseScript = DecodeDestination(request.params[0].get_str());
-            if (!IsValidDestination(coinbaseScript)) {
-                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,"Error: Invalid coinbase payout address");
-            }
-            const CScript scriptPubKey = GetScriptForDestination(coinbaseScript);
-            return AuxpowMiner::get ().createAuxBlockHex(request, scriptPubKey);
         }
     };
 }
@@ -307,25 +272,29 @@ static RPCHelpMan listAllAssets() {
             UniValue assets(UniValue::VARR);
             std::vector<CoordinateAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
             ;
-                for (const CoordinateAsset& asset_item : assetList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("id", (uint64_t)asset_item.nID);
-                    obj.pushKV("assettype", asset_item.assetType);
-                    obj.pushKV("precision", asset_item.precision);
-                    obj.pushKV("ticker", asset_item.strTicker);
-                    obj.pushKV("supply", asset_item.nSupply);
-                    obj.pushKV("headline", asset_item.strHeadline);
-                    obj.pushKV("payload", asset_item.payload.ToString());
-                    obj.pushKV("txid", asset_item.txid.ToString());
-                    obj.pushKV("controller", asset_item.strController);
-                    obj.pushKV("owner", asset_item.strOwner);
-                    assets.push_back(obj);
-                }
-                result.pushKV("assets", assets);
-                return result;
-        }
-    };
 
+            for (const CoordinateAsset& asset_item : assetList) {
+                uint64_t blockNumber;
+                uint16_t assetIndex;
+                ParseAssetId(asset_item.nID, blockNumber, assetIndex);
+
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("id", assetIndex);
+                obj.pushKV("blockheight", blockNumber);
+                obj.pushKV("assettype", asset_item.assetType);
+                obj.pushKV("precision", asset_item.precision);
+                obj.pushKV("ticker", asset_item.strTicker);
+                obj.pushKV("supply", asset_item.nSupply);
+                obj.pushKV("headline", asset_item.strHeadline);
+                obj.pushKV("payload", asset_item.payload.ToString());
+                obj.pushKV("txid", asset_item.txid.ToString());
+                obj.pushKV("controller", asset_item.strController);
+                obj.pushKV("owner", asset_item.strOwner);
+                assets.push_back(obj);
+            }
+            result.pushKV("assets", assets);
+            return result;
+        }};
 }
 
 static RPCHelpMan listMempoolAssets() {
@@ -360,19 +329,22 @@ static RPCHelpMan listMempoolAssets() {
                 UniValue assets(UniValue::VARR);
                 std::vector<CoordinateMempoolEntry> assetList = getMempoolAssets();
             ;
-                for (const CoordinateMempoolEntry& assetItem : assetList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("assetId", (uint32_t)assetItem.assetID);
-                    obj.pushKV("txid", assetItem.txid.ToString());
-                    obj.pushKV("vout", (uint32_t)assetItem.vout);
-                     obj.pushKV("nValue", (int64_t)assetItem.nValue);
-                    assets.push_back(obj);
-                }
-                result.pushKV("assets", assets);
-                return result;
-        }
-    };
 
+            for (const CoordinateMempoolEntry& assetItem : assetList) {
+                UniValue obj(UniValue::VOBJ);
+                uint64_t blockNumber;
+                uint16_t assetIndex;
+                ParseAssetId(assetItem.assetID, blockNumber, assetIndex);
+                obj.pushKV("id", assetIndex);
+                obj.pushKV("blockheight", blockNumber);
+                obj.pushKV("txid", assetItem.txid.ToString());
+                obj.pushKV("vout", (uint32_t)assetItem.vout);
+                obj.pushKV("nValue", (int64_t)assetItem.nValue);
+                assets.push_back(obj);
+            }
+            result.pushKV("assets", assets);
+            return result;
+        }};
 }
 
 static RPCHelpMan createPegin()
@@ -418,7 +390,7 @@ static RPCHelpMan createPegin()
     }
 
     CMutableTransaction mtx;
-    mtx.nVersion = TRANSACTION_PEGIN_VERSION;
+    mtx.version = TRANSACTION_PEGIN_VERSION;
     mtx.vin.push_back(buildPeginTxInput(ParseHex(request.params[0].get_str()), ParseHex(request.params[1].get_str()),  request.params[2].get_str(), txOut));
     mtx.vout.push_back(txOut);
     const CTxDestination coinbaseScript = DecodeDestination(request.params[3].get_str());
@@ -433,7 +405,7 @@ static RPCHelpMan createPegin()
     LogPrintf("final value %i \n",mtx.vout[0].nValue);
 
 
-    std::string strHex = EncodeHexTx(CTransaction(mtx), RPCSerializationFlags());
+    std::string strHex = EncodeHexTx(CTransaction(mtx));
     std::string err;
     bool valid = IsValidPeginWitness(mtx.vin[0].scriptWitness, mtx.vin[0].prevout, err);
 
@@ -516,7 +488,6 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
 {
     static const CRPCCommand commands[]{
         {"coordinate", &createAuxBlock},
-        {"coordinate", &createAuxBlockHex},
         {"coordinate", &submitAuxBlock},
         {"coordinate", &getPendingCommitments},
         {"coordinate", &anduroDepositAddress},
