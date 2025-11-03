@@ -26,5 +26,3 @@ target/
 /guix-build-*
 
 /ci/scratch/
-
-libbitcoinpqc
