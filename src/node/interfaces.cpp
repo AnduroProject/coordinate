@@ -975,7 +975,12 @@ public:
 
         BlockAssembler::Options assemble_options{options};
         ApplyArgsManOptions(*Assert(m_node.args), assemble_options);
-        return std::make_unique<BlockTemplateImpl>(assemble_options, BlockAssembler{chainman().ActiveChainstate(), context()->mempool.get(), assemble_options}.CreateNewBlock(), m_node);
+
+        auto new_template = BlockAssembler{chainman().ActiveChainstate(), context()->mempool.get(), assemble_options}.CreateNewBlock();
+        if(new_template) {
+           return std::make_unique<BlockTemplateImpl>(assemble_options, std::move(new_template), m_node);
+        }
+        return {};
     }
 
     bool checkBlock(const CBlock& block, const node::BlockCheckOptions& options, std::string& reason, std::string& debug) override
