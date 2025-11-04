@@ -30,9 +30,6 @@
     RUN mkdir -p /opt/coordinate
     WORKDIR /opt/coordinate
 
-    COPY ./src/bitcoind ./coordinated
-    RUN chmod +x ./coordinated
-
     COPY ./build ./
     RUN chmod +x ./bin/bitcoin-cli
     RUN chmod +x ./bin/bitcoind
