@@ -198,6 +198,4 @@ static inline int64_t GetVirtualTransactionInputSize(const CTxIn& tx)
 
 bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs);
 
-uint256 getAssetHash(const std::vector<unsigned char>& assetId);
-
 #endif // BITCOIN_POLICY_POLICY_H
