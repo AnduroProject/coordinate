@@ -174,26 +174,7 @@ RPCHelpMan getauxblock()
     if (pwallet->IsWalletFlagSet(WALLET_FLAG_DISABLE_PRIVATE_KEYS)) {
         throw JSONRPCError(RPC_WALLET_ERROR, "Error: Private keys are disabled for this wallet");
     }
-
-    /* Create a new block */
-    if (request.params.size() == 0)
-    {
-        const CScript coinbaseScript = g_mining_keys.GetCoinbaseScript(pwallet);
-        const UniValue res = AuxpowMiner::get().createAuxBlock(request, coinbaseScript);
-        g_mining_keys.AddBlockHash(pwallet, res["hash"].get_str ());
-        return res;
-    }
-
-    /* Submit a block instead.  */
-    assert(request.params.size() == 2);
-    const std::string& hash = request.params[0].get_str();
-
-    const bool fAccepted
-        = AuxpowMiner::get().submitAuxBlock(request, hash, request.params[1].get_str());
-    if (fAccepted)
-        g_mining_keys.MarkBlockSubmitted(pwallet, hash);
-
-    return fAccepted;
+    return true;
 },
     };
 }
