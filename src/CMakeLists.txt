@@ -190,7 +190,6 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   core_write.cpp
   deploymentinfo.cpp
   external_signer.cpp
-  flatfile.cpp
   init/common.cpp
   kernel/chainparams.cpp
   key.cpp
@@ -212,14 +211,12 @@ add_library(bitcoin_common STATIC EXCLUDE_FROM_ALL
   rpc/request.cpp
   rpc/util.cpp
   scheduler.cpp
-  node/blockstorage.cpp
   script/descriptor.cpp
   script/miniscript.cpp
   script/parsing.cpp
   script/sign.cpp
   script/signingprovider.cpp
   script/solver.cpp
-  validation.cpp
 )
 target_link_libraries(bitcoin_common
   PRIVATE

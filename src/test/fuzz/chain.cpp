@@ -39,7 +39,7 @@ FUZZ_TARGET(chain)
         (void)disk_block_index->IsValid(BLOCK_VALID_TRANSACTIONS);
     }
 
-    const CBlockHeader block_header = disk_block_index->GetBlockHeader(chainman.m_blockman);
+    const CBlockHeader block_header = disk_block_index->GetBlockHeader();
     (void)CDiskBlockIndex{*disk_block_index};
     (void)disk_block_index->BuildSkip();
 

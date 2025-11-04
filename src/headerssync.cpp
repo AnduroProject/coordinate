@@ -171,7 +171,7 @@ bool HeadersSyncState::ValidateAndStoreHeadersCommitments(const std::vector<CBlo
     return true;
 }
 
-bool HeadersSyncState::ValidateAndProcessSingleHeader(const CPureBlockHeader& current)
+bool HeadersSyncState::ValidateAndProcessSingleHeader(const CBlockHeader& current)
 {
     Assume(m_download_state == State::PRESYNC);
     if (m_download_state != State::PRESYNC) return false;

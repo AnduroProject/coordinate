@@ -202,7 +202,7 @@ private:
     bool ValidateAndStoreHeadersCommitments(const std::vector<CBlockHeader>& headers);
 
     /** In PRESYNC, process and update state for a single header */
-    bool ValidateAndProcessSingleHeader(const CPureBlockHeader& current);
+    bool ValidateAndProcessSingleHeader(const CBlockHeader& current);
 
     /** In REDOWNLOAD, check a header's commitment (if applicable) and add to
      * buffer for later processing */
