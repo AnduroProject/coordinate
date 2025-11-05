@@ -17,7 +17,6 @@
 #include <util/strencodings.h>
 #include <util/time.h>
 #include <validation.h>
-
 #include <cassert>
 
 namespace
@@ -139,12 +138,12 @@ AuxpowMiner::lookupSavedBlock (const std::string& hashHex) const
 }
 
 UniValue
-AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
+AuxpowMiner::createAuxBlock(const JSONRPCRequest& request,
                              const CScript& scriptPubKey)
 {
   LOCK (cs);
 
-  const auto& node = EnsureAnyNodeContext (request);
+  const auto& node = EnsureAnyNodeContext(request.context);
   auxMiningCheck (node);
   const auto& mempool = EnsureMemPool (node);
   auto& chainman = EnsureChainman (node);
@@ -153,6 +152,7 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   uint256 target;
   const CBlock* pblock = getCurrentBlock (chainman, mining, mempool,
                                           scriptPubKey, target);
+                                      
 
   UniValue result(UniValue::VOBJ);
   result.pushKV ("hash", pblock->GetHash ().GetHex ());
@@ -167,12 +167,39 @@ AuxpowMiner::createAuxBlock (const JSONRPCRequest& request,
   return result;
 }
 
+UniValue
+AuxpowMiner::createAuxBlockHex (const JSONRPCRequest& request,
+                             const CScript& scriptPubKey)
+{
+  LOCK (cs);
+
+  const auto& node = EnsureAnyNodeContext (request.context);
+  auxMiningCheck (node);
+  const auto& mempool = EnsureMemPool (node);
+  auto& chainman = EnsureChainman (node);
+  auto& mining = EnsureMining (node);
+
+  uint256 target;
+  const CBlock* pblock = getCurrentBlock(chainman, mining, mempool, scriptPubKey, target);
+
+  DataStream ssTx{};
+  CBlock block = *pblock;
+  CAuxPow::initAuxPow(block);
+  ssTx << TX_WITH_WITNESS(block);
+  
+  UniValue result(UniValue::VOBJ);
+  result.pushKV ("hex", HexStr(ssTx));
+  result.pushKV ("aux", createAuxBlock(request, scriptPubKey));
+  return result;
+}
+
+
 bool
 AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
                              const std::string& hashHex,
                              const std::string& auxpowHex) const
 {
-  const auto& node = EnsureAnyNodeContext (request);
+  const auto& node = EnsureAnyNodeContext (request.context);
   auxMiningCheck (node);
   auto& chainman = EnsureChainman (node);
 
