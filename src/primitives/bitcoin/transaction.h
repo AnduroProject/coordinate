@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef BITCOIN_PRIMITIVES_TRANSACTION_H
-#define BITCOIN_PRIMITIVES_TRANSACTION_H
+#ifndef BITCOIN_PRIMITIVES_BITCOIN_TRANSACTION_H
+#define BITCOIN_PRIMITIVES_BITCOIN_TRANSACTION_H
 
 #include <attributes.h>
 #include <consensus/amount.h>
@@ -428,4 +428,4 @@ template <typename Tx> static inline CTransactionRef MakeTransactionRef(Tx&& txI
 
 }
 }
-#endif // BITCOIN_PRIMITIVES_TRANSACTION_H
+#endif // BITCOIN_PRIMITIVES_BITCOIN_TRANSACTION_H

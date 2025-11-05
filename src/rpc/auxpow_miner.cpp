@@ -199,23 +199,29 @@ AuxpowMiner::submitAuxBlock (const JSONRPCRequest& request,
                              const std::string& hashHex,
                              const std::string& auxpowHex) const
 {
+  LogPrintf("test 1 \n");
   const auto& node = EnsureAnyNodeContext (request.context);
+  LogPrintf("test 2 \n");
   auxMiningCheck (node);
+  LogPrintf("test 3 \n");
   auto& chainman = EnsureChainman (node);
-
+  LogPrintf("test 4 \n");
   std::shared_ptr<CBlock> shared_block;
   {
     LOCK (cs);
     const CBlock* pblock = lookupSavedBlock (hashHex);
     shared_block = std::make_shared<CBlock> (*pblock);
   }
-
+  LogPrintf("test 5 \n");
   const std::vector<unsigned char> vchAuxPow = ParseHex (auxpowHex);
   DataStream ss(vchAuxPow);
   std::unique_ptr<CAuxPow> pow(new CAuxPow ());
   ss >> *pow;
+  LogPrintf("test 6 \n");
   shared_block->SetAuxpow (std::move (pow));
   assert (shared_block->GetHash ().GetHex () == hashHex);
+
+  LogPrintf("test 7 \n");
 
   return chainman.ProcessNewBlock (shared_block, true, true, nullptr);
 }

@@ -291,10 +291,11 @@ UniValue AuxpowToJSON(const CAuxPow& auxpow, const bool verbose, Chainstate& act
 {
     UniValue result(UniValue::VOBJ);
     {
+        DataStream ssTx;
+        ssTx << Sidechain::Bitcoin::TX_WITH_WITNESS(auxpow.coinbaseTx);
         UniValue tx(UniValue::VOBJ);
-        tx.pushKV("hex", EncodeHexTx(*auxpow.coinbaseTx));
-        TxToJSON(*auxpow.coinbaseTx, auxpow.parentBlock.GetHash(), tx, active_chainstate);
-        result.pushKV("tx", tx);
+        tx.pushKV("hex", HexStr(ssTx));
+        result.pushKV("hash", auxpow.coinbaseTx->GetHash().ToUint256().ToString());
     }
 
     result.pushKV("chainindex", auxpow.nChainIndex);

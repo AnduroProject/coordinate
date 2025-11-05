@@ -10,6 +10,7 @@
 #include <consensus/params.h>
 #include <primitives/pureheader.h>
 #include <primitives/transaction.h>
+#include <primitives/bitcoin/transaction.h>
 #include <serialize.h>
 #include <uint256.h>
 
@@ -24,10 +25,9 @@ class Chainstate;
 class CValidationState;
 class UniValue;
 
-namespace auxpow_tests
-{
+
 class CAuxPowForTest;
-}
+
 
 /** Header for merge-mining data in the coinbase.  */
 static const unsigned char pchMergedMiningHeader[] = { 0xfa, 0xbe, 'm', 'm' };
@@ -43,7 +43,7 @@ class CAuxPow
 private:
 
   /** The parent block's coinbase transaction.  */
-  CTransactionRef coinbaseTx;
+  Sidechain::Bitcoin::CTransactionRef coinbaseTx;
 
   /** The Merkle branch of the coinbase tx to the parent block's root.  */
   std::vector<uint256> vMerkleBranch;
@@ -67,12 +67,12 @@ private:
 
   friend UniValue AuxpowToJSON(const CAuxPow& auxpow, bool verbose,
                                Chainstate& active_chainstate);
-  friend class auxpow_tests::CAuxPowForTest;
+  friend class CAuxPowForTest;
 
 public:
 
   /* Prevent accidental conversion.  */
-  inline explicit CAuxPow (CTransactionRef&& txIn)
+  inline explicit CAuxPow (Sidechain::Bitcoin::CTransactionRef&& txIn)
     : coinbaseTx (std::move (txIn))
   {}
 
@@ -97,7 +97,7 @@ public:
     int nIndex = 0;
 
     /* Data from the coinbase transaction as Merkle tx.  */
-    READWRITE (TX_WITH_WITNESS (obj.coinbaseTx), hashBlock,
+    READWRITE (Sidechain::Bitcoin::TX_WITH_WITNESS(obj.coinbaseTx), hashBlock,
                obj.vMerkleBranch, nIndex);
 
     /* Additional data for the auxpow itself.  */

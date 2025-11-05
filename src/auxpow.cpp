@@ -226,8 +226,25 @@ CAuxPow::createAuxPow (const CPureBlockHeader& header)
   parent.vtx[0] = coinbaseRef;
   parent.hashMerkleRoot = BlockMerkleRoot (parent);
 
+
+  /* Fake a parent-block coinbase with just the required input
+    script and no outputs.  */
+  Sidechain::Bitcoin::CMutableTransaction coinbaseBitcoin;
+    // Set up input
+  coinbaseBitcoin.vin.resize (1);
+  coinbaseBitcoin.vin[0].prevout.SetNull ();
+  coinbaseBitcoin.vin[0].scriptSig = CScript(); // Empty script or whatever you need for input
+  
+  // Set up outputs - resize to at least 3 outputs
+  coinbaseBitcoin.vout.resize (3);
+  
+  coinbaseBitcoin.vout[2].scriptPubKey = (CScript () << inputData);;
+  coinbaseBitcoin.vout[2].nValue = 0; // Set appropriate value
+
+  Sidechain::Bitcoin::CTransactionRef coinbaseBitcoinRef = Sidechain::Bitcoin::MakeTransactionRef (coinbaseBitcoin);
+
   /* Construct the auxpow object.  */
-  std::unique_ptr<CAuxPow> auxpow(new CAuxPow (std::move (coinbaseRef)));
+  std::unique_ptr<CAuxPow> auxpow(new CAuxPow (std::move (coinbaseBitcoinRef)));
   assert (auxpow->vMerkleBranch.empty ());
   assert (auxpow->vChainMerkleBranch.empty ());
   auxpow->nChainIndex = 0;
