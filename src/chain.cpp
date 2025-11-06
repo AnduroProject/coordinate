@@ -4,9 +4,9 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <chain.h>
+#include <node/blockstorage.h>
 #include <tinyformat.h>
 #include <util/time.h>
-
 std::string CBlockFileInfo::ToString() const
 {
     return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
@@ -14,13 +14,19 @@ std::string CBlockFileInfo::ToString() const
 
 /* Moved here from the header, because we need auxpow and the logic
    becomes more involved.  */
-CBlockHeader CBlockIndex::GetBlockHeader() const
+
+CBlockHeader CBlockIndex::GetBlockHeader(const node::BlockManager& blockman) const
 {
     CBlockHeader block;
     block.nVersion = nVersion;
 
-    if(block.IsAuxpow()) {
-        block.auxpow = std::make_unique<CAuxPow>(std::move(*auxpow));
+    /* The CBlockIndex object's block header is missing the auxpow.
+       So if this is an auxpow block, read it from disk instead.  We only
+       have to read the actual *header*, not the full block.  */
+    if (block.IsAuxpow())
+    {
+        blockman.ReadBlockHeader(block, *this);
+        return block;
     }
 
     if (pprev)
@@ -31,7 +37,6 @@ CBlockHeader CBlockIndex::GetBlockHeader() const
     block.nNonce = nNonce;
     return block;
 }
-
 
 std::string CBlockIndex::ToString() const
 {

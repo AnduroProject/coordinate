@@ -188,9 +188,7 @@ UniValue blockheaderToJSON(const BlockManager& blockman, const CBlockIndex& tip,
 {
     // Serialize passed information without accessing chain state of the active chain!
     AssertLockNotHeld(cs_main); // For performance reasons
-
-    auto result = blockheaderToJSON(blockindex.GetBlockHeader());
-
+    auto result = blockheaderToJSON(blockindex.GetBlockHeader(blockman));
     const CBlockIndex* pnext;
     int confirmations = ComputeNextBlockAndDepth(tip, blockindex, pnext);
     result.pushKV("confirmations", confirmations);
@@ -739,12 +737,12 @@ static RPCHelpMan getblockheader()
         throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY, "Block not found");
     }
 
-    const auto header = pblockindex->GetBlockHeader();
+    const auto header = pblockindex->GetBlockHeader(chainman.m_blockman);
 
     if (!fVerbose)
     {
         DataStream ssBlock{};
-        ssBlock << pblockindex->GetBlockHeader();
+        ssBlock << header;
         std::string strHex = HexStr(ssBlock);
         return strHex;
     }
