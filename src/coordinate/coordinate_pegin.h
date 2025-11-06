@@ -6,8 +6,20 @@
 #include <consensus/amount.h>
 #include <primitives/transaction.h>
 #include <validation.h>
+#include <string>
+#include <uint256.h>
+
+static const char MAINCHAIN_RPC_HOST[] = "127.0.0.1";
+static const int MAINCHAIN_RPC_PORT = 19011;
+static const char MAINCHAIN_RPC_USER[] = "bitcoin";
+static const char MAINCHAIN_RPC_PASS[] = "bitcoin";
+static const int MAINCHAIN_HTTP_CLIENT_TIMEOUT=900;
+
+class UniValue;
 
 static const CAmount PEGIN_FEE=10;
+
+UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params);
 
 CTxOut getPeginAmount(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress);
 
