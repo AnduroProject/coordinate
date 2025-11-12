@@ -251,8 +251,9 @@ static bool GetBlockAndTxFromMerkleBlock(uint256& block_hash, uint256& tx_hash, 
 template<typename T>
 static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, const COutPoint& prevout, CAmount peginValue, std::string claimAddress, std::string federationAddress)
 {
+    LogPrintf("CheckPeginTx 1 \n");
     try {
-        DataStream pegtx_stream;
+        DataStream pegtx_stream(tx_data);
         pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
         if (!pegtx_stream.empty()) {
             return false;
@@ -262,26 +263,37 @@ static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, co
         return false;
     }
 
+    LogPrintf("CheckPeginTx 2 \n");
     // Check that transaction matches txid
     if (pegtx->GetHash() != prevout.hash) {
         return false;
     }
 
+    LogPrintf("CheckPeginTx 3 \n");
+
 
     CAmount amount = pegtx->vout[prevout.n].nValue;
+
+    LogPrintf("CheckPeginTx 4 \n");
 
     if(amount > peginValue) {
         return false;
     }
+
+    LogPrintf("CheckPeginTx 5 \n");
 
     CTxDestination fedAddress;
     CTxDestination userAddress;
     ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, fedAddress);
     std::string fedAddressStr = ParentEncodeDestination(fedAddress);
 
+    LogPrintf("CheckPeginTx 5 \n");
+
     if(federationAddress.compare(fedAddressStr) != 0) {
         return false;
     }
+
+    LogPrintf("CheckPeginTx 6 \n");
 
     for (size_t i = 0; i < pegtx->vout.size(); i++) {
         if(pegtx->vout[i].scriptPubKey.IsUnspendable()) {
@@ -295,6 +307,8 @@ static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, co
            break;
         }
     }
+
+     LogPrintf("CheckPeginTx 7 \n");
     
     return true;
 }
