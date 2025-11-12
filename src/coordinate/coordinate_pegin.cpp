@@ -85,9 +85,9 @@ static void http_error_cb(enum evhttp_request_error err, void *ctx)
 
 
 CTxOut getPeginAmount(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress) {
-    CTransactionRef pegtx;
+    Sidechain::Bitcoin::CTransactionRef pegtx;
     DataStream pegtx_stream(bitcoinTx);
-    pegtx_stream >> TX_WITH_WITNESS(pegtx);
+    pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
     bool isOutputAvailable = false;
     CAmount value = 0;
     for (size_t i = 0; i < pegtx->vout.size(); i++) {
@@ -162,9 +162,9 @@ std::string ExtractOpReturnScript(const CScript& script) {
 }
 
 CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress, CTxOut txOut) {
-    CTransactionRef pegtx;
+    Sidechain::Bitcoin::CTransactionRef pegtx;
     DataStream pegtx_stream(bitcoinTx);
-    pegtx_stream >> TX_WITH_WITNESS(pegtx);
+    pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
 
     Sidechain::Bitcoin::CMerkleBlock merkle_block;
     DataStream merkle_block_stream(bitcoinTxProof);
@@ -203,7 +203,7 @@ CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::
 
     // Strip witness data for proof inclusion since only TXID-covered fields matters
     DataStream ss_tx;
-    ss_tx << TX_WITH_WITNESS(pegtx);
+    ss_tx << Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
     const auto* ss_tx_ptr = UCharCast(ss_tx.data());
     std::vector<unsigned char> tx_data_stripped(ss_tx_ptr, ss_tx_ptr + ss_tx.size());
     stack.push_back(tx_data_stripped);
@@ -253,7 +253,7 @@ static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, co
 {
     try {
         DataStream pegtx_stream;
-        pegtx_stream >> TX_WITH_WITNESS(pegtx);
+        pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
         if (!pegtx_stream.empty()) {
             return false;
         }
@@ -371,7 +371,7 @@ bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& p
         return false;
     }
 
-    CTransactionRef pegtx;
+    Sidechain::Bitcoin::CTransactionRef pegtx;
     if (!CheckPeginTx(stack[3], pegtx, prevout, value, claimAddress, federationAddress)) {
         err_msg = "Peg-in tx is invalid.";
         return false;
