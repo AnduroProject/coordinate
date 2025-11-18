@@ -174,6 +174,12 @@ std::unique_ptr<CBlockTemplate> BlockAssembler::CreateNewBlock()
         }
     }
 
+    pblock->reconciliationBlock = getReconsiledBlock(m_chainstate.m_chainman);
+    std::vector<SignedBlock> nextPreconfs = getFinalizedSignedBlocks();
+    for (size_t i = 0; i < nextPreconfs.size(); i++) {
+        pblock->preconfBlock.push_back(nextPreconfs[i]);
+    }
+
 
     int resize = 2;
     CMutableTransaction coinbaseTx;

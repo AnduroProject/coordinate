@@ -85,8 +85,7 @@ uint256 BlockRawMerkleRoot(const CBlock& block, uint16_t type, bool* mutated)
             // normal transaciton merkle root preparation
             std::vector<uint256> preconfTxLeaves;
             preconfTxLeaves.resize(block.preconfBlock[s].vtx.size());
-            preconfTxLeaves[0].SetNull(); // The witness hash of the coinbase is 0.
-            for (size_t s = 1; s < block.vtx.size(); s++) {
+            for (size_t s = 0; s < block.preconfBlock[s].vtx.size(); s++) {
                 preconfTxLeaves[s] = block.preconfBlock[s].vtx[s]->GetHash();
             }
             leafs[s] = ComputeMerkleRoot(std::move(preconfTxLeaves), mutated);;
@@ -117,8 +116,7 @@ uint256 BlockMerkleRoot(const CBlock& block, bool* mutated)
         // normal transaciton merkle root preparation
         std::vector<uint256> preconfTxLeaves;
         preconfTxLeaves.resize(block.preconfBlock[s].vtx.size());
-        preconfTxLeaves[0].SetNull(); // The witness hash of the coinbase is 0.
-        for (size_t s = 1; s < block.vtx.size(); s++) {
+        for (size_t s = 0; s < block.preconfBlock[s].vtx.size(); s++) {
             preconfTxLeaves[s] = block.preconfBlock[s].vtx[s]->GetHash();
         }
         preconfBlockLeaves[s] = ComputeMerkleRoot(std::move(preconfTxLeaves), mutated);;
@@ -174,7 +172,7 @@ uint256 BlockWitnessMerkleRoot(const CBlock& block, bool* mutated)
         std::vector<uint256> preconfTxLeaves;
         preconfTxLeaves.resize(block.preconfBlock[s].vtx.size());
         preconfTxLeaves[0].SetNull(); // The witness hash of the coinbase is 0.
-        for (size_t s = 1; s < block.vtx.size(); s++) {
+        for (size_t s = 1; s < block.preconfBlock[s].vtx.size(); s++) {
             preconfTxLeaves[s] = block.preconfBlock[s].vtx[s]->GetWitnessHash();
         }
         preconfBlockLeaves[s] = ComputeMerkleRoot(std::move(preconfTxLeaves), mutated);;
