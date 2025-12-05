@@ -28,6 +28,7 @@ add_library(bitcoin_wallet STATIC EXCLUDE_FROM_ALL
   rpc/util.cpp
   rpc/wallet.cpp
   scriptpubkeyman.cpp
+  p2tsh_scriptpubkeyman.cpp
   spend.cpp
   sqlite.cpp
   transaction.cpp
@@ -39,7 +40,8 @@ target_link_libraries(bitcoin_wallet
   PRIVATE
     core_interface
     bitcoin_common
-
+    secp256k1
+    bitcoinpqc
     bitcoin_node
     $<TARGET_NAME_IF_EXISTS:unofficial::sqlite3::sqlite3>
     $<TARGET_NAME_IF_EXISTS:SQLite::SQLite3>
