@@ -1665,7 +1665,7 @@ public:
         assert(m_subdescriptor_args.size() == m_depths.size());
     }
 
-    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32M_P2TSH; }
+    std::optional<OutputType> GetOutputType() const override { return OutputType::BECH32M; }
     bool IsSingleType() const final { return true; }
 
     std::optional<int64_t> ScriptSize() const override { return 1 + 1 + 32; }
