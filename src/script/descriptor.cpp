@@ -1632,7 +1632,7 @@ protected:
         uint256 merkle_root = builder.GetSpendData().merkle_root;
 
         CScript output_script;
-        output_script << OP_3 << ToByteVector(merkle_root);
+        output_script << OP_2 << ToByteVector(merkle_root);
 
         return {output_script};
     }
