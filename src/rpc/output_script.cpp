@@ -43,6 +43,7 @@ static RPCHelpMan validateaddress()
                 {RPCResult::Type::BOOL, "iswitness", /*optional=*/true, "If the address is a witness address"},
                 {RPCResult::Type::NUM, "witness_version", /*optional=*/true, "The version number of the witness program"},
                 {RPCResult::Type::STR_HEX, "witness_program", /*optional=*/true, "The hex value of the witness program"},
+                {RPCResult::Type::BOOL, "p2tsh", /*optional=*/true, "If the address is a P2TSH address (witness v2)"},
                 {RPCResult::Type::STR, "error", /*optional=*/true, "Error message, if any"},
                 {RPCResult::Type::ARR, "error_locations", /*optional=*/true, "Indices of likely error locations in address, if known (e.g. Bech32 errors)",
                     {
@@ -73,6 +74,11 @@ static RPCHelpMan validateaddress()
 
                 UniValue detail = DescribeAddress(dest);
                 ret.pushKVs(std::move(detail));
+
+                if (std::holds_alternative<WitnessV2P2TSH>(dest)) {
+                    ret.pushKV("p2tsh", true);
+                }
+                
             } else {
                 UniValue error_indices(UniValue::VARR);
                 for (int i : error_locations) error_indices.push_back(i);
