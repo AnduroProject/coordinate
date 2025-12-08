@@ -14,6 +14,7 @@
 #include <wallet/receive.h>
 #include <wallet/rpc/util.h>
 #include <wallet/wallet.h>
+#include <wallet/p2tsh_scriptpubkeyman.h> 
 
 #include <univalue.h>
 
@@ -481,6 +482,12 @@ RPCHelpMan getaddressinfo()
                         {RPCResult::Type::BOOL, "iswitness", "If the address is a witness address."},
                         {RPCResult::Type::NUM, "witness_version", /*optional=*/true, "The version number of the witness program."},
                         {RPCResult::Type::STR_HEX, "witness_program", /*optional=*/true, "The hex value of the witness program."},
+                        {RPCResult::Type::BOOL, "p2tsh", /*optional=*/true, "If the address is a P2TSH address."},                    // ← ADD
+                        {RPCResult::Type::STR, "p2tsh_signature_type", /*optional=*/true, "P2TSH signature type (schnorr/slhdsa/hybrid)."},  // ← ADD
+                        {RPCResult::Type::BOOL, "p2tsh_quantum_safe", /*optional=*/true, "Whether the P2TSH address is quantum-safe."},      // ← ADD
+                        {RPCResult::Type::STR_HEX, "p2tsh_schnorr_pubkey", /*optional=*/true, "Schnorr public key (if present)."},           // ← ADD
+                        {RPCResult::Type::STR_HEX, "p2tsh_slhdsa_pubkey", /*optional=*/true, "SLH-DSA public key (if present)."},            // ← ADD
+                        {RPCResult::Type::STR_HEX, "p2tsh_merkle_root", /*optional=*/true, "Tap tree merkle root."},                         // ← ADD
                         {RPCResult::Type::STR, "script", /*optional=*/true, "The output script type. Only if isscript is true and the redeemscript is known. Possible\n"
                                                                      "types: nonstandard, pubkey, pubkeyhash, scripthash, multisig, nulldata, witness_v0_keyhash,\n"
                             "witness_v0_scripthash, witness_unknown."},
@@ -598,6 +605,36 @@ RPCHelpMan getaddressinfo()
         labels.push_back(address_book_entry->GetLabel());
     }
     ret.pushKV("labels", std::move(labels));
+
+    if (std::holds_alternative<WitnessV2P2TSH>(dest)) {
+        P2TSHScriptPubKeyMan* p2tsh_spkm = pwallet->GetP2TSHScriptPubKeyMan();
+        if (p2tsh_spkm) {
+            ret.pushKV("p2tsh", true);
+            
+            const WitnessV2P2TSH& p2tsh_addr = std::get<WitnessV2P2TSH>(dest);
+            uint256 merkle_root;
+            std::copy(p2tsh_addr.begin(), p2tsh_addr.end(), merkle_root.begin());
+            
+            const P2TSHKeyMetadata* metadata = p2tsh_spkm->GetP2TSHMetadata(merkle_root);
+            if (metadata) {
+                std::string sig_type_str = p2tsh_spkm->SignatureTypeToString(metadata->sig_type);
+                ret.pushKV("p2tsh_signature_type", sig_type_str);
+                
+                bool quantum_safe = (metadata->sig_type == P2TSHSignatureType::SLH_DSA_ONLY ||
+                                metadata->sig_type == P2TSHSignatureType::HYBRID);
+                ret.pushKV("p2tsh_quantum_safe", quantum_safe);
+                
+                if (!metadata->schnorr_pubkey.empty()) {
+                    ret.pushKV("p2tsh_schnorr_pubkey", HexStr(metadata->schnorr_pubkey));
+                }
+                if (!metadata->slh_dsa_pubkey.empty()) {
+                    ret.pushKV("p2tsh_slhdsa_pubkey", HexStr(metadata->slh_dsa_pubkey));
+                }
+                
+                ret.pushKV("p2tsh_merkle_root", metadata->merkle_root.GetHex());
+            }
+        }
+    }
 
     return ret;
 },
