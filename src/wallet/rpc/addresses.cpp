@@ -27,10 +27,17 @@ RPCHelpMan getnewaddress()
                 "so payments received with the address will be associated with 'label'.\n",
                 {
                     {"label", RPCArg::Type::STR, RPCArg::Default{""}, "The label name for the address to be linked to. It can also be set to the empty string \"\" to represent the default label. The label does not need to exist, it will be created if there is no label by the given name."},
-                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are " + FormatAllOutputTypes() + "."},
+                    {"address_type", RPCArg::Type::STR, RPCArg::DefaultHint{"set by -addresstype"}, "The address type to use. Options are " + FormatAllOutputTypes() + ", \"p2tsh_schnorr\", \"p2tsh_slhdsa\", \"p2tsh_hybrid\"."},
                 },
                 RPCResult{
-                    RPCResult::Type::STR, "address", "The new bitcoin address"
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR, "address", "The new bitcoin address"},
+                        {RPCResult::Type::STR, "signature_type", /*optional=*/true, "P2TSH signature type"},
+                        {RPCResult::Type::STR_HEX, "schnorr_pubkey", /*optional=*/true, "Schnorr public key (if applicable)"},
+                        {RPCResult::Type::STR_HEX, "slhdsa_pubkey", /*optional=*/true, "SLH-DSA public key (if applicable)"},
+                        {RPCResult::Type::STR_HEX, "merkle_root", /*optional=*/true, "P2TSH merkle root"},
+                    }
                 },
                 RPCExamples{
                     HelpExampleCli("getnewaddress", "")
@@ -50,7 +57,91 @@ RPCHelpMan getnewaddress()
     // Parse the label first so we don't generate a key if there's an error
     const std::string label{LabelFromValue(request.params[0])};
 
+    bool use_p2tsh = false;
+    P2TSHSignatureType p2tsh_sig_type = pwallet->GetDefaultP2TSHType();
     OutputType output_type = pwallet->m_default_address_type;
+
+    if (!request.params[1].isNull()) {
+        std::string type_str = request.params[1].get_str();
+        
+        // Check for P2TSH types
+        if (type_str == "p2tsh_schnorr") {
+            use_p2tsh = true;
+            p2tsh_sig_type = P2TSHSignatureType::SCHNORR_ONLY;
+        } else if (type_str == "p2tsh_slhdsa") {
+            use_p2tsh = true;
+            p2tsh_sig_type = P2TSHSignatureType::SLH_DSA_ONLY;
+        } else if (type_str == "p2tsh_hybrid") {
+            use_p2tsh = true;
+            p2tsh_sig_type = P2TSHSignatureType::HYBRID;
+        } else {
+            // Parse standard output type
+            auto parsed_type = ParseOutputType(type_str);
+            if (!parsed_type) {
+                throw JSONRPCError(RPC_INVALID_ADDRESS_OR_KEY,
+                    strprintf("Unknown address type '%s'", type_str));
+            }
+            output_type = *parsed_type;
+        }
+    }
+
+    if (use_p2tsh) {
+        if (!pwallet->IsP2TSHEnabled()) {
+            throw JSONRPCError(RPC_WALLET_ERROR,
+                "P2TSH is not enabled for this wallet. Create wallet with enable_p2tsh=true");
+        }
+        
+        P2TSHScriptPubKeyMan* p2tsh_spkm = pwallet->GetP2TSHScriptPubKeyMan();
+        if (!p2tsh_spkm) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "P2TSH manager not initialized");
+        }
+        
+        // Generate P2TSH address
+        auto dest_result = p2tsh_spkm->GetNewP2TSHDestination(p2tsh_sig_type);
+        if (!dest_result) {
+            throw JSONRPCError(RPC_WALLET_ERROR,
+                strprintf("Failed to generate P2TSH address: %s",
+                            util::ErrorString(dest_result).original));
+        }
+        
+        CTxDestination dest = *dest_result;
+        
+        // Set address book entry
+        pwallet->SetAddressBook(dest, label, AddressPurpose::RECEIVE);
+        
+        // Extract merkle root
+        const WitnessV2P2TSH* p2tsh = std::get_if<WitnessV2P2TSH>(&dest);
+        if (!p2tsh) {
+            throw JSONRPCError(RPC_WALLET_ERROR, "Failed to extract P2TSH info");
+        }
+        
+        uint256 merkle_root;
+        std::copy(p2tsh->begin(), p2tsh->end(), merkle_root.begin());
+        
+        // Get metadata
+        const P2TSHKeyMetadata* metadata = p2tsh_spkm->GetP2TSHMetadata(merkle_root);
+        
+        // Build result with P2TSH info
+        UniValue result(UniValue::VOBJ);
+        result.pushKV("address", EncodeDestination(dest));
+        result.pushKV("signature_type",
+                        p2tsh_sig_type == P2TSHSignatureType::SCHNORR_ONLY ? "schnorr" :
+                        p2tsh_sig_type == P2TSHSignatureType::SLH_DSA_ONLY ? "slhdsa" : "hybrid");
+        
+        if (metadata) {
+            if (!metadata->schnorr_pubkey.empty()) {
+                result.pushKV("schnorr_pubkey", HexStr(metadata->schnorr_pubkey));
+            }
+            if (!metadata->slh_dsa_pubkey.empty()) {
+                result.pushKV("slhdsa_pubkey", HexStr(metadata->slh_dsa_pubkey));
+            }
+            result.pushKV("merkle_root", metadata->merkle_root.GetHex());
+        }
+        
+        return result;
+    }
+    
+
     if (!request.params[1].isNull()) {
         std::optional<OutputType> parsed = ParseOutputType(request.params[1].get_str());
         if (!parsed) {

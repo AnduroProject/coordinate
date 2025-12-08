@@ -369,6 +369,22 @@ std::shared_ptr<CWallet> LoadWallet(WalletContext& context, const std::string& n
     }
     auto wallet = LoadWalletInternal(context, name, load_on_start, options, status, error, warnings);
     WITH_LOCK(g_loading_wallet_mutex, g_loading_wallet_set.erase(result.first));
+    LOCK(wallet->cs_wallet);
+    if (wallet->IsP2TSHEnabled()) {
+     
+        try {
+            // Get stored signature type from wallet flags or default
+            P2TSHSignatureType sig_type = wallet->GetDefaultP2TSHType();
+            wallet->InitP2TSH(sig_type);
+            
+            wallet->WalletLogPrintf("Loaded P2TSH wallet with %d keys\n",
+                           wallet->GetP2TSHScriptPubKeyMan()->GetKeyCount());
+        } catch (const std::exception& e) {
+            error = Untranslated(strprintf("Failed to load P2TSH: %s", e.what()));
+            return nullptr;
+        }
+    }
+
     return wallet;
 }
 
@@ -2462,6 +2478,7 @@ util::Result<CTxDestination> CWallet::GetNewDestination(const OutputType type, c
     }
 
     auto op_dest = spk_man->GetNewDestination(type);
+
     if (op_dest) {
         SetAddressBook(*op_dest, label, AddressPurpose::RECEIVE);
     }
@@ -3061,6 +3078,18 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         walletInstance->WalletLogPrintf("mapWallet.size() = %u\n",       walletInstance->mapWallet.size());
         walletInstance->WalletLogPrintf("m_address_book.size() = %u\n",  walletInstance->m_address_book.size());
     }
+
+    // Initialize P2TSH if enabled
+    if (wallet_creation_flags & WALLET_FLAG_P2TSH_ENABLED) {
+        LOCK(walletInstance->cs_wallet);
+        try {
+            walletInstance->InitP2TSH(P2TSHSignatureType::HYBRID);  // Default to hybrid
+        } catch (const std::exception& e) {
+            error = Untranslated(strprintf("Failed to initialize P2TSH: %s", e.what()));
+            return nullptr;
+        }
+    }
+    
 
     return walletInstance;
 }
@@ -4489,4 +4518,23 @@ std::optional<WalletTXO> CWallet::GetTXO(const COutPoint& outpoint) const
     }
     return it->second;
 }
+
+void CWallet::InitP2TSH(P2TSHSignatureType sig_type)
+{
+    AssertLockHeld(cs_wallet);
+    
+    if (!(m_wallet_flags & WALLET_FLAG_P2TSH_ENABLED)) {
+        throw std::runtime_error("Cannot initialize P2TSH on non-P2TSH wallet");
+    }
+    
+    if (!m_p2tsh_spk_man) {
+        m_p2tsh_spk_man = std::make_unique<P2TSHScriptPubKeyMan>(*this);
+        m_p2tsh_spk_man->SetDefaultSignatureType(sig_type);
+        m_default_p2tsh_type = sig_type;
+        
+        WalletLogPrintf("P2TSH manager initialized with %s signatures\n",
+                       m_p2tsh_spk_man->SignatureTypeToString(sig_type));
+    }
+}
+
 } // namespace wallet

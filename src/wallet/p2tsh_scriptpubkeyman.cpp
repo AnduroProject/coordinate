@@ -14,8 +14,9 @@
 #include "../secp256k1/include/secp256k1_schnorrsig.h"
 #include "../secp256k1/include/secp256k1_extrakeys.h"
 
-// libbitcoinpqc
+extern "C" {
 #include <libbitcoinpqc/slh_dsa.h>
+}
 
 namespace wallet {
 

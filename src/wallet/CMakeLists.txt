@@ -40,8 +40,6 @@ target_link_libraries(bitcoin_wallet
   PRIVATE
     core_interface
     bitcoin_common
-    secp256k1
-    bitcoinpqc
     bitcoin_node
     $<TARGET_NAME_IF_EXISTS:unofficial::sqlite3::sqlite3>
     $<TARGET_NAME_IF_EXISTS:SQLite::SQLite3>
