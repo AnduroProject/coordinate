@@ -66,6 +66,15 @@ private:
                            const std::vector<unsigned char>& slh_dsa_pk,
                            P2TSHSignatureType type) const;
 
+    // ADD THESE TWO METHODS:
+    bool SignSchnorr(const std::vector<unsigned char>& privkey,
+                    const uint256& sighash,
+                    std::vector<unsigned char>& signature) const;
+    
+    bool SignSLHDSA(const std::vector<unsigned char>& privkey,
+                   const uint256& sighash,
+                   std::vector<unsigned char>& signature) const;
+
 public:
     explicit P2TSHScriptPubKeyMan(WalletStorage& storage);
     virtual ~P2TSHScriptPubKeyMan();
@@ -91,8 +100,8 @@ public:
                         std::map<int, bilingual_str>& input_errors) const override;
     
     bool SignP2TSHInput(CMutableTransaction& tx, unsigned int input_idx,
-                       const CScript& scriptPubKey, const CAmount& amount,
-                       int sighash_type, SignatureData& sig_data) const;
+                    const CScript& scriptPubKey, const CAmount& amount,
+                    int sighash_type, SignatureData& sig_data) const EXCLUSIVE_LOCKS_REQUIRED(cs_p2tsh);
     
     bool Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch) override;
     bool CheckDecryptionKey(const CKeyingMaterial& master_key) override;

@@ -310,8 +310,60 @@ bool P2TSHScriptPubKeyMan::SignTransaction(
     int sighash_type,
     std::map<int, bilingual_str>& input_errors) const
 {
+    LOCK(cs_p2tsh);
+    
     WalletLogPrintf("P2TSH: SignTransaction called for %d inputs\n", tx.vin.size());
-    return true;
+    
+    bool all_signed = true;
+    int p2tsh_inputs = 0;
+    
+    for (unsigned int i = 0; i < tx.vin.size(); i++) {
+        const CTxIn& txin = tx.vin[i];
+        
+        // Find the coin being spent
+        auto coin_it = coins.find(txin.prevout);
+        if (coin_it == coins.end()) {
+            WalletLogPrintf("P2TSH: Input %d coin not found\n", i);
+            continue;
+        }
+        
+        const CScript& scriptPubKey = coin_it->second.out.scriptPubKey;
+        const CAmount& amount = coin_it->second.out.nValue;
+        
+        // Check if this is a P2TSH output
+        if (scriptPubKey.size() != 34 || scriptPubKey[0] != OP_2 || scriptPubKey[1] != 0x20) {
+            // Not P2TSH, skip
+            continue;
+        }
+        
+        // Extract merkle root and check if we have keys
+        uint256 merkle_root;
+        std::copy(scriptPubKey.begin() + 2, scriptPubKey.begin() + 34, merkle_root.begin());
+        
+        if (mapP2TSHMetadata.find(merkle_root) == mapP2TSHMetadata.end()) {
+            // We don't have keys for this P2TSH output
+            WalletLogPrintf("P2TSH: No keys for input %d (merkle root: %s)\n", 
+                           i, merkle_root.GetHex());
+            continue;
+        }
+        
+        p2tsh_inputs++;
+        
+        // Sign this P2TSH input
+        SignatureData sig_data;
+        if (!SignP2TSHInput(tx, i, scriptPubKey, amount, sighash_type, sig_data)) {
+            input_errors[i] = Untranslated(strprintf("P2TSH signing failed for input %d", i));
+            all_signed = false;
+            WalletLogPrintf("P2TSH: Failed to sign input %d\n", i);
+        } else {
+            WalletLogPrintf("P2TSH: Successfully signed input %d\n", i);
+        }
+    }
+    
+    WalletLogPrintf("P2TSH: Signed %d P2TSH inputs, all_signed=%d\n", 
+                   p2tsh_inputs, all_signed);
+    
+    return all_signed;
 }
 
 bool P2TSHScriptPubKeyMan::SignP2TSHInput(
@@ -322,7 +374,111 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     int sighash_type,
     SignatureData& sig_data) const
 {
-    return false;
+    
+    WalletLogPrintf("P2TSH: Signing input %d\n", input_idx);
+    
+    // Verify it's a P2TSH output (OP_2 + 32 bytes)
+    if (scriptPubKey.size() != 34 || scriptPubKey[0] != OP_2 || scriptPubKey[1] != 0x20) {
+        WalletLogPrintf("P2TSH: Not a valid P2TSH scriptPubKey\n");
+        return false;
+    }
+    
+    // Extract merkle root
+    uint256 merkle_root;
+    std::copy(scriptPubKey.begin() + 2, scriptPubKey.begin() + 34, merkle_root.begin());
+    
+    // Get metadata
+    auto metadata_it = mapP2TSHMetadata.find(merkle_root);
+    if (metadata_it == mapP2TSHMetadata.end()) {
+        WalletLogPrintf("P2TSH: No metadata found for merkle root %s\n", merkle_root.GetHex());
+        return false;
+    }
+    const P2TSHKeyMetadata& metadata = metadata_it->second;
+    
+    WalletLogPrintf("P2TSH: Found metadata, signature type: %s\n", 
+                   SignatureTypeToString(metadata.sig_type));
+    
+    // Calculate sighash
+    PrecomputedTransactionData txdata;
+    txdata.Init(tx, {}, true);
+    
+    uint256 sighash = SignatureHash(
+        metadata.leaf_script,
+        tx,
+        input_idx,
+        sighash_type,
+        amount,
+        SigVersion::TAPROOT,
+        &txdata
+    );
+    
+    WalletLogPrintf("P2TSH: Calculated sighash: %s\n", sighash.GetHex());
+    
+    // Sign based on signature type
+    std::vector<unsigned char> schnorr_sig, slhdsa_sig;
+    
+    // Schnorr signature (if needed)
+    if (metadata.sig_type == P2TSHSignatureType::SCHNORR_ONLY ||
+        metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        
+        CKeyID schnorr_keyid = CKeyID(Hash160(metadata.schnorr_pubkey));
+        auto schnorr_it = mapSchnorrKeys.find(schnorr_keyid);
+        if (schnorr_it == mapSchnorrKeys.end()) {
+            WalletLogPrintf("P2TSH: Schnorr private key not found\n");
+            return false;
+        }
+        
+        if (!SignSchnorr(schnorr_it->second, sighash, schnorr_sig)) {
+            WalletLogPrintf("P2TSH: Schnorr signing failed\n");
+            return false;
+        }
+    }
+    
+    // SLH-DSA signature (if needed)
+    if (metadata.sig_type == P2TSHSignatureType::SLH_DSA_ONLY ||
+        metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        
+        CKeyID slhdsa_keyid = CKeyID(Hash160(metadata.slh_dsa_pubkey));
+        auto slhdsa_it = mapSLHDSAKeys.find(slhdsa_keyid);
+        if (slhdsa_it == mapSLHDSAKeys.end()) {
+            WalletLogPrintf("P2TSH: SLH-DSA private key not found\n");
+            return false;
+        }
+        
+        if (!SignSLHDSA(slhdsa_it->second, sighash, slhdsa_sig)) {
+            WalletLogPrintf("P2TSH: SLH-DSA signing failed\n");
+            return false;
+        }
+    }
+    
+    // Construct witness stack: [signatures] [leaf_script] [control_block]
+    CScriptWitness witness;
+    
+    if (metadata.sig_type == P2TSHSignatureType::SCHNORR_ONLY) {
+        witness.stack.push_back(schnorr_sig);
+    } else if (metadata.sig_type == P2TSHSignatureType::SLH_DSA_ONLY) {
+        witness.stack.push_back(slhdsa_sig);
+    } else if (metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        witness.stack.push_back(schnorr_sig);
+        witness.stack.push_back(slhdsa_sig);
+    }
+    
+    // Add leaf script
+    std::vector<unsigned char> script_bytes(metadata.leaf_script.begin(), 
+                                            metadata.leaf_script.end());
+    witness.stack.push_back(script_bytes);
+    
+    // Add control block
+    witness.stack.push_back(metadata.control_block);
+    
+    // Set witness
+    tx.vin[input_idx].scriptWitness = witness;
+    sig_data.complete = true;
+    
+    WalletLogPrintf("P2TSH: Successfully signed input %d with %zu witness elements\n",
+                   input_idx, witness.stack.size());
+    
+    return true;
 }
 
 bool P2TSHScriptPubKeyMan::Encrypt(const CKeyingMaterial& master_key, WalletBatch* batch)
@@ -499,6 +655,66 @@ bool P2TSHScriptPubKeyMan::HaveP2TSHKeys(const uint256& merkle_root) const
 {
     AssertLockHeld(cs_p2tsh);
     return mapP2TSHMetadata.find(merkle_root) != mapP2TSHMetadata.end();
+}
+
+bool P2TSHScriptPubKeyMan::SignSchnorr(
+    const std::vector<unsigned char>& privkey,
+    const uint256& sighash,
+    std::vector<unsigned char>& signature) const
+{
+    if (privkey.size() != 32) {
+        WalletLogPrintf("P2TSH: Invalid Schnorr private key size\n");
+        return false;
+    }
+    
+    secp256k1_keypair keypair;
+    if (!secp256k1_keypair_create(secp_ctx, &keypair, privkey.data())) {
+        WalletLogPrintf("P2TSH: Failed to create keypair from private key\n");
+        return false;
+    }
+    
+    signature.resize(64);
+    if (!secp256k1_schnorrsig_sign32(secp_ctx, signature.data(), sighash.begin(), &keypair, nullptr)) {
+        WalletLogPrintf("P2TSH: Schnorr signature creation failed\n");
+        return false;
+    }
+    
+    WalletLogPrintf("P2TSH: Created Schnorr signature (64 bytes)\n");
+    return true;
+}
+
+bool P2TSHScriptPubKeyMan::SignSLHDSA(
+    const std::vector<unsigned char>& privkey,
+    const uint256& sighash,
+    std::vector<unsigned char>& signature) const
+{
+    if (privkey.size() != SLH_DSA_SHAKE_128S_SECRET_KEY_SIZE) {
+        WalletLogPrintf("P2TSH: Invalid SLH-DSA private key size\n");
+        return false;
+    }
+    
+    signature.resize(SLH_DSA_SHAKE_128S_SIGNATURE_SIZE);
+    
+    // Sign the sighash (32 bytes)
+    size_t siglen = SLH_DSA_SHAKE_128S_SIGNATURE_SIZE;
+    int result = slh_dsa_shake_128s_sign(
+        signature.data(),
+        &siglen,              // Add this parameter
+        sighash.begin(),
+        32,
+        privkey.data()
+    );
+    
+    if (result != 0) {
+        WalletLogPrintf("P2TSH: SLH-DSA signature creation failed: %d\n", result);
+        return false;
+    }
+    
+    // Resize to actual signature length
+    signature.resize(siglen);
+    
+    WalletLogPrintf("P2TSH: Created SLH-DSA signature (%zu bytes)\n", siglen);
+    return true;
 }
 
 } // namespace wallet
