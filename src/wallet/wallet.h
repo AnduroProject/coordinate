@@ -1108,6 +1108,7 @@ public:
     P2TSHSignatureType GetDefaultP2TSHType() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
         return m_default_p2tsh_type;
     }
+    void AddWatchOnly(const CScript& dest) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 };
 
 /**

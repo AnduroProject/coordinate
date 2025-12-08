@@ -1590,8 +1590,20 @@ isminetype CWallet::IsMine(const CScript& script) const
         return res;
     }
 
+    // Check P2TSH manager directly (fallback if not in cache)
+    if (script.size() == 34 && script[0] == OP_2 && script[1] == 0x20) {
+        P2TSHScriptPubKeyMan* p2tsh_spkm = GetP2TSHScriptPubKeyMan();
+        if (p2tsh_spkm) {
+            isminetype res = p2tsh_spkm->IsMine(script);
+            if (res != ISMINE_NO) {
+                return res;
+            }
+        }
+    }
+
     return ISMINE_NO;
 }
+
 
 bool CWallet::IsMine(const CTransaction& tx) const
 {
@@ -4535,6 +4547,30 @@ void CWallet::InitP2TSH(P2TSHSignatureType sig_type)
         WalletLogPrintf("P2TSH manager initialized with %s signatures\n",
                        m_p2tsh_spk_man->SignatureTypeToString(sig_type));
     }
+}
+
+void CWallet::AddWatchOnly(const CScript& dest)
+{
+    AssertLockHeld(cs_wallet);
+    
+    // Add to internal scriptPubKey set for tracking
+    WalletBatch batch(GetDatabase());
+    CKeyMetadata meta;
+    meta.nCreateTime = GetTime();
+    
+    if (!batch.WriteWatchOnly(dest, meta)) {
+        WalletLogPrintf("Failed to write watch-only script to database\n");
+        return;
+    }
+    
+    // Add to cache for IsMine to find it
+    P2TSHScriptPubKeyMan* p2tsh_spkm = GetP2TSHScriptPubKeyMan();
+    if (p2tsh_spkm) {
+        m_cached_spks[dest].push_back(p2tsh_spkm);
+        WalletLogPrintf("Added P2TSH script to cache\n");
+    }
+    
+    WalletLogPrintf("Added watch-only script: %s\n", HexStr(dest));
 }
 
 } // namespace wallet

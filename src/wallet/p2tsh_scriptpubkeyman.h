@@ -82,6 +82,8 @@ public:
     
     // P2TSH-specific metadata getter
     const P2TSHKeyMetadata* GetP2TSHMetadata(const uint256& merkle_root) const;
+
+    bool HaveP2TSHKeys(const uint256& merkle_root) const EXCLUSIVE_LOCKS_REQUIRED(cs_p2tsh);
     
     bool SignTransaction(CMutableTransaction& tx, 
                         const std::map<COutPoint, Coin>& coins,

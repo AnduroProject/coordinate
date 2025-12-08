@@ -197,13 +197,34 @@ util::Result<CTxDestination> P2TSHScriptPubKeyMan::GetNewP2TSHDestination(
     // Write to database
     WalletBatch batch(m_storage.GetDatabase());
     WriteKey(batch, merkle_root, metadata);
-    
+
+    // Create the destination
+    WitnessV2P2TSH p2tsh_dest(merkle_root);
+    CTxDestination dest(p2tsh_dest);
+
+    // Add scriptPubKey to wallet tracking
+    {
+        // Get the actual wallet (m_storage is WalletStorage&, cast to CWallet&)
+        CWallet& wallet = static_cast<CWallet&>(m_storage);
+        LOCK(wallet.cs_wallet);
+        
+        CScript scriptPubKey = GetScriptForDestination(dest);
+        
+        // Add to wallet's internal tracking
+        WalletBatch batch(m_storage.GetDatabase());
+        CKeyMetadata meta;
+        meta.nCreateTime = GetTime();
+        if (batch.WriteWatchOnly(scriptPubKey, meta)) {
+            // Mark in address book
+            wallet.SetAddressBook(dest, "", AddressPurpose::RECEIVE);
+        }
+    }
+
     WalletLogPrintf("P2TSH: Generated new %s address (merkle root: %s)\n",
-                   SignatureTypeToString(sig_type),
-                   merkle_root.GetHex());
-    
-    // FIXED: Wrap WitnessV2P2TSH in CTxDestination
-    return CTxDestination(WitnessV2P2TSH(merkle_root));
+                SignatureTypeToString(sig_type),
+                merkle_root.GetHex());
+
+    return dest;
 }
 
 util::Result<CTxDestination> P2TSHScriptPubKeyMan::GetNewDestination(const OutputType type)
@@ -429,7 +450,30 @@ bool P2TSHScriptPubKeyMan::LoadFromDB(WalletBatch& batch)
     
     WalletLogPrintf("P2TSH: Loaded %zu metadata entries, %zu Schnorr keys, %zu SLH-DSA keys\n",
                    metadata_count, schnorr_count, slhdsa_count);
-    
+
+    // Register all P2TSH scriptPubKeys with wallet
+    {
+        // Get the actual wallet
+        CWallet& wallet = static_cast<CWallet&>(m_storage);
+        LOCK(wallet.cs_wallet);
+        
+        WalletBatch batch(m_storage.GetDatabase());
+        for (const auto& [merkle_root, metadata] : mapP2TSHMetadata) {
+            WitnessV2P2TSH p2tsh_dest(merkle_root);
+            CTxDestination dest(p2tsh_dest);
+            CScript scriptPubKey = GetScriptForDestination(dest);
+            
+            // Add to wallet tracking
+            CKeyMetadata meta;
+            meta.nCreateTime = metadata.create_time;
+            if (batch.WriteWatchOnly(scriptPubKey, meta)) {
+                wallet.SetAddressBook(dest, "", AddressPurpose::RECEIVE);
+                
+                WalletLogPrintf("P2TSH: Registered scriptPubKey for merkle root %s\n",
+                            merkle_root.GetHex());
+            }
+        }
+    }
     return true;
 }
 
@@ -449,6 +493,12 @@ std::optional<P2TSHSignatureType> P2TSHScriptPubKeyMan::StringToSignatureType(co
     if (str == "slhdsa") return P2TSHSignatureType::SLH_DSA_ONLY;
     if (str == "hybrid") return P2TSHSignatureType::HYBRID;
     return std::nullopt;
+}
+
+bool P2TSHScriptPubKeyMan::HaveP2TSHKeys(const uint256& merkle_root) const
+{
+    AssertLockHeld(cs_p2tsh);
+    return mapP2TSHMetadata.find(merkle_root) != mapP2TSHMetadata.end();
 }
 
 } // namespace wallet
