@@ -66,8 +66,14 @@ bool P2TSHScriptPubKeyMan::GenerateSLHDSAKey(
     privkey.resize(SLH_DSA_SHAKE_128S_SECRET_KEY_SIZE);
     pubkey.resize(SLH_DSA_SHAKE_128S_PUBLIC_KEY_SIZE);
     
+    // Generate 128 bytes of entropy in 32-byte chunks
     std::vector<unsigned char> entropy(128);
-    GetStrongRandBytes(entropy);
+    for (size_t i = 0; i < 128; i += 32) {
+        size_t chunk_size = std::min<size_t>(32, 128 - i);
+        std::vector<unsigned char> chunk(chunk_size);
+        GetStrongRandBytes(chunk);
+        std::copy(chunk.begin(), chunk.end(), entropy.begin() + i);
+    }
     
     int result = slh_dsa_shake_128s_keygen(
         pubkey.data(),
@@ -313,12 +319,117 @@ bool P2TSHScriptPubKeyMan::WriteKey(
     const uint256& merkle_root,
     const P2TSHKeyMetadata& metadata)
 {
-    WalletLogPrintf("P2TSH: WriteKey called for merkle root %s\n", merkle_root.GetHex());
+    AssertLockHeld(cs_p2tsh);
+    
+    // Write metadata
+    if (!batch.WriteP2TSHMetadata(merkle_root, metadata)) {
+        WalletLogPrintf("P2TSH: Failed to write metadata for %s\n", merkle_root.GetHex());
+        return false;
+    }
+    
+    // Write Schnorr private key if present
+    if (!metadata.schnorr_pubkey.empty()) {
+        CKeyID keyid = CKeyID(Hash160(metadata.schnorr_pubkey));
+        auto it = mapSchnorrKeys.find(keyid);
+        if (it != mapSchnorrKeys.end()) {
+            if (!batch.WriteP2TSHSchnorrKey(keyid, it->second)) {
+                WalletLogPrintf("P2TSH: Failed to write Schnorr key\n");
+                return false;
+            }
+        }
+    }
+    
+    // Write SLH-DSA private key if present
+    if (!metadata.slh_dsa_pubkey.empty()) {
+        CKeyID keyid = CKeyID(Hash160(metadata.slh_dsa_pubkey));
+        auto it = mapSLHDSAKeys.find(keyid);
+        if (it != mapSLHDSAKeys.end()) {
+            if (!batch.WriteP2TSHSLHDSAKey(keyid, it->second)) {
+                WalletLogPrintf("P2TSH: Failed to write SLH-DSA key\n");
+                return false;
+            }
+        }
+    }
+    
+    WalletLogPrintf("P2TSH: Saved keys for merkle root %s\n", merkle_root.GetHex());
     return true;
 }
 
 bool P2TSHScriptPubKeyMan::LoadFromDB(WalletBatch& batch)
 {
+    AssertLockHeld(cs_p2tsh);
+    
+    size_t metadata_count = 0;
+    size_t schnorr_count = 0;
+    size_t slhdsa_count = 0;
+    
+    // Get database cursor
+    std::unique_ptr<DatabaseCursor> cursor = batch.GetNewCursor();
+    if (!cursor) {
+        WalletLogPrintf("P2TSH: Failed to create database cursor\n");
+        return false;
+    }
+    
+    // Iterate through all database entries
+    DatabaseCursor::Status status = DatabaseCursor::Status::MORE;
+    while (status == DatabaseCursor::Status::MORE) {
+        DataStream key{};
+        DataStream value{};
+        status = cursor->Next(key, value);
+        
+        if (status != DatabaseCursor::Status::MORE) {
+            break;
+        }
+        
+        std::string type;
+        key >> type;
+        
+        try {
+            // Load P2TSH metadata
+            if (type == DBKeys::P2TSH_METADATA) {
+                uint256 merkle_root;
+                key >> merkle_root;
+                
+                P2TSHKeyMetadata metadata;
+                value >> metadata;
+                
+                mapP2TSHMetadata[merkle_root] = metadata;
+                metadata_count++;
+                
+                WalletLogPrintf("P2TSH: Loaded metadata for merkle root %s\n", 
+                               merkle_root.GetHex());
+            }
+            // Load Schnorr private keys
+            else if (type == DBKeys::P2TSH_SCHNORR_KEY) {
+                CKeyID keyid;
+                key >> keyid;
+                
+                std::vector<unsigned char> privkey;
+                value >> privkey;
+                
+                mapSchnorrKeys[keyid] = privkey;
+                schnorr_count++;
+            }
+            // Load SLH-DSA private keys
+            else if (type == DBKeys::P2TSH_SLHDSA_KEY) {
+                CKeyID keyid;
+                key >> keyid;
+                
+                std::vector<unsigned char> privkey;
+                value >> privkey;
+                
+                mapSLHDSAKeys[keyid] = privkey;
+                slhdsa_count++;
+            }
+        } catch (const std::exception& e) {
+            WalletLogPrintf("P2TSH: Error loading entry: %s\n", e.what());
+            // Continue loading other entries
+        }
+    }
+    
+    WalletLogPrintf("P2TSH: Loaded %zu metadata entries, %zu Schnorr keys, %zu SLH-DSA keys\n",
+                   metadata_count, schnorr_count, slhdsa_count);
+    
     return true;
 }
 

@@ -101,9 +101,9 @@ public:
     size_t GetKeyCount() const;
     std::vector<uint256> GetAllMerkleRoots() const;
     
-    bool LoadFromDB(WalletBatch& batch);
-    bool WriteKey(WalletBatch& batch, const uint256& merkle_root, const P2TSHKeyMetadata& metadata);
-    
+    bool LoadFromDB(WalletBatch& batch) EXCLUSIVE_LOCKS_REQUIRED(cs_p2tsh);
+    bool WriteKey(WalletBatch& batch, const uint256& merkle_root, const P2TSHKeyMetadata& metadata) EXCLUSIVE_LOCKS_REQUIRED(cs_p2tsh);
+        
     std::string SignatureTypeToString(P2TSHSignatureType type) const;
     static std::optional<P2TSHSignatureType> StringToSignatureType(const std::string& str);
 };

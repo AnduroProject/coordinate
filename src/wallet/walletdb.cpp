@@ -60,6 +60,11 @@ const std::string WALLETDESCRIPTORCKEY{"walletdescriptorckey"};
 const std::string WALLETDESCRIPTORKEY{"walletdescriptorkey"};
 const std::string WATCHMETA{"watchmeta"};
 const std::string WATCHS{"watchs"};
+
+const std::string P2TSH_METADATA{"p2tshmetadata"};
+const std::string P2TSH_SCHNORR_KEY{"p2tshschnorrkey"};
+const std::string P2TSH_SLHDSA_KEY{"p2tshslhdsakey"};
+
 const std::unordered_set<std::string> LEGACY_TYPES{CRYPTED_KEY, CSCRIPT, DEFAULTKEY, HDCHAIN, KEYMETA, KEY, OLD_KEY, POOL, WATCHMETA, WATCHS};
 } // namespace DBKeys
 
@@ -1396,4 +1401,20 @@ std::unique_ptr<WalletDatabase> MakeDatabase(const fs::path& path, const Databas
     status = DatabaseStatus::FAILED_BAD_FORMAT;
     return nullptr;
 }
+
+bool WalletBatch::WriteP2TSHMetadata(const uint256& merkle_root, const P2TSHKeyMetadata& metadata)
+{
+    return WriteIC(std::make_pair(DBKeys::P2TSH_METADATA, merkle_root), metadata);
+}
+
+bool WalletBatch::WriteP2TSHSchnorrKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
+{
+    return WriteIC(std::make_pair(DBKeys::P2TSH_SCHNORR_KEY, keyid), key);
+}
+
+bool WalletBatch::WriteP2TSHSLHDSAKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
+{
+    return WriteIC(std::make_pair(DBKeys::P2TSH_SLHDSA_KEY, keyid), key);
+}
+
 } // namespace wallet
