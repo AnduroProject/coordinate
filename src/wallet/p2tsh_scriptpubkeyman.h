@@ -117,6 +117,7 @@ public:
         
     std::string SignatureTypeToString(P2TSHSignatureType type) const;
     static std::optional<P2TSHSignatureType> StringToSignatureType(const std::string& str);
+    std::unordered_set<CScript, SaltedSipHasher> GetScriptPubKeys() const override;
 };
 
 } // namespace wallet

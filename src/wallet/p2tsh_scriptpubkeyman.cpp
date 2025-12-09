@@ -222,16 +222,8 @@ util::Result<CTxDestination> P2TSHScriptPubKeyMan::GetNewP2TSHDestination(
         CWallet& wallet = static_cast<CWallet&>(m_storage);
         LOCK(wallet.cs_wallet);
         
-        CScript scriptPubKey = GetScriptForDestination(dest);
-        
-        // Add to wallet's internal tracking
-        WalletBatch batch(m_storage.GetDatabase());
-        CKeyMetadata meta;
-        meta.nCreateTime = GetTime();
-        if (batch.WriteWatchOnly(scriptPubKey, meta)) {
-            // Mark in address book
-            wallet.SetAddressBook(dest, "", AddressPurpose::RECEIVE);
-        }
+        wallet.SetAddressBook(dest, "", AddressPurpose::RECEIVE);
+        wallet.TopUpKeyPool();
     }
 
     WalletLogPrintf("P2TSH: Generated new %s address (merkle root: %s)\n",
@@ -409,12 +401,31 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     }
     const P2TSHKeyMetadata& metadata = metadata_it->second;
     
+    
     WalletLogPrintf("P2TSH: Found metadata, signature type: %s\n", 
                    SignatureTypeToString(metadata.sig_type));
     
     // Calculate sighash for Tapscript
     // For P2TSH, use SigVersion::TAPSCRIPT which will compute the tapleaf hash
     // from the script using leaf version 0xc1 (P2TSH_LEAF_TAPSCRIPT)
+
+    // ADD THESE DEBUG LINES:
+    WalletLogPrintf("P2TSH: Leaf script size: %zu bytes\n", metadata.leaf_script.size());
+    WalletLogPrintf("P2TSH: Leaf script hex: %s\n", HexStr(metadata.leaf_script));
+    WalletLogPrintf("P2TSH: Expected sizes - SCHNORR_ONLY:34, SLH_DSA_ONLY:34, HYBRID:70\n");
+    if (metadata.sig_type == P2TSHSignatureType::HYBRID && metadata.leaf_script.size() != 70) {
+        WalletLogPrintf("P2TSH: WARNING - HYBRID signature type but script size is %zu (expected 70)!\n", 
+                    metadata.leaf_script.size());
+    }
+    if (metadata.sig_type == P2TSHSignatureType::SCHNORR_ONLY && metadata.leaf_script.size() != 34) {
+        WalletLogPrintf("P2TSH: WARNING - SCHNORR_ONLY signature type but script size is %zu (expected 34)!\n", 
+                    metadata.leaf_script.size());
+    }
+    if (metadata.sig_type == P2TSHSignatureType::SLH_DSA_ONLY && metadata.leaf_script.size() != 34) {
+        WalletLogPrintf("P2TSH: WARNING - SLH_DSA_ONLY signature type but script size is %zu (expected 34)!\n", 
+                    metadata.leaf_script.size());
+    }
+    // END DEBUG LINES
 
     
     // Compute tapleaf hash for logging/verification
@@ -448,7 +459,9 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
             } else {
                 // If we can't find the output, add a dummy one
                 // This might cause signing to fail
-                spent_outputs.push_back(CTxOut());
+                WalletLogPrintf("P2TSH: ERROR - Cannot find spent output for input %zu (txid: %s, vout: %u)\n", 
+                            i, txin.prevout.hash.ToString(), txin.prevout.n);
+                return false;  // ✅ FAIL instead of using dummy!
             }
         }
     }
@@ -803,6 +816,22 @@ bool P2TSHScriptPubKeyMan::SignSLHDSA(
     
     WalletLogPrintf("P2TSH: Created SLH-DSA signature (%zu bytes)\n", siglen);
     return true;
+}
+
+std::unordered_set<CScript, SaltedSipHasher> P2TSHScriptPubKeyMan::GetScriptPubKeys() const
+{
+    LOCK(cs_p2tsh);
+    std::unordered_set<CScript, SaltedSipHasher> scripts;
+    
+    for (const auto& [merkle_root, metadata] : mapP2TSHMetadata) {
+        WitnessV2P2TSH p2tsh_dest(merkle_root);
+        CTxDestination dest(p2tsh_dest);
+        CScript scriptPubKey = GetScriptForDestination(dest);
+        scripts.insert(scriptPubKey);
+    }
+    
+    WalletLogPrintf("P2TSH: GetScriptPubKeys() returning %zu scripts\n", scripts.size());
+    return scripts;
 }
 
 } // namespace wallet

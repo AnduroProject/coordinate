@@ -190,8 +190,7 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
     if(tx.version == TRANSACTION_PEGIN_VERSION) {
         return true;
     }
-    LogPrintf("transaction version is %i \n", tx.version);
-
+    
     CAmount amountAssetInOut = CAmount(0);
     std::vector<unsigned char> currentAssetID = {};
     for (unsigned int i = 0; i < tx.vin.size(); i++) {

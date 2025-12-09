@@ -111,7 +111,6 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, 
     if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
         // Witness version 2 with 32-byte program = P2TSH
         if (witnessversion == 2 && witnessprogram.size() == 32) {
-            wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: P2TSH detected (witness v2)\n");
             
             // Extract merkle root from witness program
             uint256 merkle_root;
@@ -135,7 +134,6 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, 
                         
                         switch (metadata->sig_type) {
                             case P2TSHSignatureType::SCHNORR_ONLY:
-                                wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: SCHNORR_ONLY type\n");
                                 // Schnorr signature: 1 (length) + 64 (sig)
                                 witness_size += 1 + 64;
                                 // Leaf script: 1 (length) + script
@@ -145,7 +143,6 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, 
                                 break;
                                 
                             case P2TSHSignatureType::SLH_DSA_ONLY:
-                                wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: SLH_DSA_ONLY type\n");
                                 // SLH-DSA signature: 1 (length) + 7856 (sig)
                                 witness_size += 1 + 7856;
                                 // Leaf script: 1 (length) + script
@@ -155,7 +152,6 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, 
                                 break;
                                 
                             case P2TSHSignatureType::HYBRID:
-                                wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: HYBRID type\n");
                                 // Schnorr signature: 1 (length) + 64 (sig)
                                 witness_size += 1 + 64;
                                 // SLH-DSA signature: 1 (length) + 7856 (sig)
@@ -173,14 +169,8 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, 
                         int total_weight = (base_size * WITNESS_SCALE_FACTOR) + witness_size;
                         estimated_size = (total_weight + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR; // Round up
                         
-                        wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: P2TSH sig_type=%d, witness=%d bytes, total=%d vBytes\n",
-                                       static_cast<int>(metadata->sig_type), witness_size, estimated_size);
-                    } else {
-                        wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: P2TSH metadata not found, using default size\n");
-                    }
-                } else {
-                    wallet->WalletLogPrintf("CalculateMaximumSignedInputSize: P2TSH manager not found, using default size\n");
-                }
+                    } 
+                } 
             }
             
             return estimated_size;
@@ -595,7 +585,6 @@ CoinsResult AvailableCoins(const CWallet& wallet,
             // For P2TSH, use the wallet version that has P2TSH support
             input_bytes = CalculateMaximumSignedInputSize(output, &wallet, coinControl);
             solvable = input_bytes > -1;
-            wallet.WalletLogPrintf("AvailableCoins: P2TSH output, input_bytes=%d, solvable=%d\n", input_bytes, solvable);
         } else {
             // For other types, use the provider version
             input_bytes = CalculateMaximumSignedInputSize(output, COutPoint(), provider.get(), can_grind_r, coinControl);
