@@ -31,7 +31,7 @@ Create a new P2TSH wallet.
 ### Syntax
 
 ```bash
-coordinate-cli -named createwallet \
+./build/bin/bitcoin-cli -named createwallet \
   wallet_name="<name>" \
   descriptors=true \
   enable_p2tsh=true \
@@ -51,7 +51,7 @@ coordinate-cli -named createwallet \
 
 **Schnorr Wallet (Fast, Lightweight):**
 ```bash
-coordinate-cli -regtest -named createwallet \
+./build/bin/bitcoin-cli -regtest -named createwallet \
   wallet_name="schnorr_wallet" \
   descriptors=true \
   enable_p2tsh=true \
@@ -60,7 +60,7 @@ coordinate-cli -regtest -named createwallet \
 
 **Hybrid Wallet (Quantum-Resistant) ⭐ Recommended:**
 ```bash
-coordinate-cli -regtest -named createwallet \
+./build/bin/bitcoin-cli -regtest -named createwallet \
   wallet_name="hybrid_wallet" \
   descriptors=true \
   enable_p2tsh=true \
@@ -69,7 +69,7 @@ coordinate-cli -regtest -named createwallet \
 
 **SLH-DSA Wallet (Maximum Security):**
 ```bash
-coordinate-cli -regtest -named createwallet \
+./build/bin/bitcoin-cli -regtest -named createwallet \
   wallet_name="slhdsa_wallet" \
   descriptors=true \
   enable_p2tsh=true \
@@ -94,13 +94,13 @@ Load an existing P2TSH wallet.
 ### Syntax
 
 ```bash
-coordinate-cli loadwallet "wallet_name"
+./build/bin/bitcoin-cli loadwallet "wallet_name"
 ```
 
 ### Example
 
 ```bash
-coordinate-cli -regtest loadwallet "schnorr_wallet"
+./build/bin/bitcoin-cli -regtest loadwallet "schnorr_wallet"
 ```
 
 ### Response
@@ -135,7 +135,7 @@ Mine blocks to a P2TSH address.
 ### Syntax
 
 ```bash
-coordinate-cli generatetoaddress <nblocks> "address"
+./build/bin/bitcoin-cli generatetoaddress <nblocks> "address"
 ```
 
 ### Parameters
@@ -149,11 +149,11 @@ coordinate-cli generatetoaddress <nblocks> "address"
 
 ```bash
 # Get address
-ADDR=$(coordinate-cli -regtest -rpcwallet=schnorr_wallet \
+ADDR=$(./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet \
   getnewaddress "" "p2tsh_schnorr" | jq -r '.address')
 
 # Mine 101 blocks (100 for maturity + 1)
-coordinate-cli -regtest generatetoaddress 101 "$ADDR"
+./build/bin/bitcoin-cli -regtest generatetoaddress 101 "$ADDR"
 ```
 
 ### Response
@@ -170,7 +170,7 @@ coordinate-cli -regtest generatetoaddress 101 "$ADDR"
 ### Check Balance
 
 ```bash
-coordinate-cli -regtest -rpcwallet=schnorr_wallet getbalance
+./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet getbalance
 ```
 
 **Response:** `5050.00000000` (101 × 50 CORD)
@@ -184,13 +184,13 @@ Get detailed information about a P2TSH address.
 ### Syntax
 
 ```bash
-coordinate-cli -rpcwallet=<wallet> getaddressinfo "address"
+./build/bin/bitcoin-cli -rpcwallet=<wallet> getaddressinfo "address"
 ```
 
 ### Example
 
 ```bash
-coordinate-cli -regtest -rpcwallet=schnorr_wallet \
+./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet \
   getaddressinfo "ccrt1sqav3hpwm2al3tvr6ywzsfs382fkg3ql9s0uwdvxrw2jh500k3zvqc4h8a5"
 ```
 
@@ -226,13 +226,13 @@ Validate P2TSH address format.
 ### Syntax
 
 ```bash
-coordinate-cli validateaddress "address"
+./build/bin/bitcoin-cli validateaddress "address"
 ```
 
 ### Example: Valid Address
 
 ```bash
-coordinate-cli -regtest validateaddress \
+./build/bin/bitcoin-cli -regtest validateaddress \
   "ccrt1sqav3hpwm2al3tvr6ywzsfs382fkg3ql9s0uwdvxrw2jh500k3zvqc4h8a5"
 ```
 
@@ -252,7 +252,7 @@ coordinate-cli -regtest validateaddress \
 ### Example: Invalid Address
 
 ```bash
-coordinate-cli -regtest validateaddress "ccrt1sinvalidaddress"
+./build/bin/bitcoin-cli -regtest validateaddress "ccrt1sinvalidaddress"
 ```
 
 ### Response
@@ -281,7 +281,7 @@ Send funds from P2TSH address.
 ### Syntax
 
 ```bash
-coordinate-cli -rpcwallet=<wallet> sendtoaddress "address" <amount>
+./build/bin/bitcoin-cli -rpcwallet=<wallet> sendtoaddress "address" <amount>
 ```
 
 ### Parameters
@@ -295,11 +295,11 @@ coordinate-cli -rpcwallet=<wallet> sendtoaddress "address" <amount>
 
 ```bash
 # Get destination
-DEST=$(coordinate-cli -regtest -rpcwallet=schnorr_wallet \
+DEST=$(./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet \
   getnewaddress "" "p2tsh_schnorr" | jq -r '.address')
 
 # Send
-coordinate-cli -regtest -rpcwallet=schnorr_wallet sendtoaddress "$DEST" 0.1
+./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet sendtoaddress "$DEST" 0.1
 ```
 
 **Response:** `a1b2c3d4e5f6...` (transaction ID)
@@ -328,9 +328,9 @@ Total: ~8000 bytes
 ### Check Transaction Size
 
 ```bash
-TXID=$(coordinate-cli -regtest -rpcwallet=hybrid_wallet sendtoaddress "$DEST" 0.5)
+TXID=$(./build/bin/bitcoin-cli -regtest -rpcwallet=hybrid_wallet sendtoaddress "$DEST" 0.5)
 
-coordinate-cli -regtest getrawtransaction "$TXID" true | \
+./build/bin/bitcoin-cli -regtest getrawtransaction "$TXID" true | \
   jq '{txid, size, vsize, weight}'
 ```
 
@@ -364,7 +364,7 @@ P2TSH: Signed 1 P2TSH inputs, all_signed=1
 ### Schnorr Workflow
 
 ```bash
-CLI="coordinate-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
+CLI="./build/bin/bitcoin-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
 
 # 1. Create wallet
 $CLI -named createwallet wallet_name="test" descriptors=true \
@@ -397,7 +397,7 @@ $CLI -rpcwallet=test sendtoaddress "$ADDR3" 0.1
 ### Hybrid Workflow
 
 ```bash
-CLI="coordinate-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
+CLI="./build/bin/bitcoin-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
 
 # Create hybrid wallet
 $CLI -named createwallet wallet_name="hybrid" descriptors=true \
@@ -418,7 +418,7 @@ $CLI getrawtransaction "$TXID" true | jq '{size, vsize, weight}'
 ### Wallet Reload Test
 
 ```bash
-CLI="coordinate-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
+CLI="./build/bin/bitcoin-cli -regtest -rpcuser=marachain -rpcpassword=marachain"
 
 # Create and fund
 $CLI -named createwallet wallet_name="reload" descriptors=true \
@@ -505,27 +505,27 @@ tail -f ~/.coordinate/regtest/debug.log | grep "P2TSH:"
 
 ### List Wallets
 ```bash
-coordinate-cli -regtest listwallets
+./build/bin/bitcoin-cli -regtest listwallets
 ```
 
 ### Get Wallet Info
 ```bash
-coordinate-cli -regtest -rpcwallet=schnorr_wallet getwalletinfo
+./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet getwalletinfo
 ```
 
 ### List Unspent
 ```bash
-coordinate-cli -regtest -rpcwallet=schnorr_wallet listunspent
+./build/bin/bitcoin-cli -regtest -rpcwallet=schnorr_wallet listunspent
 ```
 
 ### Get Transaction
 ```bash
-coordinate-cli -regtest getrawtransaction "txid" true
+./build/bin/bitcoin-cli -regtest getrawtransaction "txid" true
 ```
 
 ### Unload Wallet
 ```bash
-coordinate-cli -regtest unloadwallet "wallet_name"
+./build/bin/bitcoin-cli -regtest unloadwallet "wallet_name"
 ```
 
 ---
