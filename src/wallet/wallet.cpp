@@ -3363,6 +3363,13 @@ std::set<ScriptPubKeyMan*> CWallet::GetAllScriptPubKeyMans() const
     for (const auto& spk_man_pair : m_spk_managers) {
         spk_mans.insert(spk_man_pair.second.get());
     }
+
+     LOCK(cs_wallet);
+    // Add P2TSH manager if it exists
+    if (m_p2tsh_spk_man) {
+        spk_mans.insert(m_p2tsh_spk_man.get());
+    }
+
     return spk_mans;
 }
 

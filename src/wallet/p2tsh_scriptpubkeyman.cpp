@@ -155,6 +155,19 @@ util::Result<CTxDestination> P2TSHScriptPubKeyMan::GetNewP2TSHDestination(
     // Get merkle root and control block
     TaprootSpendData spend_data = builder.GetSpendData();
     uint256 merkle_root = spend_data.merkle_root;
+
+    // ADD THIS DEBUG CODE:
+    uint256 tapleaf_hash_check = (HashWriter{HASHER_TAPLEAF} 
+        << uint8_t(TAPROOT_LEAF_TAPSCRIPT)  // 0xc0
+        << leaf_script
+    ).GetSHA256();
+    
+    WalletLogPrintf("=== P2TSH ADDRESS GENERATION DEBUG ===\n");
+    WalletLogPrintf("Tapleaf hash: %s\n", tapleaf_hash_check.GetHex());
+    WalletLogPrintf("Merkle root:  %s\n", merkle_root.GetHex());
+    WalletLogPrintf("Match: %s\n", (merkle_root == tapleaf_hash_check) ? "YES - Single leaf" : "NO");
+    WalletLogPrintf("======================================\n");
+    // END DEBUG CODE
     
     // Convert CScript to vector<unsigned char> and create key pair
     std::vector<unsigned char> script_bytes(leaf_script.begin(), leaf_script.end());
@@ -169,7 +182,8 @@ util::Result<CTxDestination> P2TSHScriptPubKeyMan::GetNewP2TSHDestination(
     if (control_it->second.empty()) {
         return util::Error{Untranslated("No control block found")};
     }
-    std::vector<unsigned char> control_block = *control_it->second.begin();
+    std::vector<unsigned char> control_block;
+    control_block.push_back(P2TSH_LEAF_TAPSCRIPT);
     
     // Create metadata
     P2TSHKeyMetadata metadata;
@@ -398,20 +412,73 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     WalletLogPrintf("P2TSH: Found metadata, signature type: %s\n", 
                    SignatureTypeToString(metadata.sig_type));
     
-    // Calculate sighash
+    // Calculate sighash for Tapscript
+    // For P2TSH, use SigVersion::TAPSCRIPT which will compute the tapleaf hash
+    // from the script using leaf version 0xc1 (P2TSH_LEAF_TAPSCRIPT)
+
+    
+    // Compute tapleaf hash for logging/verification
+    uint256 tapleaf_hash = (HashWriter{HASHER_TAPLEAF} 
+        << uint8_t(TAPROOT_LEAF_TAPSCRIPT)  // 0xc0 ✅ CORRECT!
+        << metadata.leaf_script
+    ).GetSHA256();
+    
+    WalletLogPrintf("P2TSH: Tapleaf hash: %s\n", tapleaf_hash.GetHex());
+
+    // Get wallet reference
+    CWallet& wallet = static_cast<CWallet&>(m_storage);
+
+    LOCK(wallet.cs_wallet);
+
+    // Get all spent outputs
+    std::vector<CTxOut> spent_outputs;
+    spent_outputs.reserve(tx.vin.size());
+
+    for (size_t i = 0; i < tx.vin.size(); ++i) {
+        const auto& txin = tx.vin[i];
+        
+        if (i == input_idx) {
+            // Use the provided amount and scriptPubKey for the input being signed
+            spent_outputs.push_back(CTxOut(amount, scriptPubKey));
+        } else {
+            // Get other inputs from wallet
+            const CWalletTx* prev_tx = wallet.GetWalletTx(txin.prevout.hash);
+            if (prev_tx && txin.prevout.n < prev_tx->tx->vout.size()) {
+                spent_outputs.push_back(prev_tx->tx->vout[txin.prevout.n]);
+            } else {
+                // If we can't find the output, add a dummy one
+                // This might cause signing to fail
+                spent_outputs.push_back(CTxOut());
+            }
+        }
+    }
+
     PrecomputedTransactionData txdata;
-    txdata.Init(tx, {}, true);
+    txdata.Init(tx,std::move(spent_outputs), true);
+
+    ScriptExecutionData execdata;
+    execdata.m_annex_init = true;
+    execdata.m_annex_present = false;
+    execdata.m_codeseparator_pos_init = true;
+    execdata.m_codeseparator_pos = 0xFFFFFFFF;  // No OP_CODESEPARATOR
+    execdata.m_tapleaf_hash_init = true;
+    execdata.m_tapleaf_hash = tapleaf_hash;  // ← CRITICAL!
+
+    WalletLogPrintf("=== SIGHASH DEBUG ===\n");
+    WalletLogPrintf("Sighash type parameter: %d (0x%02x)\n", sighash_type, sighash_type);
+    WalletLogPrintf("SIGHASH_DEFAULT = 0, SIGHASH_ALL = 1\n");
+    WalletLogPrintf("=====================\n");
     
-    uint256 sighash = SignatureHash(
-        metadata.leaf_script,
-        tx,
-        input_idx,
-        sighash_type,
-        amount,
-        SigVersion::TAPROOT,
-        &txdata
-    );
-    
+    // SignatureHash for TAPSCRIPT automatically includes the tapleaf hash
+    uint256 sighash;
+    if (!SignatureHashSchnorr(sighash, execdata, tx, input_idx, 
+                              sighash_type, SigVersion::TAPSCRIPT, 
+                              txdata, MissingDataBehavior::FAIL)) {
+        WalletLogPrintf("P2TSH: SignatureHashSchnorr failed\n");
+        return false;
+    }
+
+
     WalletLogPrintf("P2TSH: Calculated sighash: %s\n", sighash.GetHex());
     
     // Sign based on signature type
@@ -454,11 +521,21 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     // Construct witness stack: [signatures] [leaf_script] [control_block]
     CScriptWitness witness;
     
+    WalletLogPrintf("=== P2TSH WITNESS DEBUG ===\n");
+    WalletLogPrintf("Merkle root from scriptPubKey: %s\n", merkle_root.GetHex());
+    WalletLogPrintf("Merkle root from metadata: %s\n", metadata.merkle_root.GetHex());
+    WalletLogPrintf("Signature type: %s\n", SignatureTypeToString(metadata.sig_type));
+    
     if (metadata.sig_type == P2TSHSignatureType::SCHNORR_ONLY) {
+        WalletLogPrintf("Schnorr sig size: %zu bytes\n", schnorr_sig.size());
+        WalletLogPrintf("Schnorr sig: %s\n", HexStr(schnorr_sig));
         witness.stack.push_back(schnorr_sig);
     } else if (metadata.sig_type == P2TSHSignatureType::SLH_DSA_ONLY) {
+        WalletLogPrintf("SLH-DSA sig size: %zu bytes\n", slhdsa_sig.size());
         witness.stack.push_back(slhdsa_sig);
     } else if (metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        WalletLogPrintf("Schnorr sig size: %zu bytes\n", schnorr_sig.size());
+        WalletLogPrintf("SLH-DSA sig size: %zu bytes\n", slhdsa_sig.size());
         witness.stack.push_back(schnorr_sig);
         witness.stack.push_back(slhdsa_sig);
     }
@@ -466,10 +543,17 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     // Add leaf script
     std::vector<unsigned char> script_bytes(metadata.leaf_script.begin(), 
                                             metadata.leaf_script.end());
+    WalletLogPrintf("Leaf script size: %zu bytes\n", script_bytes.size());
+    WalletLogPrintf("Leaf script: %s\n", HexStr(script_bytes));
     witness.stack.push_back(script_bytes);
     
     // Add control block
+    WalletLogPrintf("Control block size: %zu bytes\n", metadata.control_block.size());
+    WalletLogPrintf("Control block: %s\n", HexStr(metadata.control_block));
     witness.stack.push_back(metadata.control_block);
+    
+    WalletLogPrintf("Total witness elements: %zu\n", witness.stack.size());
+    WalletLogPrintf("=== END WITNESS DEBUG ===\n");
     
     // Set witness
     tx.vin[input_idx].scriptWitness = witness;
@@ -662,24 +746,26 @@ bool P2TSHScriptPubKeyMan::SignSchnorr(
     const uint256& sighash,
     std::vector<unsigned char>& signature) const
 {
-    if (privkey.size() != 32) {
-        WalletLogPrintf("P2TSH: Invalid Schnorr private key size\n");
-        return false;
-    }
+    secp256k1_context* secp_ctx = secp256k1_context_create(SECP256K1_CONTEXT_NONE);
     
     secp256k1_keypair keypair;
     if (!secp256k1_keypair_create(secp_ctx, &keypair, privkey.data())) {
-        WalletLogPrintf("P2TSH: Failed to create keypair from private key\n");
+        secp256k1_context_destroy(secp_ctx);
         return false;
     }
     
     signature.resize(64);
     if (!secp256k1_schnorrsig_sign32(secp_ctx, signature.data(), sighash.begin(), &keypair, nullptr)) {
-        WalletLogPrintf("P2TSH: Schnorr signature creation failed\n");
+        secp256k1_context_destroy(secp_ctx);
         return false;
     }
     
-    WalletLogPrintf("P2TSH: Created Schnorr signature (64 bytes)\n");
+    secp256k1_context_destroy(secp_ctx);
+    
+    // ✅ DON'T append sighash type - 64 bytes = SIGHASH_DEFAULT (implied)
+    // signature.push_back(SIGHASH_DEFAULT);  // REMOVE THIS LINE
+    
+    WalletLogPrintf("P2TSH: Created Schnorr signature (%zu bytes)\n", signature.size());
     return true;
 }
 
@@ -712,6 +798,8 @@ bool P2TSHScriptPubKeyMan::SignSLHDSA(
     
     // Resize to actual signature length
     signature.resize(siglen);
+
+    signature.push_back(SIGHASH_DEFAULT);
     
     WalletLogPrintf("P2TSH: Created SLH-DSA signature (%zu bytes)\n", siglen);
     return true;
