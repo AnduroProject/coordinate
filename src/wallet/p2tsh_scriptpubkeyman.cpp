@@ -412,6 +412,26 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     // ADD THESE DEBUG LINES:
     WalletLogPrintf("P2TSH: Leaf script size: %zu bytes\n", metadata.leaf_script.size());
     WalletLogPrintf("P2TSH: Leaf script hex: %s\n", HexStr(metadata.leaf_script));
+
+    // CRITICAL: Check if script starts with correct opcodes
+    if (metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        WalletLogPrintf("P2TSH: HYBRID SCRIPT CHECK:\n");
+        WalletLogPrintf("P2TSH:   Expected size: 70 bytes\n");
+        WalletLogPrintf("P2TSH:   Actual size: %zu bytes\n", metadata.leaf_script.size());
+        if (metadata.leaf_script.size() >= 34) {
+            WalletLogPrintf("P2TSH:   First 34 bytes (Schnorr part): %s\n", 
+                           HexStr(std::vector<unsigned char>(metadata.leaf_script.begin(), 
+                                                             metadata.leaf_script.begin() + 34)));
+        }
+        if (metadata.leaf_script.size() == 70) {
+            WalletLogPrintf("P2TSH:   Last 36 bytes (SLH-DSA part): %s\n",
+                           HexStr(std::vector<unsigned char>(metadata.leaf_script.begin() + 34,
+                                                             metadata.leaf_script.end())));
+        } else {
+            WalletLogPrintf("P2TSH:   ERROR: Script is %zu bytes, not 70!\n", metadata.leaf_script.size());
+        }
+    }
+
     WalletLogPrintf("P2TSH: Expected sizes - SCHNORR_ONLY:34, SLH_DSA_ONLY:34, HYBRID:70\n");
     if (metadata.sig_type == P2TSHSignatureType::HYBRID && metadata.leaf_script.size() != 70) {
         WalletLogPrintf("P2TSH: WARNING - HYBRID signature type but script size is %zu (expected 70)!\n", 
@@ -477,15 +497,23 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     execdata.m_tapleaf_hash_init = true;
     execdata.m_tapleaf_hash = tapleaf_hash;  // ← CRITICAL!
 
+    int actual_sighash_type = sighash_type;
+    if (metadata.sig_type == P2TSHSignatureType::HYBRID) {
+        actual_sighash_type = SIGHASH_ALL;  // Must match interpreter expectation
+    }
+
     WalletLogPrintf("=== SIGHASH DEBUG ===\n");
     WalletLogPrintf("Sighash type parameter: %d (0x%02x)\n", sighash_type, sighash_type);
+    WalletLogPrintf("Actual sighash type used: %d (0x%02x)\n", actual_sighash_type, actual_sighash_type);
     WalletLogPrintf("SIGHASH_DEFAULT = 0, SIGHASH_ALL = 1\n");
     WalletLogPrintf("=====================\n");
+
+
     
     // SignatureHash for TAPSCRIPT automatically includes the tapleaf hash
     uint256 sighash;
     if (!SignatureHashSchnorr(sighash, execdata, tx, input_idx, 
-                              sighash_type, SigVersion::TAPSCRIPT, 
+                              actual_sighash_type, SigVersion::TAPSCRIPT, 
                               txdata, MissingDataBehavior::FAIL)) {
         WalletLogPrintf("P2TSH: SignatureHashSchnorr failed\n");
         return false;
@@ -549,6 +577,9 @@ bool P2TSHScriptPubKeyMan::SignP2TSHInput(
     } else if (metadata.sig_type == P2TSHSignatureType::HYBRID) {
         WalletLogPrintf("Schnorr sig size: %zu bytes\n", schnorr_sig.size());
         WalletLogPrintf("SLH-DSA sig size: %zu bytes\n", slhdsa_sig.size());
+        if (slhdsa_sig.size() == 7857) {
+            slhdsa_sig.pop_back();  // Remove sighash byte
+        }
         witness.stack.push_back(schnorr_sig);
         witness.stack.push_back(slhdsa_sig);
     }
