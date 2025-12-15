@@ -353,11 +353,13 @@ static RPCHelpMan createwallet()
             {"wallet_name", RPCArg::Type::STR, RPCArg::Optional::NO, "The name for the new wallet. If this is a path, the wallet will be created at the path location."},
             {"disable_private_keys", RPCArg::Type::BOOL, RPCArg::Default{false}, "Disable the possibility of private keys (only watchonlys are possible in this mode)."},
             {"blank", RPCArg::Type::BOOL, RPCArg::Default{false}, "Create a blank wallet. A blank wallet has no keys."},
-            {"passphrase", RPCArg::Type::STR, RPCArg::Optional::OMITTED, "Encrypt the wallet with this passphrase."},
+            {"passphrase", RPCArg::Type::STR,  RPCArg::Default{""}, "Encrypt the wallet with this passphrase."},
             {"avoid_reuse", RPCArg::Type::BOOL, RPCArg::Default{false}, "Keep track of coin reuse, and treat dirty and clean coins differently with privacy considerations in mind."},
             {"descriptors", RPCArg::Type::BOOL, RPCArg::Default{true}, "If set, must be \"true\""},
-            {"load_on_startup", RPCArg::Type::BOOL, RPCArg::Optional::OMITTED, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
+            {"load_on_startup", RPCArg::Type::BOOL,  RPCArg::Default{false}, "Save wallet name to persistent settings and load on startup. True to add wallet to startup list, false to remove, null to leave unchanged."},
             {"external_signer", RPCArg::Type::BOOL, RPCArg::Default{false}, "Use an external signer such as a hardware wallet. Requires -signer to be configured. Wallet creation will fail if keys cannot be fetched. Requires disable_private_keys and descriptors set to true."},
+            {"enable_p2tsh", RPCArg::Type::BOOL, RPCArg::Default{false}, "Enable P2TSH quantum-resistant addresses."},
+            {"p2tsh_signature_type", RPCArg::Type::STR, RPCArg::Default{"hybrid"}, "P2TSH signature type: 'schnorr', 'slhdsa', or 'hybrid'."},
         },
         RPCResult{
             RPCResult::Type::OBJ, "", "",
@@ -367,6 +369,8 @@ static RPCHelpMan createwallet()
                 {
                     {RPCResult::Type::STR, "", ""},
                 }},
+                {RPCResult::Type::BOOL, "p2tsh_enabled", /*optional=*/true, "Whether P2TSH is enabled."},  
+                {RPCResult::Type::STR, "p2tsh_signature_type", /*optional=*/true, "P2TSH signature type."}, 
             }
         },
         RPCExamples{
@@ -412,6 +416,30 @@ static RPCHelpMan createwallet()
 #endif
     }
 
+    LogPrintf("testing 1 \n");
+
+    bool enable_p2tsh = false;
+    if (request.params.size() > 8 && !request.params[8].isNull()) {
+        enable_p2tsh = request.params[8].get_bool();
+    }
+    
+    LogPrintf("testing 2 \n");
+
+    P2TSHSignatureType p2tsh_sig_type = P2TSHSignatureType::HYBRID;
+    if (request.params.size() > 9 && !request.params[9].isNull()) {
+        std::string sig_type_str = request.params[9].get_str();
+        
+        auto sig_type_opt = P2TSHScriptPubKeyMan::StringToSignatureType(sig_type_str);
+        if (!sig_type_opt) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                "Invalid p2tsh_signature_type. Must be 'schnorr', 'slhdsa', or 'hybrid'");
+        }
+        p2tsh_sig_type = *sig_type_opt;
+    }
+
+    if (enable_p2tsh) flags |= WALLET_FLAG_P2TSH_ENABLED; 
+    
+
     DatabaseOptions options;
     DatabaseStatus status;
     ReadDatabaseArgs(*context.args, options);
@@ -426,9 +454,36 @@ static RPCHelpMan createwallet()
         throw JSONRPCError(code, error.original);
     }
 
+    if (enable_p2tsh && wallet) {
+        LOCK(wallet->cs_wallet);
+        wallet->SetDefaultP2TSHType(p2tsh_sig_type);
+    }
+
     UniValue obj(UniValue::VOBJ);
     obj.pushKV("name", wallet->GetName());
     PushWarnings(warnings, obj);
+
+    if (enable_p2tsh) {
+        obj.pushKV("p2tsh_enabled", true);
+        
+        // Convert enum to string
+        std::string sig_type_str;
+        switch (p2tsh_sig_type) {
+            case P2TSHSignatureType::SCHNORR_ONLY:
+                sig_type_str = "schnorr";
+                break;
+            case P2TSHSignatureType::SLH_DSA_ONLY:
+                sig_type_str = "slhdsa";
+                break;
+            case P2TSHSignatureType::HYBRID:
+                sig_type_str = "hybrid";
+                break;
+            default:
+                sig_type_str = "unknown";
+                break;
+        }
+        obj.pushKV("p2tsh_signature_type", sig_type_str);
+    }   
 
     return obj;
 },

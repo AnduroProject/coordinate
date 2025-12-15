@@ -26,6 +26,7 @@ class CMasterKey;
 class CWallet;
 class CWalletTx;
 struct WalletContext;
+struct P2TSHKeyMetadata;  
 
 /**
  * Overview of wallet database classes:
@@ -82,6 +83,10 @@ extern const std::string WALLETDESCRIPTORCKEY;
 extern const std::string WALLETDESCRIPTORKEY;
 extern const std::string WATCHMETA;
 extern const std::string WATCHS;
+
+extern const std::string P2TSH_METADATA;
+extern const std::string P2TSH_SCHNORR_KEY;
+extern const std::string P2TSH_SLHDSA_KEY;
 
 // Keys in this set pertain only to the legacy wallet (LegacyScriptPubKeyMan) and are removed during migration from legacy to descriptors.
 extern const std::unordered_set<std::string> LEGACY_TYPES;
@@ -253,6 +258,11 @@ public:
 
     bool WriteLockedUTXO(const COutPoint& output);
     bool EraseLockedUTXO(const COutPoint& output);
+
+    bool WriteP2TSHMetadata(const uint256& merkle_root, const P2TSHKeyMetadata& metadata);
+    bool WriteP2TSHSchnorrKey(const CKeyID& keyid, const std::vector<unsigned char>& key);
+    bool WriteP2TSHSLHDSAKey(const CKeyID& keyid, const std::vector<unsigned char>& key);
+    std::unique_ptr<DatabaseCursor> GetNewCursor() { return m_batch->GetNewCursor(); }
 
     bool WriteAddressPreviouslySpent(const CTxDestination& dest, bool previously_spent);
     bool WriteAddressReceiveRequest(const CTxDestination& dest, const std::string& id, const std::string& receive_request);

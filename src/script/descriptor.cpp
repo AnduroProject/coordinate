@@ -28,6 +28,7 @@
 #include <optional>
 #include <string>
 #include <vector>
+#include <logging.h>
 
 using util::Split;
 
@@ -1631,7 +1632,7 @@ protected:
         uint256 merkle_root = builder.GetSpendData().merkle_root;
 
         CScript output_script;
-        output_script << OP_3 << ToByteVector(merkle_root);
+        output_script << OP_2 << ToByteVector(merkle_root);
 
         return {output_script};
     }
@@ -2470,7 +2471,6 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
             }
         }
         assert(TaprootBuilder::ValidDepths(depths));
-
         // Make sure all vecs are of the same length, or exactly length 1
         // For length 1 vectors, clone subdescs until vector is the same length
         for (auto& vec : subscripts) {
@@ -2483,7 +2483,6 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
                 return {};
             }
         }
-
         if (internal_keys.size() > 1 && internal_keys.size() != max_providers_len) {
             error = strprintf("tr(): Multipath internal key mismatches multipath subscripts lengths");
             return {};
@@ -2492,7 +2491,6 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         while (internal_keys.size() < max_providers_len) {
             internal_keys.emplace_back(internal_keys.at(0)->Clone());
         }
-
         // Build the final descriptors vector
         for (size_t i = 0; i < max_providers_len; ++i) {
             // Build final subscripts vectors by retrieving the i'th subscript for each vector in subscripts
@@ -2515,7 +2513,6 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
         // P2TSH only supports script path, no internal key
         std::vector<std::vector<std::unique_ptr<DescriptorImpl>>> subscripts;
         std::vector<int> depths;
-
         if (expr.size()) {
             /** The path from the top of the tree to what we're currently processing.
              * branches[i] == false: left branch in the i'th step from the top; true: right branch.
@@ -2534,7 +2531,9 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
                 // Process the actual script expression.
                 auto sarg = Expr(expr);
                 subscripts.emplace_back(ParseScript(key_exp_index, sarg, ParseScriptContext::P2TSH, out, error));
-                if (subscripts.back().empty()) return {};
+                if (subscripts.back().empty()) {
+                    return {};
+                } 
                 depths.push_back(branches.size());
                 // Process closing braces; one is expected for every right branch we were in.
                 while (branches.size() && branches.back()) {
@@ -2559,7 +2558,6 @@ std::vector<std::unique_ptr<DescriptorImpl>> ParseScript(uint32_t& key_exp_index
                 return {};
             }
         }
-
         assert(TaprootBuilder::ValidDepths(depths));
 
         // Build the final descriptors vector

@@ -28,7 +28,7 @@
 #include <wallet/spend.h>
 #include <wallet/transaction.h>
 #include <wallet/wallet.h>
-
+#include <wallet/p2tsh_scriptpubkeyman.h>
 #include <cmath>
 
 using common::StringForFeeReason;
@@ -103,6 +103,81 @@ int CalculateMaximumSignedInputSize(const CTxOut& txout, const COutPoint outpoin
 
 int CalculateMaximumSignedInputSize(const CTxOut& txout, const CWallet* wallet, const CCoinControl* coin_control)
 {
+    const CScript& scriptPubKey = txout.scriptPubKey;
+    
+    // Check witness version and program length for P2TSH
+    int witnessversion;
+    std::vector<unsigned char> witnessprogram;
+    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        // Witness version 2 with 32-byte program = P2TSH
+        if (witnessversion == 2 && witnessprogram.size() == 32) {
+            
+            // Extract merkle root from witness program
+            uint256 merkle_root;
+            std::copy(witnessprogram.begin(), witnessprogram.end(), merkle_root.begin());
+            
+            // Default to hybrid size (most conservative)
+            int estimated_size = 2100;
+            
+            // Try to get metadata to determine actual signature type
+            {
+                LOCK(wallet->cs_wallet);
+                P2TSHScriptPubKeyMan* p2tsh_spkm = wallet->GetP2TSHScriptPubKeyMan();
+                
+                if (p2tsh_spkm) {
+                    // GetP2TSHMetadata now locks internally
+                    const P2TSHKeyMetadata* metadata = p2tsh_spkm->GetP2TSHMetadata(merkle_root);
+                    
+                    if (metadata) {
+                        // Calculate size based on actual signature type
+                        int witness_size = 1; // witness stack count
+                        
+                        switch (metadata->sig_type) {
+                            case P2TSHSignatureType::SCHNORR_ONLY:
+                                // Schnorr signature: 1 (length) + 64 (sig)
+                                witness_size += 1 + 64;
+                                // Leaf script: 1 (length) + script
+                                witness_size += 1 + metadata->leaf_script.size();
+                                // Control block: 1 (length) + control
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                                
+                            case P2TSHSignatureType::SLH_DSA_ONLY:
+                                // SLH-DSA signature: 1 (length) + 7856 (sig)
+                                witness_size += 1 + 7856;
+                                // Leaf script: 1 (length) + script
+                                witness_size += 1 + metadata->leaf_script.size();
+                                // Control block: 1 (length) + control
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                                
+                            case P2TSHSignatureType::HYBRID:
+                                // Schnorr signature: 1 (length) + 64 (sig)
+                                witness_size += 1 + 64;
+                                // SLH-DSA signature: 1 (length) + 7856 (sig)
+                                witness_size += 1 + 7856;
+                                // Leaf script: 1 (length) + script
+                                witness_size += 1 + metadata->leaf_script.size();
+                                // Control block: 1 (length) + control
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                        }
+                        
+                        // Calculate vBytes from weight
+                        // Base: 32 (prevout hash) + 4 (prevout index) + 1 (empty scriptSig) + 4 (sequence) = 41 bytes
+                        int base_size = 41;
+                        int total_weight = (base_size * WITNESS_SCALE_FACTOR) + witness_size;
+                        estimated_size = (total_weight + WITNESS_SCALE_FACTOR - 1) / WITNESS_SCALE_FACTOR; // Round up
+                        
+                    } 
+                } 
+            }
+            
+            return estimated_size;
+        }
+    }
+    
+    // Regular (non-P2TSH) handling
     const std::unique_ptr<SigningProvider> provider = wallet->GetSolvingProvider(txout.scriptPubKey);
     return CalculateMaximumSignedInputSize(txout, COutPoint(), provider.get(), wallet->CanGrindR(), coin_control);
 }
@@ -121,7 +196,6 @@ static std::unique_ptr<Descriptor> GetDescriptor(const CWallet* wallet, const CC
     return InferDescriptor(script_pubkey, providers);
 }
 
-/** Infer the maximum size of this input after it will be signed. */
 static std::optional<int64_t> GetSignedTxinWeight(const CWallet* wallet, const CCoinControl* coin_control,
                                                   const CTxIn& txin, const CTxOut& txo, const bool tx_is_segwit,
                                                   const bool can_grind_r)
@@ -130,6 +204,68 @@ static std::optional<int64_t> GetSignedTxinWeight(const CWallet* wallet, const C
     std::optional<int64_t> weight;
     if (coin_control && (weight = coin_control->GetInputWeight(txin.prevout))) {
         return weight.value();
+    }
+
+    // Check for P2TSH (witness v2) before trying descriptor inference
+    const CScript& scriptPubKey = txo.scriptPubKey;
+    int witnessversion;
+    std::vector<unsigned char> witnessprogram;
+    if (scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+        if (witnessversion == 2 && witnessprogram.size() == 32) {
+            // P2TSH input - calculate weight directly
+            wallet->WalletLogPrintf("GetSignedTxinWeight: P2TSH detected\n");
+            
+            // Extract merkle root
+            uint256 merkle_root;
+            std::copy(witnessprogram.begin(), witnessprogram.end(), merkle_root.begin());
+            
+            // Default weight for hybrid (most conservative)
+            int64_t input_weight = 2100 * WITNESS_SCALE_FACTOR;
+            
+            // Try to get actual signature type for better estimate
+            {
+                LOCK(wallet->cs_wallet);
+                P2TSHScriptPubKeyMan* p2tsh_spkm = wallet->GetP2TSHScriptPubKeyMan();
+                
+                if (p2tsh_spkm) {
+                    const P2TSHKeyMetadata* metadata = p2tsh_spkm->GetP2TSHMetadata(merkle_root);
+                    
+                    if (metadata) {
+                        int witness_size = 1; // witness stack count
+                        
+                        switch (metadata->sig_type) {
+                            case P2TSHSignatureType::SCHNORR_ONLY:
+                                witness_size += 1 + 64;  // Schnorr sig
+                                witness_size += 1 + metadata->leaf_script.size();
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                                
+                            case P2TSHSignatureType::SLH_DSA_ONLY:
+                                witness_size += 1 + 7856;  // SLH-DSA sig
+                                witness_size += 1 + metadata->leaf_script.size();
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                                
+                            case P2TSHSignatureType::HYBRID:
+                                witness_size += 1 + 64;    // Schnorr sig
+                                witness_size += 1 + 7856;  // SLH-DSA sig
+                                witness_size += 1 + metadata->leaf_script.size();
+                                witness_size += 1 + metadata->control_block.size();
+                                break;
+                        }
+                        
+                        // Base: 32 (prevout) + 4 (index) + 1 (scriptSig) + 4 (sequence) = 41
+                        int base_size = 41;
+                        input_weight = (base_size * WITNESS_SCALE_FACTOR) + witness_size;
+                        
+                        wallet->WalletLogPrintf("GetSignedTxinWeight: P2TSH type=%d, weight=%ld\n",
+                                               static_cast<int>(metadata->sig_type), input_weight);
+                    }
+                }
+            }
+            
+            return input_weight;
+        }
     }
 
     // Otherwise, use the maximum satisfaction size provided by the descriptor.
@@ -147,6 +283,16 @@ TxSize CalculateMaximumSignedTxSize(const CTransaction &tx, const CWallet *walle
     // Whether any input spends a witness program. Necessary to run before the next loop over the
     // inputs in order to accurately compute the compactSize length for the witness data per input.
     bool is_segwit = std::any_of(txouts.begin(), txouts.end(), [&](const CTxOut& txo) {
+        // Check for P2TSH first (witness v2)
+        int witnessversion;
+        std::vector<unsigned char> witnessprogram;
+        if (txo.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram)) {
+            if (witnessversion == 2 && witnessprogram.size() == 32) {
+                return true; // P2TSH is segwit
+            }
+        }
+        
+        // Check other witness types using descriptor
         std::unique_ptr<Descriptor> desc{GetDescriptor(wallet, coin_control, txo.scriptPubKey)};
         if (desc) return IsSegwit(*desc);
         return false;
@@ -423,12 +569,30 @@ CoinsResult AvailableCoins(const CWallet& wallet,
 
         bool tx_from_me = CachedTxIsFromMe(wallet, wtx, ISMINE_ALL);
 
+        // Always get the provider - needed for P2SH (legacy) checking later
         std::unique_ptr<SigningProvider> provider = wallet.GetSolvingProvider(output.scriptPubKey);
 
-        int input_bytes = CalculateMaximumSignedInputSize(output, COutPoint(), provider.get(), can_grind_r, coinControl);
-        // Because CalculateMaximumSignedInputSize infers a solvable descriptor to get the satisfaction size,
-        // it is safe to assume that this input is solvable if input_bytes is greater than -1.
-        bool solvable = input_bytes > -1;
+        // Check if this is P2TSH (witness v2) first
+        int witnessversion;
+        std::vector<unsigned char> witnessprogram;
+        bool is_p2tsh = output.scriptPubKey.IsWitnessProgram(witnessversion, witnessprogram) &&
+                        witnessversion == 2 && witnessprogram.size() == 32;
+
+        int input_bytes;
+        bool solvable;
+
+        if (is_p2tsh) {
+            // For P2TSH, use the wallet version that has P2TSH support
+            input_bytes = CalculateMaximumSignedInputSize(output, &wallet, coinControl);
+            solvable = input_bytes > -1;
+        } else {
+            // For other types, use the provider version
+            input_bytes = CalculateMaximumSignedInputSize(output, COutPoint(), provider.get(), can_grind_r, coinControl);
+            // Because CalculateMaximumSignedInputSize infers a solvable descriptor to get the satisfaction size,
+            // it is safe to assume that this input is solvable if input_bytes is greater than -1.
+            solvable = input_bytes > -1;
+        }
+
         bool spendable = (mine & ISMINE_SPENDABLE) != ISMINE_NO;
 
         // Filter by spendable outputs only

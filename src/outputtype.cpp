@@ -30,7 +30,7 @@ std::optional<OutputType> ParseOutputType(const std::string& type)
         return OutputType::BECH32;
     } else if (type == OUTPUT_TYPE_STRING_BECH32M) {
         return OutputType::BECH32M;
-    }
+    } 
     return std::nullopt;
 }
 

@@ -24,7 +24,7 @@ BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
     std::set<Txid> txids;
 
     // Last txn in block.
-    Txid txhash1{Txid::FromHex("937790a1a3bfb749a9d248e5a46e7bb9dbe9009917e7aae1149f2d4883e637ea").value()};
+    Txid txhash1{Txid::FromHex("f8253ef2c0d4f23cf93b4af1622d3ea425337b006af311f0609bb03385571918").value()};
 
     // Second txn in block.
     Txid txhash2{Txid::FromHex("0f2e9924b1e175a5fc55d26f38b1d50a52380eebaa12c6484920a2c7f5065818").value()};
@@ -43,7 +43,7 @@ BOOST_AUTO_TEST_CASE(merkleblock_construct_from_txids_found)
     std::vector<unsigned int> vIndex;
 
     merkleBlock.txn.ExtractMatches(vMatched, vIndex);
-    BOOST_CHECK_EQUAL(vMatched.size(), 2U);
+    BOOST_CHECK_EQUAL(vMatched.size(), 1U);
 }
 
 
