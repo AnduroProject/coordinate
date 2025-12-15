@@ -1,4 +1,4 @@
-name: DEV - Build and Push to GHCR
+name: Coordinate - Build and Push to GHCR
 
 on:
   push:
@@ -29,6 +29,25 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Cache CMake build
+        uses: actions/cache@v3
+        with:
+          path: |
+            build
+            ~/.cache
+          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt') }}-
+            ${{ runner.os }}-cmake-
+
+      - name: Cache apt packages
+        uses: actions/cache@v3
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('.github/workflows/*.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
 
       - name: Create new tag (semantic versioning)
         id: tag
@@ -67,6 +86,13 @@ jobs:
       - name: Verify build artifacts
         run: ls -la build/bin/
       
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Fix Docker socket permissions
+        run: |
+          sudo chmod 666 /var/run/docker.sock
+      
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -91,3 +117,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME }}:buildcache,mode=max
