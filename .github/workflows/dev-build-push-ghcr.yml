@@ -17,7 +17,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: ${{ github.repository_owner }}/coordinatecore
+  IMAGE_NAME: coordinatecore
   ENV_TYPE: dev
 
 jobs:
@@ -56,6 +56,11 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           release_branches: dev,main
           default_bump: patch   # can be major/minor/patch
+
+      - name: Set lowercase owner name
+        id: lowercase
+        run: |
+          echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
       - name: Install Dependencies
         run: | 
@@ -110,7 +115,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ env.IMAGE_NAME }}
+          images: ghcr.io/${{ steps.lowercase.outputs.owner }}/${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=${{ steps.tag.outputs.new_tag }}
             type=raw,value=latest
@@ -123,5 +128,5 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          cache-from: type=registry,ref=ghcr.io/${{ steps.lowercase.outputs.owner }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ steps.lowercase.outputs.owner }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
