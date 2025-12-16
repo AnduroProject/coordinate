@@ -1,10 +1,6 @@
 name: DEV - Build and Push to GHCR
 
 on:
-  push:
-    branches:
-      - dev
-      - AN-205-ghcr-build-update
   pull_request:
     types:
       - closed
@@ -23,7 +19,7 @@ env:
 jobs:
   build-and-push:
     name: Build and Push Docker Image
-    if: ${{ github.event_name == 'push' || github.event.pull_request.merged == true }}
+    if: ${{ github.event.pull_request.merged == true }}
     runs-on: governance-testenv-github-self-hosted
 
     steps:
