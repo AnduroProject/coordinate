@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: coordinate-core
+  IMAGE_NAME: coordinatecore
 
 jobs:
   build-and-push:
@@ -33,6 +33,17 @@ jobs:
             echo "tag_suffix=beta" >> $GITHUB_OUTPUT
             echo "release_branch=dev" >> $GITHUB_OUTPUT
           fi
+
+      - name: Cache CMake build
+        uses: actions/cache@v3
+        with:
+          path: |
+            build
+            ~/.cache
+          key: ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt') }}-${{ hashFiles('**/*.cpp', '**/*.h') }}
+          restore-keys: |
+            ${{ runner.os }}-cmake-${{ hashFiles('**/CMakeLists.txt') }}-
+            ${{ runner.os }}-cmake-
 
       - name: Create new tag (semantic versioning)
         id: tag
@@ -57,6 +68,7 @@ jobs:
 
           sudo apt-get update && sudo apt-get install -y \
             build-essential \
+            cmake \
             libtool \
             autotools-dev \
             automake \
@@ -72,14 +84,14 @@ jobs:
             systemtap-sdt-dev \
             curl
 
-      - name: autogen
-        run: ./autogen.sh
+      - name: Configure with CMake
+        run: cmake -B build -DWITH_ZMQ=ON
 
-      - name: configure
-        run: ./configure --without-gui
+      - name: Build with CMake
+        run: cmake --build build
 
-      - name: make
-        run: make
+      - name: Verify build artifacts
+        run: ls -la build/bin/
 
       - name: Fix Docker socket permissions
         run: sudo chmod 666 /var/run/docker.sock
