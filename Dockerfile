@@ -1,39 +1,29 @@
-    # Update new packages
-    FROM ubuntu:22.04
+FROM ubuntu:22.04
 
-    LABEL maintainer="dev@mara.tech"
-    LABEL version="0.1"
-    LABEL description="Docker file for coordinate"
+LABEL maintainer="dev@mara.tech"
+LABEL version="0.1"
+LABEL description="Docker file for coordinate"
 
-    ARG DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 
-    RUN apt-get update --fix-missing
-    RUN apt-get install -y \
-        build-essential \
-        libtool \
-        autotools-dev \
-        automake \
-        pkg-config \
-        bsdmainutils \
-        python3 \
-        libevent-dev \
-        libboost-dev \
-        libsqlite3-dev \
-        libminiupnpc-dev \
-        libnatpmp-dev \
-        libzmq3-dev \
-        systemtap-sdt-dev \
-        curl 
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+    libevent-dev \
+    libboost-dev \
+    libsqlite3-dev \
+    libminiupnpc-dev \
+    libnatpmp-dev \
+    libzmq3-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+# Setup base directory
+WORKDIR /opt/coordinate
 
-    #Setup base directory
-    RUN mkdir -p /opt/coordinate
-    WORKDIR /opt/coordinate
+# Copy build artifacts
+COPY ./build ./
 
-    COPY ./build ./
-    RUN chmod +x ./bin/bitcoin-cli
-    RUN chmod +x ./bin/bitcoind
+# Set permissions
+RUN chmod +x ./bin/bitcoin-cli ./bin/bitcoind
 
-    ENTRYPOINT ["./bin/bitcoind"]
-
-    CMD []
+ENTRYPOINT ["./bin/bitcoind"]
+CMD []
