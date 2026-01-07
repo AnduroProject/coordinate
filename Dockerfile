@@ -56,16 +56,27 @@ LABEL maintainer="dev@mara.tech"
 LABEL version="0.2"
 LABEL description="Coordinate Core - Multi-Platform Runtime Image"
 
-# Install ONLY runtime dependencies
+# Install ALL required runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    # libevent - ALL components
     libevent-2.1-7 \
+    libevent-core-2.1-7 \
+    libevent-extra-2.1-7 \
+    libevent-openssl-2.1-7 \
     libevent-pthreads-2.1-7 \
+    # Boost libraries
     libboost-filesystem1.74.0 \
     libboost-thread1.74.0 \
+    libboost-chrono1.74.0 \
+    # Database
     libsqlite3-0 \
+    # Networking
     libminiupnpc17 \
     libnatpmp1 \
     libzmq5 \
+    # SSL/TLS (often needed)
+    libssl3 \
+    # Other common deps
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
