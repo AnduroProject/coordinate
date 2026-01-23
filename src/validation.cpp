@@ -3312,7 +3312,6 @@ bool Chainstate::ConnectSignedBlock(const SignedBlock& block) {
     std::vector<PrecomputedTransactionData> txsdata(block.vtx.size());
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         CTransactionRef ptx = block.vtx[i];
-
         const CTransaction& tx = *ptx;
         if (i != 0) {
             if (tx.version == TRANSACTION_PRECONF_VERSION && !tx.HasValidOutputCount()) {

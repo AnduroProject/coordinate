@@ -144,6 +144,7 @@ std::string CTransaction::ToString() const
 }
 
 bool CTransaction::HasValidOutputCount() const {
+
    if(this->version == TRANSACTION_PRECONF_VERSION || this->version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
        return this->vout.size() > 1;
    }
