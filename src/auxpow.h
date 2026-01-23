@@ -84,7 +84,8 @@ public:
   CAuxPow (const CAuxPow&) = delete;
   void operator= (const CAuxPow&) = delete;
 
-  SERIALIZE_METHODS (CAuxPow, obj)
+  template <typename Stream>
+  void Serialize(Stream& s) const
   {
     /* The coinbase Merkle tx' hashBlock field is never actually verified
        or used in the code for an auxpow (and never was).  The parent block
@@ -96,12 +97,38 @@ public:
     /* The index of the parent coinbase tx is always zero.  */
     int nIndex = 0;
 
-    /* Data from the coinbase transaction as Merkle tx.  */
-    READWRITE (Sidechain::Bitcoin::TX_WITH_WITNESS(obj.coinbaseTx), hashBlock,
-               obj.vMerkleBranch, nIndex);
+    /* Serialize the coinbase transaction with witness data. */
+    s << Sidechain::Bitcoin::TX_WITH_WITNESS(*coinbaseTx);
+    s << hashBlock;
+    s << vMerkleBranch;
+    s << nIndex;
 
     /* Additional data for the auxpow itself.  */
-    READWRITE (obj.vChainMerkleBranch, obj.nChainIndex, obj.parentBlock);
+    s << vChainMerkleBranch;
+    s << nChainIndex;
+    s << parentBlock;
+  }
+
+  template <typename Stream>
+  void Unserialize(Stream& s)
+  {
+    uint256 hashBlock;
+    int nIndex = 0;
+
+    /* Deserialize the coinbase transaction.
+       We read into a mutable transaction first, then convert to CTransactionRef. */
+    Sidechain::Bitcoin::CMutableTransaction mtx;
+    s >> Sidechain::Bitcoin::TX_WITH_WITNESS(mtx);
+    coinbaseTx = Sidechain::Bitcoin::MakeTransactionRef(std::move(mtx));
+
+    s >> hashBlock;
+    s >> vMerkleBranch;
+    s >> nIndex;
+
+    /* Additional data for the auxpow itself.  */
+    s >> vChainMerkleBranch;
+    s >> nChainIndex;
+    s >> parentBlock;
   }
 
   /**
