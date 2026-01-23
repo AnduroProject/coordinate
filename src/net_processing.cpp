@@ -4324,7 +4324,15 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         LogDebug(BCLog::NET, "getheaders %d to %s from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.IsNull() ? "end" : hashStop.ToString(), pfrom.GetId());
         for (; pindex; pindex = m_chainman.ActiveChain().Next(pindex))
         {
-            vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+            const CBlockHeader header = pindex->GetBlockHeader(m_chainman.m_blockman);
+            if(!header.auxpow) {
+                if(header.GetHash().ToString().compare("d7396c541cc6c2afb79a93430b7ec9a8f95cef35a1b31f5bb52770bb7669a31a") == 0) {
+                    vHeaders.emplace_back(header);
+                } 
+            } else {
+                vHeaders.emplace_back(header);
+            }
+            
             if (--nLimit <= 0 || pindex->GetBlockHash() == hashStop)
                 break;
         }
@@ -4681,6 +4689,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
     if (msg_type == NetMsgType::HEADERS)
     {
+        LogPrintf("testing vRecv >> headers 1 \n");
         // Ignore headers received while importing
         if (m_chainman.m_blockman.LoadingBlocks()) {
             LogDebug(BCLog::NET, "Unexpected headers message received from peer %d\n", pfrom.GetId());
@@ -4689,17 +4698,29 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
         std::vector<CBlockHeader> headers;
 
-        // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
-        unsigned int nCount = ReadCompactSize(vRecv);
-        if (nCount > m_opts.max_headers_result) {
-            Misbehaving(*peer, strprintf("headers message size = %u", nCount));
-            return;
+        // // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
+        // unsigned int nCount = ReadCompactSize(vRecv);
+        // if (nCount > m_opts.max_headers_result) {
+        //     Misbehaving(*peer, strprintf("headers message size = %u", nCount));
+        //     return;
+        // }
+        // headers.resize(nCount);
+        // for (unsigned int n = 0; n < nCount; n++) {
+        //     vRecv >> headers[n];
+        //     ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
+        // }
+
+        LogPrintf("testing vRecv >> headers \n");
+
+        vRecv >> headers;
+
+        LogPrintf("testing 123 vRecv >> headers \n");
+
+        for (size_t i = 0; i < headers.size(); i++)
+        {
+             LogPrintf("testing 124 hash >> headers %s \n", headers[i].GetHash().ToString());
         }
-        headers.resize(nCount);
-        for (unsigned int n = 0; n < nCount; n++) {
-            vRecv >> headers[n];
-            ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-        }
+        
 
         ProcessHeadersMessage(pfrom, *peer, std::move(headers), /*via_compact_block=*/false);
 
