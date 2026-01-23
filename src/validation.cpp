@@ -2126,9 +2126,9 @@ bool CheckParentProofOfWork(uint256 hash, unsigned int nBits)
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    if(Params().GetChainType() != ChainType::REGTEST) {
+    // if(Params().GetChainType() != ChainType::REGTEST) {
         return 0;
-    }
+    // }
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
