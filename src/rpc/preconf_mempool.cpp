@@ -1,11 +1,12 @@
 
-#include <anduro_deposit.h>
-#include <anduro_validator.h>
+#include <coordinate/anduro_deposit.h>
+#include <coordinate/anduro_validator.h>
 #include <chainparams.h>
 #include <coordinate/coordinate_preconf.h>
 #include <core_io.h>
 #include <kernel/mempool_entry.h>
-#include <kernel/mempool_persist.h>
+#include <node/mempool_persist.h>
+#include <node/types.h>
 #include <node/blockstorage.h>
 #include <node/mempool_persist_args.h>
 #include <policy/rbf.h>
@@ -25,6 +26,7 @@
 using node::BlockManager;
 using node::DEFAULT_MAX_RAW_TX_FEE_RATE;
 using node::NodeContext;
+using node::TransactionError;
 
 static RPCHelpMan sendpreconftransaction()
 {
@@ -37,11 +39,7 @@ static RPCHelpMan sendpreconftransaction()
         "\nA specific exception, RPC_TRANSACTION_ALREADY_IN_CHAIN, may throw if the transaction cannot be added to the mempool.\n"
         "\nRelated RPCs: createrawtransaction, signrawtransactionwithkey\n",
         {
-            {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"},
-            {"maxfeerate", RPCArg::Type::AMOUNT, RPCArg::Default{FormatMoney(DEFAULT_MAX_RAW_TX_FEE_RATE.GetFeePerK())},
-             "Reject transactions whose fee rate is higher than the specified value, expressed in " + CURRENCY_UNIT +
-                 "/kvB.\nSet to 0 to accept any fee rate.\n"},
-            {"assethexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::OMITTED, "The hex string of the asset data"},
+            {"hexstring", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The hex string of the raw transaction"}
         },
         RPCResult{
             RPCResult::Type::STR_HEX, "", "The transaction hash in hex"},
@@ -56,22 +54,17 @@ static RPCHelpMan sendpreconftransaction()
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
             }
             CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
-            const CFeeRate max_raw_tx_fee_rate = request.params[1].isNull() ?
-                                                     DEFAULT_MAX_RAW_TX_FEE_RATE :
-                                                     CFeeRate(AmountFromValue(request.params[1]));
 
-            int64_t virtual_size = GetVirtualTransactionSize(*tx);
-            CAmount max_raw_tx_fee = max_raw_tx_fee_rate.GetFee(virtual_size);
             std::string err_string;
             AssertLockNotHeld(cs_main);
             NodeContext& node = EnsureAnyNodeContext(request.context);
             const CTransaction& ptx = *tx;
 
-            if (ptx.nVersion != TRANSACTION_PRECONF_VERSION) {
+            if (ptx.version != TRANSACTION_PRECONF_VERSION) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "asset data missing to submit in mempool");
             }
 
-            const TransactionError err = BroadcastTransaction(node, tx, err_string, max_raw_tx_fee, /*relay=*/true, /*wait_callback=*/true, true);
+            const TransactionError err = BroadcastTransaction(node, tx, err_string, 0, /*relay=*/true, /*wait_callback=*/true, true);
             if (TransactionError::OK != err) {
                 throw JSONRPCTransactionError(err, err_string);
             }
@@ -129,10 +122,13 @@ static RPCHelpMan sendpreconflist()
 
             uint32_t finalized = 0;
             if(!request.params[2].isNull()) {
-                if(!ParseUInt32(request.params[2].get_str(),&finalized)) {
+                const auto finalizedValue{ToIntegral<uint32_t>(request.params[2].get_str())};
+                
+                if(!finalizedValue) {
                     throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
                                     "Error converting block height.");
                 }
+                finalized = finalizedValue.value();
             }
             const UniValue& req_params = request.params[0].get_array();
             if (req_params.size() == 0) {
@@ -155,7 +151,8 @@ static RPCHelpMan sendpreconflist()
                 std::string receivedTx = fedParams.find_value("txid").get_str();
                
                 if (receivedTx.compare("") != 0) {
-                    preconfObj.txids.push_back(uint256S(receivedTx));
+                    auto tx_hash{uint256::FromHex(receivedTx)};
+                    preconfObj.txids.push_back(*tx_hash);
                 } else {
                     preconfObj.txids.push_back(uint256::ZERO);
                 }
@@ -228,10 +225,12 @@ static RPCHelpMan getpreconflist()
 
             uint32_t nHeight = 0;
             if (!request.params[0].isNull()) {
-                if(!ParseUInt32(request.params[0].get_str(), &nHeight)) {
+                const auto nHeightValue{ToIntegral<uint32_t>(request.params[0].get_str())};
+                if(!nHeightValue) {
                     throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
                                     "Error converting block height.");
                 }
+                nHeight = nHeightValue.value();
             }
 
             UniValue result(UniValue::VOBJ);
@@ -247,7 +246,7 @@ static RPCHelpMan getpreconflist()
                                 voteItem.pushKV("reserve", 0);
                                 voteItem.pushKV("vsize", 0);
                             } else {
-                                TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(coordinatePreConfSig.txids[i]));
+                                TxMempoolInfo info = preconf_pool.info(Txid::FromUint256(coordinatePreConfSig.txids[i]));
                                 if(info.tx) {
                                     voteItem.pushKV("txid",  coordinatePreConfSig.txids[i].ToString());
                                     voteItem.pushKV("reserve", info.tx->vout[0].nValue);
@@ -325,7 +324,7 @@ static RPCHelpMan getfinalizedsignedblocks() {
                 for (size_t i = 0; i < block.vtx.size(); ++i) {
                     const CTransactionRef& tx = block.vtx.at(i);
                     UniValue objTx(UniValue::VOBJ);
-                    TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true, 1);
+                    TxToUniv(*tx, /*block_hash=*/uint256(), /*entry=*/objTx, /*include_hex=*/true);
                     txs.push_back(objTx);
                 }
 
@@ -411,8 +410,6 @@ static RPCHelpMan getpreconftxrefund() {
             chainman.ActiveChainstate().UpdatedCoinsTip(view,chainman.ActiveChainstate().m_chain.Height());
 
 
-            const CBlockIndex* blockindex = nullptr;
-            uint256 hash_block;
             UniValue result(UniValue::VARR);  
             for (unsigned int idx = 0; idx < req_params.size(); idx++) {
                 const UniValue& params = req_params[idx].get_obj();
@@ -438,7 +435,7 @@ static RPCHelpMan getpreconftxrefund() {
                     if(!signedTxIndex.signedBlockHash.IsNull()) {
                         CChain& active_chain = chainman.ActiveChain();
                         CBlock block;
-                        if (chainman.m_blockman.ReadBlockFromDisk(block, *active_chain[signedTxIndex.blockIndex])) {
+                        if (chainman.m_blockman.ReadBlock(block, *active_chain[signedTxIndex.blockIndex])) {
                             for (const SignedBlock& preconfBlockItem : block.preconfBlock) {
                                 if(preconfBlockItem.GetHash() == signedTxIndex.signedBlockHash) {
                                     mined_tx = preconfBlockItem.vtx[signedTxIndex.pos];

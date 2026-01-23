@@ -1,12 +1,12 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
-// Copyright (c) 2009-2022 The Bitcoin Core developers
+// Copyright (c) 2009-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 // NOTE: This file is intended to be customised by the end user, and includes only local node policy logic
 
 #include <policy/policy.h>
-#include <logging.h>
+
 #include <coins.h>
 #include <consensus/amount.h>
 #include <consensus/consensus.h>
@@ -18,7 +18,7 @@
 #include <script/solver.h>
 #include <serialize.h>
 #include <span.h>
-
+#include <logging.h>
 #include <algorithm>
 #include <cstddef>
 #include <vector>
@@ -68,7 +68,22 @@ bool IsDust(const CTxOut& txout, const CFeeRate& dustRelayFeeIn)
     return (txout.nValue < GetDustThreshold(txout, dustRelayFeeIn));
 }
 
-bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_datacarrier_bytes, TxoutType& whichType)
+std::vector<uint32_t> GetDust(const CTransaction& tx, CFeeRate dust_relay_rate)
+{
+    std::vector<uint32_t> dust_outputs;
+    uint32_t startIndex = 0;
+    if (tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+       startIndex = 2;
+    } else if (tx.version == TRANSACTION_PRECONF_VERSION) {
+        startIndex = 1;
+    }
+    for (uint32_t i{startIndex}; i < tx.vout.size(); ++i) {
+        if (IsDust(tx.vout[i], dust_relay_rate)) dust_outputs.push_back(i);
+    }
+    return dust_outputs;
+}
+
+bool IsStandard(const CScript& scriptPubKey, TxoutType& whichType)
 {
     std::vector<std::vector<unsigned char> > vSolutions;
     whichType = Solver(scriptPubKey, vSolutions);
@@ -83,10 +98,9 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
             return false;
         if (m < 1 || m > n)
             return false;
-    } else if (whichType == TxoutType::NULL_DATA) {
-        if (!max_datacarrier_bytes || scriptPubKey.size() > *max_datacarrier_bytes) {
-            return false;
-        }
+    } else if (whichType == TxoutType::WITNESS_V2_P2TSH) {
+        // Accept as standard
+        return true;
     }
 
     return true;
@@ -94,19 +108,19 @@ bool IsStandard(const CScript& scriptPubKey, const std::optional<unsigned>& max_
 
 bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_datacarrier_bytes, bool permit_bare_multisig, const CFeeRate& dust_relay_fee, std::string& reason)
 {
-    if (tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_PRECONF_VERSION && tx.nVersion != TRANSACTION_PEGIN_VERSION) {
-        if (tx.nVersion > TX_MAX_STANDARD_VERSION || tx.nVersion < 1) {
+    if (tx.version != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.version != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.version != TRANSACTION_PRECONF_VERSION && tx.version != TRANSACTION_PEGIN_VERSION) {
+        if (tx.version > TX_MAX_STANDARD_VERSION || tx.version < 1) {
             reason = "version";
             return false;
         }
     }
 
+
     // Extremely large transactions with lots of inputs can cost the network
     // almost as much to process as they cost the sender in fees, because
     // computing signature hashes is O(ninputs*txsize). Limiting transactions
     // to MAX_STANDARD_TX_WEIGHT mitigates CPU exhaustion attacks.
-    //size modification for asset creation version
-    if (tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+   if (tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         unsigned int sz = GetTransactionWeight(tx);
         if (sz > MAX_STANDARD_TX_WEIGHT_ASSET) {
             reason = "tx-size";
@@ -119,10 +133,11 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
             return false;
         }
     }
+
     for (const CTxIn& txin : tx.vin)
     {
         // Biggest 'standard' txin involving only keys is a 15-of-15 P2SH
-        // multisig with compressed keys (remember the 520 byte limit on
+        // multisig with compressed keys (remember the MAX_SCRIPT_ELEMENT_SIZE byte limit on
         // redeemScript size). That works out to a (15*(33+1))+3=513 byte
         // redeemScript, 513+1+15*(73+1)+3=1627 bytes of scriptSig, which
         // we round off to 1650(MAX_STANDARD_SCRIPTSIG_SIZE) bytes for
@@ -139,19 +154,25 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
         }
     }
 
-    unsigned int nDataOut = 0;
+    unsigned int datacarrier_bytes_left = max_datacarrier_bytes.value_or(0);
     TxoutType whichType;
     for (const CTxOut& txout : tx.vout) {
-        if (!::IsStandard(txout.scriptPubKey, max_datacarrier_bytes, whichType)) {
+        if (!::IsStandard(txout.scriptPubKey, whichType)) {
             reason = "scriptpubkey";
             return false;
         }
 
-        if (whichType == TxoutType::NULL_DATA)
-            nDataOut++;
-        else if ((whichType == TxoutType::MULTISIG) && (!permit_bare_multisig)) {
+        if (whichType == TxoutType::NULL_DATA) {
+            unsigned int size = txout.scriptPubKey.size();
+            if (size > datacarrier_bytes_left) {
+                reason = "datacarrier";
+                return false;
+            }
+            datacarrier_bytes_left -= size;
+        } else if ((whichType == TxoutType::MULTISIG) && (!permit_bare_multisig)) {
             reason = "bare-multisig";
             return false;
+
         } else if (IsDust(txout, dust_relay_fee)) {
             if ((tx.nVersion != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.nVersion != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && tx.nVersion != TRANSACTION_PRECONF_VERSION) || txout.nValue == 0) {
                reason = "dust";
@@ -160,26 +181,28 @@ bool IsStandardTx(const CTransaction& tx, const std::optional<unsigned>& max_dat
         }
     }
 
-    // only one OP_RETURN txout is permitted
-    if (nDataOut > 1) {
-        reason = "multi-op-return";
-        return false;
+    // Only MAX_DUST_OUTPUTS_PER_TX dust is permitted(on otherwise valid ephemeral dust)
+    if (GetDust(tx, dust_relay_fee).size() > MAX_DUST_OUTPUTS_PER_TX) {
+        if (tx.version != TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && tx.version != TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
+            reason = "dust";
+            return false;
+        }
     }
 
     return true;
 }
 
 bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& mapInputs) {
-    if(tx.nVersion == TRANSACTION_PEGIN_VERSION) {
+    if(tx.version == TRANSACTION_PEGIN_VERSION) {
         return true;
     }
-    LogPrintf("transaction version is %i \n", tx.nVersion);
-    CAmount amountAssetInOut = CAmount(0); 
-    uint32_t currentAssetID = 0;
+    
+    CAmount amountAssetInOut = CAmount(0);
+    std::vector<unsigned char> currentAssetID = {};
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
         bool fBitAsset = false;
         bool fBitAssetControl = false;
-        uint32_t nAssetID = 0;
+        std::vector<unsigned char> nAssetID = {};
         Coin coin;
         CAmount coinValue = 0;
 
@@ -201,8 +224,7 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
             }
         }
 
-
-        if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION ) {
+        if (tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
             // check first input is asset
             if(fBitAssetControl) {
                 LogPrintf("Asset controller value not accepted \n");
@@ -215,7 +237,7 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
                     currentAssetID = nAssetID;
                 } else {
                     // prevent to include multiple asset id
-                    if(currentAssetID != nAssetID) {
+                    if (getAssetHash(currentAssetID) != getAssetHash(nAssetID)) {
                         LogPrintf(" Multiple asset is detected and it is invalid \n");
                         return false;
                     }
@@ -225,26 +247,26 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
     
         }
 
-        if (tx.nVersion == 2 && fBitAsset) {
+        if (tx.version == 2 && fBitAsset) {
             LogPrintf("Asset inputs not accepted in standard transaction \n");
             return false;
         }
     }
 
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && amountAssetInOut == 0) {
+    if(tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION && amountAssetInOut == 0) {
         LogPrintf("Asset inputs missing \n");
         return false;
     }
 
-    if(amountAssetInOut > 0 && !(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION)) {
-        LogPrintf("Invalid transaction hold asset inptu \n");
+
+    if (amountAssetInOut > 0 && !(tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION)) {
+        LogPrintf("Invalid transaction hold asset input \n");
     }
-    
-    if(amountAssetInOut > 0) {
-        CAmount amountAssetOut = CAmount(0); 
-        size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
-        for (unsigned int i = startValue; i < tx.vout.size(); i++) {
-            if(amountAssetOut == amountAssetInOut) {
+
+    if (amountAssetInOut > 0) {
+        CAmount amountAssetOut = CAmount(0);
+        for (unsigned int i = 0; i < tx.vout.size(); i++) {
+            if (amountAssetOut == amountAssetInOut) {
                 break;
             }
             amountAssetOut = amountAssetOut + tx.vout[i].nValue;
@@ -258,29 +280,61 @@ bool AreCoordinateTransactionStandard(const CTransaction& tx, CCoinsViewCache& m
     return true;
 }
 
+/**
+ * Check the total number of non-witness sigops across the whole transaction, as per BIP54.
+ */
+static bool CheckSigopsBIP54(const CTransaction& tx, const CCoinsViewCache& inputs)
+{
+    Assert(!tx.IsCoinBase());
+
+    unsigned int sigops{0};
+    for (const auto& txin: tx.vin) {
+        const auto& prev_txo{inputs.AccessCoin(txin.prevout).out};
+
+        // Unlike the existing block wide sigop limit which counts sigops present in the block
+        // itself (including the scriptPubKey which is not executed until spending later), BIP54
+        // counts sigops in the block where they are potentially executed (only).
+        // This means sigops in the spent scriptPubKey count toward the limit.
+        // `fAccurate` means correctly accounting sigops for CHECKMULTISIGs(VERIFY) with 16 pubkeys
+        // or fewer. This method of accounting was introduced by BIP16, and BIP54 reuses it.
+        // The GetSigOpCount call on the previous scriptPubKey counts both bare and P2SH sigops.
+        sigops += txin.scriptSig.GetSigOpCount(/*fAccurate=*/true);
+        sigops += prev_txo.scriptPubKey.GetSigOpCount(txin.scriptSig);
+
+        if (sigops > MAX_TX_LEGACY_SIGOPS) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 /**
- * Check transaction inputs to mitigate two
- * potential denial-of-service attacks:
+ * Check transaction inputs.
  *
- * 1. scriptSigs with extra data stuffed into them,
- *    not consumed by scriptPubKey (or P2SH script)
- * 2. P2SH scripts with a crazy number of expensive
- *    CHECKSIG/CHECKMULTISIG operations
- *
- * Why bother? To avoid denial-of-service attacks; an attacker
- * can submit a standard HASH... OP_EQUAL transaction,
- * which will get accepted into blocks. The redemption
- * script can be anything; an attacker could use a very
- * expensive-to-check-upon-redemption script like:
- *   DUP CHECKSIG DROP ... repeated 100 times... OP_1
+ * This does three things:
+ *  * Prevents mempool acceptance of spends of future
+ *    segwit versions we don't know how to validate
+ *  * Mitigates a potential denial-of-service attack with
+ *    P2SH scripts with a crazy number of expensive
+ *    CHECKSIG/CHECKMULTISIG operations.
+ *  * Prevents spends of unknown/irregular scriptPubKeys,
+ *    which mitigates potential denial-of-service attacks
+ *    involving expensive scripts and helps reserve them
+ *    as potential new upgrade hooks.
  *
  * Note that only the non-witness portion of the transaction is checked here.
+ *
+ * We also check the total number of non-witness sigops across the whole transaction, as per BIP54.
  */
 bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 {
     if (tx.IsCoinBase()) {
         return true; // Coinbases don't use vin normally
+    }
+
+    if (!CheckSigopsBIP54(tx, mapInputs)) {
+        return false;
     }
 
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
@@ -305,6 +359,9 @@ bool AreInputsStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
             if (subscript.GetSigOpCount(true) > MAX_P2SH_SIGOPS) {
                 return false;
             }
+        } else if (whichType == TxoutType::WITNESS_V2_P2TSH) {
+            // Accept as standard
+            continue;
         }
     }
 
@@ -327,6 +384,11 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
 
         // get the scriptPubKey corresponding to this input:
         CScript prevScript = prev.scriptPubKey;
+
+        // witness stuffing detected
+        if (prevScript.IsPayToAnchor()) {
+            return false;
+        }
 
         bool p2sh = false;
         if (prevScript.IsPayToScriptHash()) {
@@ -367,7 +429,7 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
         // - No annexes
         if (witnessversion == 1 && witnessprogram.size() == WITNESS_V1_TAPROOT_SIZE && !p2sh) {
             // Taproot spend (non-P2SH-wrapped, version 1, witness program size 32; see BIP 341)
-            Span stack{tx.vin[i].scriptWitness.stack};
+            std::span stack{tx.vin[i].scriptWitness.stack};
             if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
                 // Annexes are nonstandard as long as no semantics are defined for them.
                 return false;
@@ -388,6 +450,40 @@ bool IsWitnessStandard(const CTransaction& tx, const CCoinsViewCache& mapInputs)
                 // (no policy rules apply)
             } else {
                 // 0 stack elements; this is already invalid by consensus rules
+                return false;
+            }
+        }
+
+        // Check policy limits for P2TSH spends:
+        // - MAX_STANDARD_P2TSH_STACK_ITEM_SIZE limit for stack item size
+        // - Script path only (no key path spending)
+        // - No annexes
+        if (witnessversion == 2 && witnessprogram.size() == WITNESS_V2_P2TSH_SIZE) {
+            // P2TSH spend (non-P2SH-wrapped, version 3, witness program size 32)
+            std::span stack{tx.vin[i].scriptWitness.stack};
+            if (stack.size() >= 2 && !stack.back().empty() && stack.back()[0] == ANNEX_TAG) {
+                // Annexes are nonstandard as long as no semantics are defined for them.
+                return false;
+            }
+            if (stack.size() >= 2) {
+                // Script path spend (2 or more stack elements after removing optional annex)
+                const auto& control_block = SpanPopBack(stack);
+                SpanPopBack(stack); // Ignore script
+                if (control_block.empty()) return false; // Empty control block is invalid
+                if ((control_block[0] & TAPROOT_LEAF_MASK) == TAPROOT_LEAF_TAPSCRIPT) {
+                    // Leaf version 0xc0 (aka Tapscript, see BIP 342)
+                    for (const auto& item : stack) {
+                        // Allow larger items for SLH-DSA signatures (OP_SUCCESS127)
+                        if (item.size() > MAX_STANDARD_P2TSH_STACK_ITEM_SIZE) {
+                            // Check if this is an SLH-DSA signature by looking at the script
+                            // You'd need to parse the script to see if it contains OP_SUCCESS127
+                            // For now, we could allow larger items when OP_SUCCESS127 is present
+                            return false; // Keep existing behavior until SLH-DSA is implemented
+                        }
+                    }
+                }
+            } else {
+                // P2TSH only supports script path spending, no key path spending allowed
                 return false;
             }
         }

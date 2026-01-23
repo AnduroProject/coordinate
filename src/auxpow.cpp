@@ -1,7 +1,7 @@
 // Copyright (c) 2009-2010 Satoshi Nakamoto
 // Copyright (c) 2011 Vince Durham
 // Copyright (c) 2009-2014 The Bitcoin developers
-// Copyright (c) 2014-2021 Daniel Kraft
+// Copyright (c) 2014-2023 Daniel Kraft
 // Distributed under the MIT/X11 software license, see the accompanying
 // file license.txt or http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,12 +10,14 @@
 #include <consensus/consensus.h>
 #include <consensus/merkle.h>
 #include <hash.h>
+#include <logging.h>
 #include <primitives/block.h>
 #include <script/script.h>
 #include <util/strencodings.h>
-#include <logging.h>
 
 #include <algorithm>
+
+typedef std::vector<unsigned char> valtype;
 
 namespace
 {
@@ -38,32 +40,41 @@ DecodeLE32 (const unsigned char* bytes)
 } // anonymous namespace
 
 bool
-CAuxPow::check(const uint256& hashAuxBlock, int nChainId,
+CAuxPow::check (const uint256& hashAuxBlock, int nChainId,
                 const Consensus::Params& params) const
 {
-    if (params.fStrictChainId && parentBlock.GetChainId () == nChainId)
-        return error("Aux POW parent has our chain ID");
+    if (params.fStrictChainId && parentBlock.GetChainId () == nChainId) {
+        LogError ("Aux POW parent has our chain ID");
+        return false;
+    }
 
-    if (vChainMerkleBranch.size() > 30)
-        return error("Aux POW chain merkle branch too long");
+    if (vChainMerkleBranch.size() > 30) {
+        LogError ("Aux POW chain merkle branch too long");
+        return false;
+    }
 
-    uint256 nRootHash = CheckMerkleBranch (hashAuxBlock, vChainMerkleBranch, nChainIndex);
-
-
-    std::vector<unsigned char> vchRootHash(nRootHash.begin(), nRootHash.end());
+    // Check that the chain merkle root is in the coinbase
+    const uint256 nRootHash
+      = CheckMerkleBranch (hashAuxBlock, vChainMerkleBranch, nChainIndex);
+    valtype vchRootHash(nRootHash.begin (), nRootHash.end ());
     std::reverse (vchRootHash.begin (), vchRootHash.end ()); // correct endian
-   
+
     // Check that we are in the parent block merkle tree
     if (CheckMerkleBranch(coinbaseTx->GetHash(), vMerkleBranch, 0)
-          != parentBlock.hashMerkleRoot)
-        return error("Aux POW merkle root incorrect");
+          != parentBlock.hashMerkleRoot) {
+        LogError ("Aux POW merkle root incorrect");
+        return false;
+    }
 
     bool isValid = false;
     std::string errorMsg = "";
 
     // Check that there is at least one input.
-    if (coinbaseTx->vout.size() <= 2)
-      return error("Aux POW coinbase has no outputs");
+    if (coinbaseTx->vout.size() <= 2) {
+      LogError("Aux POW coinbase has no outputs");
+      return false;
+    }
+
 
     for (size_t i = 2; i < coinbaseTx->vout.size(); i++) {
       const CScript script = coinbaseTx->vout[i].scriptPubKey;
@@ -74,11 +85,11 @@ CAuxPow::check(const uint256& hashAuxBlock, int nChainId,
       }
     }
 
-
     if(!isValid) {
-      return error(errorMsg.c_str());
+      LogError("%s",errorMsg.c_str());
+      return false;
     }
-  
+
     return true;
 }
 
@@ -187,7 +198,7 @@ CAuxPow::createAuxPow (const CPureBlockHeader& header)
 
   /* Build a minimal coinbase script input for merge-mining.  */
   const uint256 blockHash = header.GetHash ();
-  std::vector<unsigned char> inputData(blockHash.begin (), blockHash.end ());
+  valtype inputData(blockHash.begin (), blockHash.end ());
   std::reverse (inputData.begin (), inputData.end ());
   inputData.push_back (1);
   inputData.insert (inputData.end (), 7, 0);
@@ -195,10 +206,17 @@ CAuxPow::createAuxPow (const CPureBlockHeader& header)
   /* Fake a parent-block coinbase with just the required input
      script and no outputs.  */
   CMutableTransaction coinbase;
+    // Set up input
   coinbase.vin.resize (1);
   coinbase.vin[0].prevout.SetNull ();
-  coinbase.vin[0].scriptSig = (CScript () << inputData);
-  assert (coinbase.vout.empty ());
+  coinbase.vin[0].scriptSig = CScript(); // Empty script or whatever you need for input
+  
+  // Set up outputs - resize to at least 3 outputs
+  coinbase.vout.resize (3);
+  
+  coinbase.vout[2].scriptPubKey = (CScript () << inputData);;
+  coinbase.vout[2].nValue = 0; // Set appropriate value
+
   CTransactionRef coinbaseRef = MakeTransactionRef (coinbase);
 
   /* Build a fake parent block with the coinbase.  */
@@ -208,8 +226,25 @@ CAuxPow::createAuxPow (const CPureBlockHeader& header)
   parent.vtx[0] = coinbaseRef;
   parent.hashMerkleRoot = BlockMerkleRoot (parent);
 
+
+  /* Fake a parent-block coinbase with just the required input
+    script and no outputs.  */
+  Sidechain::Bitcoin::CMutableTransaction coinbaseBitcoin;
+    // Set up input
+  coinbaseBitcoin.vin.resize (1);
+  coinbaseBitcoin.vin[0].prevout.SetNull ();
+  coinbaseBitcoin.vin[0].scriptSig = CScript(); // Empty script or whatever you need for input
+  
+  // Set up outputs - resize to at least 3 outputs
+  coinbaseBitcoin.vout.resize (3);
+  
+  coinbaseBitcoin.vout[2].scriptPubKey = (CScript () << inputData);;
+  coinbaseBitcoin.vout[2].nValue = 0; // Set appropriate value
+
+  Sidechain::Bitcoin::CTransactionRef coinbaseBitcoinRef = Sidechain::Bitcoin::MakeTransactionRef (coinbaseBitcoin);
+
   /* Construct the auxpow object.  */
-  std::unique_ptr<CAuxPow> auxpow(new CAuxPow (std::move (coinbaseRef)));
+  std::unique_ptr<CAuxPow> auxpow(new CAuxPow (std::move (coinbaseBitcoinRef)));
   assert (auxpow->vMerkleBranch.empty ());
   assert (auxpow->vChainMerkleBranch.empty ());
   auxpow->nChainIndex = 0;

@@ -7,9 +7,14 @@
 #include <node/blockstorage.h>
 #include <tinyformat.h>
 #include <util/time.h>
+std::string CBlockFileInfo::ToString() const
+{
+    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
+}
 
 /* Moved here from the header, because we need auxpow and the logic
    becomes more involved.  */
+
 CBlockHeader CBlockIndex::GetBlockHeader(const node::BlockManager& blockman) const
 {
     CBlockHeader block;
@@ -20,9 +25,8 @@ CBlockHeader CBlockIndex::GetBlockHeader(const node::BlockManager& blockman) con
        have to read the actual *header*, not the full block.  */
     if (block.IsAuxpow())
     {
-        CBlock fullblock;
-        blockman.ReadBlockFromDisk(fullblock, *this);
-        return fullblock.GetBlockHeader();
+        blockman.ReadBlockHeader(block, *this);
+        return block;
     }
 
     if (pprev)
@@ -32,11 +36,6 @@ CBlockHeader CBlockIndex::GetBlockHeader(const node::BlockManager& blockman) con
     block.nBits = nBits;
     block.nNonce = nNonce;
     return block;
-}
-
-std::string CBlockFileInfo::ToString() const
-{
-    return strprintf("CBlockFileInfo(blocks=%u, size=%u, heights=%u...%u, time=%s...%s)", nBlocks, nSize, nHeightFirst, nHeightLast, FormatISO8601Date(nTimeFirst), FormatISO8601Date(nTimeLast));
 }
 
 std::string CBlockIndex::ToString() const

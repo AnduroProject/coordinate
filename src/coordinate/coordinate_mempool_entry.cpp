@@ -1,5 +1,5 @@
 #include <coordinate/coordinate_mempool_entry.h>
-#include <anduro_validator.h>
+#include <coordinate/anduro_validator.h>
 
 std::vector<CoordinateMempoolEntry> coordinateMempoolEntry;
 
@@ -14,7 +14,7 @@ bool getMempoolAsset(uint256 txid, uint32_t voutIn, CoordinateMempoolEntry* asse
     if (it == coordinateMempoolEntry.end()) return false;
 
     *assetMempoolObj = std::move(*it);
-    return assetMempoolObj->assetID == 0 ? false : true;
+    return assetMempoolObj->assetID.empty() ? false : true;
 }
 
 /**
@@ -38,23 +38,23 @@ void removeMempoolAsset(const CTransaction& tx) {
  * This is the function which include mempool asset
  */
 void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate) {
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+    if(tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         CoordinateMempoolEntry assetMempoolObj;
-        assetMempoolObj.assetID = UINT32_MAX;
+        assetMempoolObj.assetID = {};
         assetMempoolObj.txid = tx.GetHash();
         assetMempoolObj.vout = 1;
         assetMempoolObj.nValue = tx.vout[1].nValue;
         coordinateMempoolEntry.push_back(assetMempoolObj);
         return;
     }
-    uint32_t currentAssetID = 0;
+    std::vector<unsigned char> currentAssetID;
     CAmount amountAssetIn = 0;
     bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
     if(has_asset_amount) {
         CAmount amountAssetOut = 0;
-        size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
-        for (unsigned long i = startValue; i < tx.vout.size(); i++) {
-            if(amountAssetOut == amountAssetIn) {
+
+        for (unsigned long i = 0; i < tx.vout.size(); i++) {
+            if (amountAssetOut == amountAssetIn) {
                 break;
             }
             CoordinateMempoolEntry assetMempoolObj;
@@ -70,10 +70,11 @@ void includeMempoolAsset(const CTransaction& tx, Chainstate& m_active_chainstate
 /**
  * This is the function which used to get asset total amount
  */
-bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate, CAmount& amountAssetIn, uint32_t& currentAssetID) {
+bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate, CAmount& amountAssetIn, std::vector<unsigned char>& currentAssetID)
+{
     CCoinsViewCache& mapInputs = m_active_chainstate.CoinsTip();
     for (unsigned int i = 0; i < tx.vin.size(); i++) {
-        uint32_t nAssetID = 0;
+        std::vector<unsigned char> nAssetID;
         bool fBitAsset = false;
         bool fBitAssetControl = false;
         CoordinateMempoolEntry assetMempoolObj;
@@ -83,9 +84,10 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
             amountAssetIn = amountAssetIn + assetMempoolObj.nValue;
         } else {
             Coin coin;
-            if(mapInputs.getAssetCoin(tx.vin[i].prevout,fBitAsset,fBitAssetControl,nAssetID, &coin)) {
-                if(fBitAssetControl) {
-                    currentAssetID = 0;
+
+            if (mapInputs.getAssetCoin(tx.vin[i].prevout, fBitAsset, fBitAssetControl, nAssetID, &coin)) {
+                if (fBitAssetControl) {
+                    currentAssetID = {};
                     break;
                 }
                 if(fBitAsset) {
@@ -95,33 +97,32 @@ bool getAssetWithAmount(const CTransaction& tx, Chainstate& m_active_chainstate,
 
         }
 
-
-        if(!nAssetID) {
-           break;
-        } 
+        if (nAssetID.empty()) {
+            break;
+        }
         currentAssetID = nAssetID;
     }
 
-    return currentAssetID > 0 ? true : false;
+    return !currentAssetID.empty() ? true : false;
 }
 
 /**
  * This is the function which get asset ouput information for particular transaction 
  */
 int getAssetOutputCount(const CTransaction& tx, Chainstate& m_active_chainstate) {
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+    if(tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
         return 2;
     }
-    if(tx.nVersion == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION || tx.nVersion == TRANSACTION_PRECONF_VERSION) {
+
+    if (tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) {
         uint32_t totalOutputs = 0;
-        uint32_t currentAssetID = 0;
+        std::vector<unsigned char> currentAssetID;
         CAmount amountAssetIn = 0;
         bool has_asset_amount = getAssetWithAmount(tx,m_active_chainstate,amountAssetIn, currentAssetID);
         if(has_asset_amount) {
             CAmount amountAssetOut = 0;
-            size_t startValue = tx.nVersion == TRANSACTION_PRECONF_VERSION ? 1 : 0;
-            for (unsigned int i = startValue; i < tx.vout.size(); i++) {
-                if(amountAssetOut == amountAssetIn) {
+            for (unsigned int i = 0; i < tx.vout.size(); i++) {
+                if (amountAssetOut == amountAssetIn) {
                     break;
                 }
                 totalOutputs = totalOutputs + 1;

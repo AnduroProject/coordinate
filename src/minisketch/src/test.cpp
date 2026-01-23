@@ -83,7 +83,7 @@ void TestExhaustive(uint32_t bits, size_t capacity) {
             CHECK(decodable_other == decodable_0);
             std::sort(elements_other.begin(), elements_other.end());
             CHECK(elements_other == elements_0);
-        } 
+        }
 
         // If there are solutions:
         if (decodable_0) {

@@ -2,12 +2,10 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef COORDINATE_QT_BITCOINGUI_H
-#define COORDINATE_QT_BITCOINGUI_H
+#ifndef BITCOIN_QT_BITCOINGUI_H
+#define BITCOIN_QT_BITCOINGUI_H
 
-#if defined(HAVE_CONFIG_H)
-#include <config/bitcoin-config.h>
-#endif
+#include <bitcoin-build-config.h> // IWYU pragma: keep
 
 #include <qt/bitcoinunits.h>
 #include <qt/clientmodel.h>
@@ -315,7 +313,7 @@ public Q_SLOTS:
     /** Simply calls showNormalIfMinimized(true) */
     void toggleHidden();
 
-    /** called by a timer to check if ShutdownRequested() has been set **/
+    /** called by a timer to check if shutdown has been requested */
     void detectShutdown();
 
     /** Show progress dialog e.g. for verifychain */
@@ -355,4 +353,4 @@ private Q_SLOTS:
     void onMenuSelection(QAction* action);
 };
 
-#endif // COORDINATE_QT_BITCOINGUI_H
+#endif // BITCOIN_QT_BITCOINGUI_H

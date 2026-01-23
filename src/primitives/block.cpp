@@ -21,7 +21,6 @@ void CBlockHeader::SetAuxpow (std::unique_ptr<CAuxPow> apow)
     }
 }
 
-
 std::string CBlock::ToString() const
 {
     std::stringstream s;

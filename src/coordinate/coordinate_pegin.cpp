@@ -1,5 +1,8 @@
 #include <coordinate/coordinate_pegin.h>
 #include <common/args.h>
+#include <rpc/util.h>
+#include <rpc/server.h>
+#include <rpc/server_util.h>
 #include <coordinate/coordinate_address.h>
 #include <primitives/bitcoin/transaction.h>
 #include <primitives/bitcoin/merkleblock.h>
@@ -9,10 +12,82 @@
 #include <univalue.h>
 #include <rpc/coordinaterpc.h>
 
+#include <rpc/request.h>
+#include <support/events.h>
+#include <rpc/client.h>
+#include <event2/buffer.h>
+#include <event2/keyvalq_struct.h>
+
+/** Reply structure for request_done to fill in */
+struct HTTPReply
+{
+    HTTPReply(): status(0), error(-1) {}
+
+    int status;
+    int error;
+    std::string body;
+};
+
+const char *http_errorstring(int code)
+{
+    switch(code) {
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
+    case EVREQ_HTTP_TIMEOUT:
+        return "timeout reached";
+    case EVREQ_HTTP_EOF:
+        return "EOF reached";
+    case EVREQ_HTTP_INVALID_HEADER:
+        return "error while reading header, or invalid header";
+    case EVREQ_HTTP_BUFFER_ERROR:
+        return "error encountered while reading or writing";
+    case EVREQ_HTTP_REQUEST_CANCEL:
+        return "request was canceled";
+    case EVREQ_HTTP_DATA_TOO_LONG:
+        return "response body is larger than allowed";
+#endif
+    default:
+        return "unknown";
+    }
+}
+
+static void http_request_done(struct evhttp_request *req, void *ctx)
+{
+    HTTPReply *reply = static_cast<HTTPReply*>(ctx);
+
+    if (req == NULL) {
+        /* If req is NULL, it means an error occurred while connecting: the
+         * error code will have been passed to http_error_cb.
+         */
+        reply->status = 0;
+        return;
+    }
+
+    reply->status = evhttp_request_get_response_code(req);
+
+    struct evbuffer *buf = evhttp_request_get_input_buffer(req);
+    if (buf)
+    {
+        size_t size = evbuffer_get_length(buf);
+        const char *data = (const char*)evbuffer_pullup(buf, size);
+        if (data)
+            reply->body = std::string(data, size);
+        evbuffer_drain(buf, size);
+    }
+}
+
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
+static void http_error_cb(enum evhttp_request_error err, void *ctx)
+{
+    HTTPReply *reply = static_cast<HTTPReply*>(ctx);
+    reply->error = err;
+}
+#endif
+
+
 CTxOut getPeginAmount(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress) {
     Sidechain::Bitcoin::CTransactionRef pegtx;
-    CDataStream pegtx_stream(bitcoinTx, SER_NETWORK, PROTOCOL_VERSION);
-    pegtx_stream >> pegtx;
+    DataStream pegtx_stream(bitcoinTx);
+    pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
     bool isOutputAvailable = false;
     CAmount value = 0;
     for (size_t i = 0; i < pegtx->vout.size(); i++) {
@@ -88,11 +163,11 @@ std::string ExtractOpReturnScript(const CScript& script) {
 
 CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::vector<unsigned char>& bitcoinTxProof, std::string depositAddress, CTxOut txOut) {
     Sidechain::Bitcoin::CTransactionRef pegtx;
-    CDataStream pegtx_stream(bitcoinTx, SER_NETWORK, PROTOCOL_VERSION);
-    pegtx_stream >> pegtx;
+    DataStream pegtx_stream(bitcoinTx);
+    pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
 
     Sidechain::Bitcoin::CMerkleBlock merkle_block;
-    CDataStream merkle_block_stream(bitcoinTxProof, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+    DataStream merkle_block_stream(bitcoinTxProof);
     merkle_block_stream >> merkle_block;
 
     uint32_t index = 0;
@@ -118,7 +193,7 @@ CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::
     stack.push_back(std::vector<unsigned char>(txOut.scriptPubKey.begin(), txOut.scriptPubKey.end()));
 
     std::vector<unsigned char> value_bytes;
-    CVectorWriter ss_val(PROTOCOL_VERSION, value_bytes, 0);
+    VectorWriter ss_val(value_bytes, 0);
     try {
         ss_val << txOut.nValue;
     } catch (...) {
@@ -127,14 +202,14 @@ CTxIn buildPeginTxInput(const std::vector<unsigned char>& bitcoinTx, const std::
     stack.push_back(value_bytes);
 
     // Strip witness data for proof inclusion since only TXID-covered fields matters
-    CDataStream ss_tx(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
-    ss_tx << pegtx;
+    DataStream ss_tx;
+    ss_tx << Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
     const auto* ss_tx_ptr = UCharCast(ss_tx.data());
     std::vector<unsigned char> tx_data_stripped(ss_tx_ptr, ss_tx_ptr + ss_tx.size());
     stack.push_back(tx_data_stripped);
 
     // Serialize merkle block
-    CDataStream ss_txout_proof(SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+    DataStream ss_txout_proof;
     ss_txout_proof << merkle_block;
     const auto* ss_txout_ptr = UCharCast(ss_txout_proof.data());
     std::vector<unsigned char> txout_proof_bytes(ss_txout_ptr, ss_txout_ptr + ss_txout_proof.size());
@@ -154,7 +229,7 @@ static bool GetBlockAndTxFromMerkleBlock(uint256& block_hash, uint256& tx_hash, 
     try {
         std::vector<uint256> tx_hashes;
         std::vector<unsigned int> tx_indices;
-        CDataStream merkle_block_stream(merkle_block_raw, SER_NETWORK, PROTOCOL_VERSION | SERIALIZE_TRANSACTION_NO_WITNESS);
+        DataStream merkle_block_stream(merkle_block_raw);
         merkle_block_stream >> merkle_block;
         block_hash = merkle_block.header.GetHash();
 
@@ -176,9 +251,10 @@ static bool GetBlockAndTxFromMerkleBlock(uint256& block_hash, uint256& tx_hash, 
 template<typename T>
 static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, const COutPoint& prevout, CAmount peginValue, std::string claimAddress, std::string federationAddress)
 {
+    LogPrintf("CheckPeginTx 1 \n");
     try {
-        CDataStream pegtx_stream(tx_data, SER_NETWORK, PROTOCOL_VERSION);
-        pegtx_stream >> pegtx;
+        DataStream pegtx_stream(tx_data);
+        pegtx_stream >> Sidechain::Bitcoin::TX_WITH_WITNESS(pegtx);
         if (!pegtx_stream.empty()) {
             return false;
         }
@@ -187,26 +263,37 @@ static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, co
         return false;
     }
 
+    LogPrintf("CheckPeginTx 2 \n");
     // Check that transaction matches txid
     if (pegtx->GetHash() != prevout.hash) {
         return false;
     }
 
+    LogPrintf("CheckPeginTx 3 \n");
+
 
     CAmount amount = pegtx->vout[prevout.n].nValue;
+
+    LogPrintf("CheckPeginTx 4 \n");
 
     if(amount > peginValue) {
         return false;
     }
+
+    LogPrintf("CheckPeginTx 5 \n");
 
     CTxDestination fedAddress;
     CTxDestination userAddress;
     ExtractDestination(pegtx->vout[prevout.n].scriptPubKey, fedAddress);
     std::string fedAddressStr = ParentEncodeDestination(fedAddress);
 
+    LogPrintf("CheckPeginTx 5 \n");
+
     if(federationAddress.compare(fedAddressStr) != 0) {
         return false;
     }
+
+    LogPrintf("CheckPeginTx 6 \n");
 
     for (size_t i = 0; i < pegtx->vout.size(); i++) {
         if(pegtx->vout[i].scriptPubKey.IsUnspendable()) {
@@ -220,6 +307,8 @@ static bool CheckPeginTx(const std::vector<unsigned char>& tx_data, T& pegtx, co
            break;
         }
     }
+
+     LogPrintf("CheckPeginTx 7 \n");
     
     return true;
 }
@@ -266,7 +355,7 @@ bool IsValidPeginWitness(const CScriptWitness& pegin_witness, const COutPoint& p
         return false;
     }
 
-    CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+    DataStream stream(stack[2]);
     CAmount value;
     try {
         stream >> value;
@@ -365,7 +454,7 @@ bool IsConfirmedBitcoinBlock(const uint256& hash, const int nMinConfirmationDept
 
 bool isPeginFeeValid(const CTransaction& tx) {
     const std::vector<std::vector<unsigned char> >& stack = tx.vin[0].scriptWitness.stack;
-    CDataStream stream(stack[2], SER_NETWORK, PROTOCOL_VERSION);
+    DataStream stream(stack[2]);
     CAmount value;
     stream >> value;
     CAmount fee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
@@ -375,3 +464,68 @@ bool isPeginFeeValid(const CTransaction& tx) {
     }
     return false;
 }
+
+UniValue CallMainChainRPC(const std::string& strMethod, const UniValue& params)
+{
+    std::string host = gArgs.GetArg("-mainchainrpchost", MAINCHAIN_RPC_HOST);
+    int port = gArgs.GetIntArg("-mainchainrpcport", MAINCHAIN_RPC_PORT);
+
+    // Obtain event base
+    raii_event_base base = obtain_event_base();
+
+    // Synchronously look up hostname
+    raii_evhttp_connection evcon = obtain_evhttp_connection_base(base.get(), host, port);
+    evhttp_connection_set_timeout(evcon.get(), gArgs.GetIntArg("-mainchainrpctimeout", MAINCHAIN_HTTP_CLIENT_TIMEOUT));
+
+    HTTPReply response;
+    raii_evhttp_request req = obtain_evhttp_request(http_request_done, (void*)&response);
+    if (req == NULL)
+        throw std::runtime_error("create http request failed");
+
+#if LIBEVENT_VERSION_NUMBER >= 0x02010300
+    evhttp_request_set_error_cb(req.get(), http_error_cb);
+#endif
+
+    // Get credentials
+    std::string strRPCUserColonPass = gArgs.GetArg("-mainchainrpcuser", MAINCHAIN_RPC_USER) + ":" + gArgs.GetArg("-mainchainrpcpassword", MAINCHAIN_RPC_PASS);
+
+    struct evkeyvalq* output_headers = evhttp_request_get_output_headers(req.get());
+    assert(output_headers);
+    evhttp_add_header(output_headers, "Host", host.c_str());
+    evhttp_add_header(output_headers, "Connection", "close");
+    evhttp_add_header(output_headers, "Authorization", (std::string("Basic ") + EncodeBase64(strRPCUserColonPass)).c_str());
+
+    // Attach request data
+    std::string strRequest = JSONRPCRequestObj(strMethod, params, 1).write() + "\n";
+    struct evbuffer* output_buffer = evhttp_request_get_output_buffer(req.get());
+    assert(output_buffer);
+    evbuffer_add(output_buffer, strRequest.data(), strRequest.size());
+
+    int r = evhttp_make_request(evcon.get(), req.get(), EVHTTP_REQ_POST, "/");
+    req.release(); // ownership moved to evcon in above call
+    if (r != 0) {
+        throw std::runtime_error("send http request failed");
+    }
+
+    event_base_dispatch(base.get());
+
+    if (response.status == 0)
+        throw std::runtime_error(strprintf("couldn't connect to server: %s (code %d)\n(make sure server is running and you are connecting to the correct RPC port)", http_errorstring(response.error), response.error));
+    else if (response.status == HTTP_UNAUTHORIZED)
+        throw std::runtime_error("incorrect mainchainrpcuser or mainchainrpcpassword (authorization failed)");
+    else if (response.status >= 400 && response.status != HTTP_BAD_REQUEST && response.status != HTTP_NOT_FOUND && response.status != HTTP_INTERNAL_SERVER_ERROR)
+        throw std::runtime_error(strprintf("server returned HTTP error %d", response.status));
+    else if (response.body.empty())
+        throw std::runtime_error("no response from server");
+
+    // Parse reply
+    UniValue valReply(UniValue::VSTR);
+    if (!valReply.read(response.body))
+        throw std::runtime_error("couldn't parse reply from server");
+    const UniValue& reply = valReply.get_obj();
+    if (reply.empty())
+        throw std::runtime_error("expected reply to have result, error and id properties");
+
+    return reply;
+}
+

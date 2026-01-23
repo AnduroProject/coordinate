@@ -3,20 +3,43 @@
 # Distributed under the MIT software license, see the accompanying
 # file COPYING or http://www.opensource.org/licenses/mit-license.php.
 """Useful Script constants and utils."""
+import unittest
+
+from copy import deepcopy
+
+from test_framework.messages import (
+    COutPoint,
+    CTransaction,
+    CTxIn,
+    CTxInWitness,
+    CTxOut,
+    sha256,
+)
 from test_framework.script import (
     CScript,
-    CScriptOp,
     OP_0,
+    OP_1,
+    OP_15,
+    OP_16,
     OP_CHECKMULTISIG,
     OP_CHECKSIG,
     OP_DUP,
+    OP_ELSE,
+    OP_ENDIF,
     OP_EQUAL,
     OP_EQUALVERIFY,
     OP_HASH160,
+    OP_IF,
     OP_RETURN,
+    OP_TRUE,
     hash160,
-    sha256,
 )
+
+# Maximum number of potentially executed legacy signature operations in validating a transaction.
+MAX_STD_LEGACY_SIGOPS = 2_500
+
+# Maximum number of sigops per standard P2SH redeemScript.
+MAX_STD_P2SH_SIGOPS = 15
 
 # To prevent a "tx-size-small" policy rule error, a transaction has to have a
 # non-witness size of at least 65 bytes (MIN_STANDARD_TX_NONWITNESS_SIZE in
@@ -39,6 +62,8 @@ assert MIN_PADDING == 5
 DUMMY_MIN_OP_RETURN_SCRIPT = CScript([OP_RETURN] + ([OP_0] * (MIN_PADDING - 1)))
 assert len(DUMMY_MIN_OP_RETURN_SCRIPT) == MIN_PADDING
 
+PAY_TO_ANCHOR = CScript([OP_1, bytes.fromhex("4e73")])
+
 def key_to_p2pk_script(key):
     key = check_key(key)
     return CScript([key, OP_CHECKSIG])
@@ -49,10 +74,8 @@ def keys_to_multisig_script(keys, *, k=None):
     if k is None:  # n-of-n multisig by default
         k = n
     assert k <= n
-    op_k = CScriptOp.encode_op_n(k)
-    op_n = CScriptOp.encode_op_n(n)
     checked_keys = [check_key(key) for key in keys]
-    return CScript([op_k] + checked_keys + [op_n, OP_CHECKMULTISIG])
+    return CScript([k] + checked_keys + [n, OP_CHECKMULTISIG])
 
 
 def keyhash_to_p2pkh_script(hash):
@@ -125,3 +148,58 @@ def check_script(script):
     if isinstance(script, bytes) or isinstance(script, CScript):
         return script
     assert False
+
+
+class ValidWitnessMalleatedTx:
+    """
+    Creates a valid witness malleation transaction test case:
+    - Parent transaction with a script supporting 2 branches
+    - 2 child transactions with the same txid but different wtxids
+    """
+    def __init__(self):
+        hashlock = hash160(b'Preimage')
+        self.witness_script = CScript([OP_IF, OP_HASH160, hashlock, OP_EQUAL, OP_ELSE, OP_TRUE, OP_ENDIF])
+
+    def build_parent_tx(self, funding_txid, amount):
+        # Create an unsigned parent transaction paying to the witness script.
+        witness_program = sha256(self.witness_script)
+        script_pubkey = CScript([OP_0, witness_program])
+
+        parent = CTransaction()
+        parent.vin.append(CTxIn(COutPoint(int(funding_txid, 16), 0), b""))
+        parent.vout.append(CTxOut(int(amount), script_pubkey))
+        return parent
+
+    def build_malleated_children(self, signed_parent_txid, amount):
+        # Create 2 valid children that differ only in witness data.
+        # 1. Create a new transaction with witness solving first branch
+        child_witness_script = CScript([OP_TRUE])
+        child_witness_program = sha256(child_witness_script)
+        child_script_pubkey = CScript([OP_0, child_witness_program])
+
+        child_one = CTransaction()
+        child_one.vin.append(CTxIn(COutPoint(int(signed_parent_txid, 16), 0), b""))
+        child_one.vout.append(CTxOut(int(amount), child_script_pubkey))
+        child_one.wit.vtxinwit.append(CTxInWitness())
+        child_one.wit.vtxinwit[0].scriptWitness.stack = [b'Preimage', b'\x01', self.witness_script]
+
+        # 2. Create another identical transaction with witness solving second branch
+        child_two = deepcopy(child_one)
+        child_two.wit.vtxinwit[0].scriptWitness.stack = [b'', self.witness_script]
+        return child_one, child_two
+
+
+class TestFrameworkScriptUtil(unittest.TestCase):
+    def test_multisig(self):
+        fake_pubkey = bytes([0]*33)
+        # check correct encoding of P2MS script with n,k <= 16
+        normal_ms_script = keys_to_multisig_script([fake_pubkey]*16, k=15)
+        self.assertEqual(len(normal_ms_script), 1 + 16*34 + 1 + 1)
+        self.assertTrue(normal_ms_script.startswith(bytes([OP_15])))
+        self.assertTrue(normal_ms_script.endswith(bytes([OP_16, OP_CHECKMULTISIG])))
+
+        # check correct encoding of P2MS script with n,k > 16
+        max_ms_script = keys_to_multisig_script([fake_pubkey]*20, k=19)
+        self.assertEqual(len(max_ms_script), 2 + 20*34 + 2 + 1)
+        self.assertTrue(max_ms_script.startswith(bytes([1, 19])))  # using OP_PUSH1
+        self.assertTrue(max_ms_script.endswith(bytes([1, 20, OP_CHECKMULTISIG])))

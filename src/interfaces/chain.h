@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2022 The Bitcoin Core developers
+// Copyright (c) 2018-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -7,13 +7,15 @@
 
 #include <blockfilter.h>
 #include <common/settings.h>
-#include <primitives/transaction.h> // For CTransactionRef
+#include <primitives/transaction.h>
+#include <util/result.h>
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
+#include <map>
 #include <memory>
 #include <optional>
-#include <stddef.h>
-#include <stdint.h>
 #include <string>
 #include <vector>
 
@@ -39,12 +41,6 @@ namespace interfaces {
 
 class Handler;
 class Wallet;
-
-//! Hash/height pair to help track and identify blocks.
-struct BlockKey {
-    uint256 hash;
-    int height = -1;
-};
 
 //! Helper for findBlock to selectively return pieces of block data. If block is
 //! found, data will be returned by setting specified output variables. If block
@@ -95,6 +91,17 @@ struct BlockInfo {
     BlockInfo(const uint256& hash LIFETIMEBOUND) : hash(hash) {}
 };
 
+//! The action to be taken after updating a settings value.
+//! WRITE indicates that the updated value must be written to disk,
+//! while SKIP_WRITE indicates that the change will be kept in memory-only
+//! without persisting it.
+enum class SettingsAction {
+    WRITE,
+    SKIP_WRITE
+};
+
+using SettingsUpdate = std::function<std::optional<interfaces::SettingsAction>(common::SettingsValue&)>;
+
 //! Interface giving clients (wallet processes, maybe other analysis tools in
 //! the future) ability to access to the chain state, receive notifications,
 //! estimate fees, and submit transactions.
@@ -122,7 +129,7 @@ struct BlockInfo {
 class Chain
 {
 public:
-    virtual ~Chain() {}
+    virtual ~Chain() = default;
 
     //! Get current chain height, not including genesis block (returns 0 if
     //! chain only contains genesis block, nullopt if chain does not contain
@@ -201,7 +208,7 @@ public:
     virtual RBFTransactionState isRBFOptIn(const CTransaction& tx) = 0;
 
     //! Check if transaction is in mempool.
-    virtual bool isInMempool(const uint256& txid) = 0;
+    virtual bool isInMempool(const Txid& txid) = 0;
 
     //! Check if transaction has descendants in mempool.
     virtual bool hasDescendantsInMempool(const uint256& txid) = 0;
@@ -244,7 +251,7 @@ public:
     //  outputs in the same transaction) or have shared ancestry, the bump fees are calculated
     //  independently, i.e. as if only one of them is spent. This may result in double-fee-bumping. This
     //  caveat can be rectified per use of the sister-function CalculateCombinedBumpFee(…).
-    virtual std::map<COutPoint, CAmount> CalculateIndividualBumpFees(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
+    virtual std::map<COutPoint, CAmount> calculateIndividualBumpFees(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
 
     //! Calculate the combined bump fee for an input set per the same strategy
     //  as in CalculateIndividualBumpFees(…).
@@ -252,7 +259,7 @@ public:
     //  bump fees per outpoint, but a single bump fee for the shared ancestry.
     //  The combined bump fee may be used to correct overestimation due to
     //  shared ancestry by multiple UTXOs after coin selection.
-    virtual std::optional<CAmount> CalculateCombinedBumpFee(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
+    virtual std::optional<CAmount> calculateCombinedBumpFee(const std::vector<COutPoint>& outpoints, const CFeeRate& target_feerate) = 0;
 
     //! Get the node's package limits.
     //! Currently only returns the ancestor and descendant count limits, but could be enhanced to
@@ -260,7 +267,7 @@ public:
     virtual void getPackageLimits(unsigned int& limit_ancestor_count, unsigned int& limit_descendant_count) = 0;
 
     //! Check if transaction will pass the mempool's chain limits.
-    virtual bool checkChainLimits(const CTransactionRef& tx) = 0;
+    virtual util::Result<void> checkChainLimits(const CTransactionRef& tx) = 0;
 
     //! Estimate smart fee.
     virtual CFeeRate estimateSmartFee(int num_blocks, bool conservative, FeeCalculation* calc = nullptr) = 0;
@@ -282,6 +289,9 @@ public:
 
     //! Check if any block has been pruned.
     virtual bool havePruned() = 0;
+
+    //! Get the current prune height.
+    virtual std::optional<int> getPruneHeight() = 0;
 
     //! Check if the node is ready to broadcast transactions.
     virtual bool isReadyToBroadcast() = 0;
@@ -308,13 +318,24 @@ public:
     class Notifications
     {
     public:
-        virtual ~Notifications() {}
+        virtual ~Notifications() = default;
         virtual void transactionAddedToMempool(const CTransactionRef& tx) {}
         virtual void transactionRemovedFromMempool(const CTransactionRef& tx, MemPoolRemovalReason reason) {}
         virtual void blockConnected(ChainstateRole role, const BlockInfo& block) {}
         virtual void blockDisconnected(const BlockInfo& block) {}
         virtual void updatedBlockTip() {}
         virtual void chainStateFlushed(ChainstateRole role, const CBlockLocator& locator) {}
+    };
+
+    //! Options specifying which chain notifications are required.
+    struct NotifyOptions
+    {
+        //! Include undo data with block connected notifications.
+        bool connect_undo_data = false;
+        //! Include block data with block disconnected notifications.
+        bool disconnect_data = false;
+        //! Include undo data with block disconnected notifications.
+        bool disconnect_undo_data = false;
     };
 
     //! Register handler for notifications.
@@ -331,12 +352,6 @@ public:
     //! Check if deprecated RPC is enabled.
     virtual bool rpcEnableDeprecated(const std::string& method) = 0;
 
-    //! Run function after given number of seconds. Cancel any previous calls with same name.
-    virtual void rpcRunLater(const std::string& name, std::function<void()> fn, int64_t seconds) = 0;
-
-    //! Current RPC serialization flags.
-    virtual int rpcSerializationFlags() = 0;
-
     //! Get settings value.
     virtual common::SettingsValue getSetting(const std::string& arg) = 0;
 
@@ -346,9 +361,23 @@ public:
     //! Return <datadir>/settings.json setting value.
     virtual common::SettingsValue getRwSetting(const std::string& name) = 0;
 
-    //! Write a setting to <datadir>/settings.json. Optionally just update the
-    //! setting in memory and do not write the file.
-    virtual bool updateRwSetting(const std::string& name, const common::SettingsValue& value, bool write=true) = 0;
+    //! Updates a setting in <datadir>/settings.json.
+    //! Null can be passed to erase the setting. There is intentionally no
+    //! support for writing null values to settings.json.
+    //! Depending on the action returned by the update function, this will either
+    //! update the setting in memory or write the updated settings to disk.
+    virtual bool updateRwSetting(const std::string& name, const SettingsUpdate& update_function) = 0;
+
+    //! Replace a setting in <datadir>/settings.json with a new value.
+    //! Null can be passed to erase the setting.
+    //! This method provides a simpler alternative to updateRwSetting when
+    //! atomically reading and updating the setting is not required.
+    virtual bool overwriteRwSetting(const std::string& name, common::SettingsValue value, SettingsAction action = SettingsAction::WRITE) = 0;
+
+    //! Delete a given setting in <datadir>/settings.json.
+    //! This method provides a simpler alternative to overwriteRwSetting when
+    //! erasing a setting, for ease of use and readability.
+    virtual bool deleteRwSettings(const std::string& name, SettingsAction action = SettingsAction::WRITE) = 0;
 
     //! Synchronously send transactionAddedToMempool notifications about all
     //! current mempool transactions to the specified handler and return after
@@ -373,7 +402,7 @@ public:
 class ChainClient
 {
 public:
-    virtual ~ChainClient() {}
+    virtual ~ChainClient() = default;
 
     //! Register rpcs.
     virtual void registerRpcs() = 0;
@@ -387,14 +416,14 @@ public:
     //! Start client execution and provide a scheduler.
     virtual void start(CScheduler& scheduler) = 0;
 
-    //! Save state to disk.
-    virtual void flush() = 0;
-
     //! Shut down client.
     virtual void stop() = 0;
 
     //! Set mock time.
     virtual void setMockTime(int64_t time) = 0;
+
+    //! Mock the scheduler to fast forward in time.
+    virtual void schedulerMockForward(std::chrono::seconds delta_seconds) = 0;
 };
 
 //! Return implementation of Chain interface.
