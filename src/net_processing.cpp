@@ -4326,7 +4326,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         {
             const CBlockHeader header = pindex->GetBlockHeader(m_chainman.m_blockman);
             if(!header.auxpow) {
-                if(header.GetHash().ToString().compare("d7396c541cc6c2afb79a93430b7ec9a8f95cef35a1b31f5bb52770bb7669a31a") == 0) {
+                if(header.GetHash().ToString().compare("956997225886c3177f1589a9b9ef16f2bc0f850e6b1c5d10c9c4efd07f9245d3") == 0) {
                     vHeaders.emplace_back(header);
                 } 
             } else {
