@@ -4745,27 +4745,16 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
 
         std::vector<CBlockHeader> headers;
 
-        // // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
-        // unsigned int nCount = ReadCompactSize(vRecv);
-        // if (nCount > m_opts.max_headers_result) {
-        //     Misbehaving(*peer, strprintf("headers message size = %u", nCount));
-        //     return;
-        // }
-        // headers.resize(nCount);
-        // for (unsigned int n = 0; n < nCount; n++) {
-        //     vRecv >> headers[n];
-        //     ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
-        // }
-
-        LogPrintf("testing vRecv >> headers \n");
-
-        vRecv >> headers;
-
-        LogPrintf("testing 123 vRecv >> headers \n");
-
-        for (size_t i = 0; i < headers.size(); i++)
-        {
-             LogPrintf("testing 124 hash >> headers %s \n", headers[i].GetHash().ToString());
+        // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
+        unsigned int nCount = ReadCompactSize(vRecv);
+        if (nCount > m_opts.max_headers_result) {
+            Misbehaving(*peer, strprintf("headers message size = %u", nCount));
+            return;
+        }
+        headers.resize(nCount);
+        for (unsigned int n = 0; n < nCount; n++) {
+            vRecv >> headers[n];
+            ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
         }
         
 
