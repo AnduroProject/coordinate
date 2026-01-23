@@ -783,7 +783,7 @@ std::pair<CAddress, NodeSeconds> AddrManImpl::Select_(bool new_only, const std::
 
         // With probability GetChance() * chance_factor, return the entry.
         if (insecure_rand.randbits<30>() < chance_factor * info.GetChance() * (1 << 30)) {
-            LogDebug(BCLog::ADDRMAN, "Selected %s from %s\n", info.ToStringAddrPort(), search_tried ? "tried" : "new");
+            //LogDebug(BCLog::ADDRMAN, "Selected %s from %s\n", info.ToStringAddrPort(), search_tried ? "tried" : "new");
             return {info, info.m_last_try};
         }
 

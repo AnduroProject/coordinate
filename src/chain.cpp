@@ -25,9 +25,8 @@ CBlockHeader CBlockIndex::GetBlockHeader(const node::BlockManager& blockman) con
        have to read the actual *header*, not the full block.  */
     if (block.IsAuxpow())
     {
-        CBlock fullblock;
-        blockman.ReadBlock(fullblock, *this);
-        return fullblock.GetBlockHeader();
+        blockman.ReadBlockHeader(block, *this);
+        return block;
     }
 
     if (pprev)

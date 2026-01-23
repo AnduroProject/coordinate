@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <logging.h>
 
 /**
  * The maximum size of a serialized object in bytes or number of elements
@@ -353,6 +354,8 @@ uint64_t ReadCompactSize(Stream& is, bool range_check = true)
         if (nSizeRet < 0x100000000ULL)
             throw std::ios_base::failure("non-canonical ReadCompactSize()");
     }
+
+    
     if (range_check && nSizeRet > MAX_SIZE) {
         throw std::ios_base::failure("ReadCompactSize(): size too large");
     }
