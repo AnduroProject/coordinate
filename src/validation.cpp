@@ -2049,12 +2049,12 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
 
     /* If there is no auxpow, just check the block hash.  */
     if (!block.auxpow) {
-        // regtest - 956997225886c3177f1589a9b9ef16f2bc0f850e6b1c5d10c9c4efd07f9245d3
+        // regtest - 1785db2ef2693e42685107293456a5b10941fda948c4dd79054b336ee2b930c4
         // signet - 483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7
         // testnet - 42f657748c01d2fb59cea5d7269fd410e96ed21c249417c4ad27a18fa4432221
         // testnet4 - 6c6f09c397877ce3e13f4c6cc2b7eec2329204e30cd603f90cf8f82b41883e88
         // mainnet - 64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8
-        if (block.GetHash().ToString().compare("956997225886c3177f1589a9b9ef16f2bc0f850e6b1c5d10c9c4efd07f9245d3") == 0 || block.GetHash().ToString().compare("42f657748c01d2fb59cea5d7269fd410e96ed21c249417c4ad27a18fa4432221") == 0 || block.GetHash().ToString().compare("6c6f09c397877ce3e13f4c6cc2b7eec2329204e30cd603f90cf8f82b41883e88") == 0 || block.GetHash().ToString().compare("64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8") == 0 || block.GetHash().ToString().compare("483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7") == 0) {
+        if (block.GetHash().ToString().compare("1785db2ef2693e42685107293456a5b10941fda948c4dd79054b336ee2b930c4") == 0 || block.GetHash().ToString().compare("42f657748c01d2fb59cea5d7269fd410e96ed21c249417c4ad27a18fa4432221") == 0 || block.GetHash().ToString().compare("6c6f09c397877ce3e13f4c6cc2b7eec2329204e30cd603f90cf8f82b41883e88") == 0 || block.GetHash().ToString().compare("64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8") == 0 || block.GetHash().ToString().compare("483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7") == 0) {
             return true;
         } else {
             LogError("%s : block hash no auxpow on block with auxpow version",
