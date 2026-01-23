@@ -209,6 +209,20 @@ static constexpr uint64_t CMPCTBLOCKS_VERSION{2};
 
 // Internal stuff
 namespace {
+
+struct HeaderWithTxCount {
+    CBlockHeader header;
+    
+    uint256 GetHash() const { return header.GetHash(); }
+    
+    template<typename Stream>
+    void Serialize(Stream& s) const {
+        s << TX_WITH_WITNESS(header);
+        WriteCompactSize(s, 0); // txcount = 0
+    }
+    // Unserialize not needed - this is only used for sending
+};
+
 /** Blocks that are in flight, and that are in the queue to be downloaded. */
 struct QueuedBlock {
     /** BlockIndex. We must have this since we only request blocks when we've already validated the header. */
@@ -4352,7 +4366,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         }
 
         // we must use CBlocks, as CBlockHeaders won't include the 0x00 nTx count at the end
-        std::vector<CBlock> vHeaders;
+        // Use HeaderWithTxCount (defined above) to serialize headers correctly for P2P.
+        // Our CBlock has extra fields that aren't part of the headers protocol.
+        std::vector<HeaderWithTxCount> vHeaders;
         unsigned nCount = 0;
         unsigned nSize = 0;
         LogDebug(BCLog::NET, "getheaders %d to %s from peer=%d\n", (pindex ? pindex->nHeight : -1), hashStop.IsNull() ? "end" : hashStop.ToString(), pfrom.GetId());
@@ -4366,8 +4382,8 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
               }
 
             ++nCount;
-            nSize += GetSerializeSize(header);
-            vHeaders.emplace_back(header);
+            nSize += GetSerializeSize(TX_WITH_WITNESS(header)) + 1; // header + txcount byte
+            vHeaders.push_back(HeaderWithTxCount{header});
             if (nCount >= m_opts.max_headers_result
                   || pindex->GetBlockHash() == hashStop)
                 break;
@@ -4394,8 +4410,9 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
             // without the new block. By resetting the BestHeaderSent, we ensure we
             // will re-announce the new block via headers (or compact blocks again)
             // in the SendMessages logic.
+            
             nodestate->pindexBestHeaderSent = pindex ? pindex : m_chainman.ActiveChain().Tip();
-            MakeAndPushMessage(pfrom, NetMsgType::HEADERS, TX_WITH_WITNESS(vHeaders));
+            MakeAndPushMessage(pfrom, NetMsgType::HEADERS, vHeaders);
         }
         return;
     }
@@ -4745,15 +4762,41 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         std::vector<CBlockHeader> headers;
 
         // Bypass the normal CBlock deserialization, as we don't want to risk deserializing 2000 full blocks.
+        size_t pos_before_count = vRecv.size();
         unsigned int nCount = ReadCompactSize(vRecv);
+        LogPrintf("HEADERS DEBUG: nCount=%u, message_size=%zu\n", nCount, pos_before_count);
+   
         if (nCount > m_opts.max_headers_result) {
             Misbehaving(*peer, strprintf("headers message size = %u", nCount));
             return;
         }
         headers.resize(nCount);
         for (unsigned int n = 0; n < nCount; n++) {
-            vRecv >> headers[n];
-            ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
+            // vRecv >> headers[n];
+            // ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
+
+            size_t pos_before_header = vRecv.size();
+            try {
+                vRecv >> headers[n];
+            } catch (const std::exception& e) {
+                LogPrintf("HEADERS DEBUG: Failed deserializing header %u/%u at stream pos %zu, remaining bytes: %zu, error: %s\n", 
+                         n, nCount, pos_before_header, vRecv.size(), e.what());
+                LogPrintf("HEADERS DEBUG: Header version=0x%08x, IsAuxpow=%d\n", 
+                         headers[n].nVersion, headers[n].IsAuxpow());
+                throw;
+            }
+            size_t pos_after_header = vRecv.size();
+            size_t header_size = pos_before_header - pos_after_header;
+            
+            try {
+                uint64_t txcount = ReadCompactSize(vRecv); // ignore tx count; assume it is 0.
+                LogPrintf("HEADERS DEBUG: header %u/%u size=%zu bytes, txcount=%lu, IsAuxpow=%d\n", 
+                         n, nCount, header_size, txcount, headers[n].IsAuxpow());
+            } catch (const std::exception& e) {
+                LogPrintf("HEADERS DEBUG: Failed reading txcount after header %u/%u, header_size=%zu, error: %s\n",
+                         n, nCount, header_size, e.what());
+                throw;
+            }
         }
         
 
@@ -5822,7 +5865,7 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
             // blocks, or if the peer doesn't want headers, just
             // add all to the inv queue.
             LOCK(peer->m_block_inv_mutex);
-            std::vector<CBlock> vHeaders;
+            std::vector<HeaderWithTxCount> vHeaders;
             bool fRevertToInv = ((!peer->m_prefers_headers &&
                                  (!state.m_requested_hb_cmpctblocks || peer->m_blocks_for_headers_relay.size() > 1)) ||
                                  peer->m_blocks_for_headers_relay.size() > MAX_BLOCKS_TO_ANNOUNCE);
@@ -5860,14 +5903,14 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                     pBestIndex = pindex;
                     if (fFoundStartingHeader) {
                         // add this to the headers message
-                        vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+                        vHeaders.push_back(HeaderWithTxCount{pindex->GetBlockHeader(m_chainman.m_blockman)});
                     } else if (PeerHasHeader(&state, pindex)) {
                         continue; // keep looking for the first new block
                     } else if (pindex->pprev == nullptr || PeerHasHeader(&state, pindex->pprev)) {
                         // Peer doesn't have this header but they do have the prior one.
                         // Start sending headers.
                         fFoundStartingHeader = true;
-                        vHeaders.emplace_back(pindex->GetBlockHeader(m_chainman.m_blockman));
+                        vHeaders.push_back(HeaderWithTxCount{pindex->GetBlockHeader(m_chainman.m_blockman)});
                     } else {
                         // Peer doesn't have this header or the prior one -- nothing will
                         // connect, so bail out.
@@ -5910,7 +5953,7 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                         LogDebug(BCLog::NET, "%s: sending header %s to peer=%d\n", __func__,
                                 vHeaders.front().GetHash().ToString(), pto->GetId());
                     }
-                    MakeAndPushMessage(*pto, NetMsgType::HEADERS, TX_WITH_WITNESS(vHeaders));
+                    MakeAndPushMessage(*pto, NetMsgType::HEADERS, vHeaders);
                     state.pindexBestHeaderSent = pBestIndex;
                 } else
                     fRevertToInv = true;
