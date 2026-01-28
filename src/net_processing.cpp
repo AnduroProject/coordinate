@@ -4470,7 +4470,7 @@ void PeerManagerImpl::ProcessMessage(CNode& pfrom, const std::string& msg_type, 
         Assume(!package_to_validate.has_value());
 
         bool is_preconfirm = msg_type == NetMsgType::PRETX ? true : false;
-        const MempoolAcceptResult result = m_chainman.ProcessTransaction(ptx, is_preconfirm);
+        const MempoolAcceptResult result = m_chainman.ProcessTransaction(ptx, false, is_preconfirm);
         const TxValidationState& state = result.m_state;
 
         if (result.m_result_type == MempoolAcceptResult::ResultType::VALID) {
