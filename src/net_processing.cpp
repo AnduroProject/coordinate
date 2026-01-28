@@ -6090,7 +6090,6 @@ bool PeerManagerImpl::SendMessages(CNode* pto)
                             if (!txinfo.tx) {
                                 continue;
                             }
-                            continue;
                         }
                         // `TxRelay::m_tx_inventory_known_filter` contains either txids or wtxids
                         // depending on whether our peer supports wtxid-relay. Therefore, first
