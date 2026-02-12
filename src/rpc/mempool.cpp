@@ -78,18 +78,18 @@ static RPCHelpMan sendrawtransaction()
                 },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
         {
-            const CAmount max_burn_amount = request.params[2].isNull() ? 0 : AmountFromValue(request.params[2]);
+            // const CAmount max_burn_amount = request.params[2].isNull() ? 0 : AmountFromValue(request.params[2]);
 
             CMutableTransaction mtx;
             if (!DecodeHexTx(mtx, request.params[0].get_str())) {
                 throw JSONRPCError(RPC_DESERIALIZATION_ERROR, "TX decode failed. Make sure the tx has at least one input.");
             }
 
-            for (const auto& out : mtx.vout) {
-                if((out.scriptPubKey.IsUnspendable() || !out.scriptPubKey.HasValidOps()) && out.nValue > max_burn_amount) {
-                    throw JSONRPCTransactionError(TransactionError::MAX_BURN_EXCEEDED);
-                }
-            }
+            // for (const auto& out : mtx.vout) {
+            //     if((out.scriptPubKey.IsUnspendable() || !out.scriptPubKey.HasValidOps()) && out.nValue > max_burn_amount) {
+            //         throw JSONRPCTransactionError(TransactionError::MAX_BURN_EXCEEDED);
+            //     }
+            // }
 
             CTransactionRef tx(MakeTransactionRef(std::move(mtx)));
 
