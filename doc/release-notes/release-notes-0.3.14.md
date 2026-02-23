@@ -4,7 +4,7 @@ http://sourceforge.net/projects/bitcoin/files/Bitcoin/bitcoin-0.3.14/
 Changes:
 * Key pool feature for safer wallet backup
 Gavin Andresen:
-* TEST network mode with switch -testnet
+* TEST network mode with switch -testnet4
 * Option to use SSL for JSON-RPC connections on unix/osx
 * validateaddress RPC command
 eurekafag:

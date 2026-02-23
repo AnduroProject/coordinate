@@ -119,7 +119,7 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{}; 
 
-        consensus.nAuxpowChainId = 0x2222;
+        consensus.nAuxpowChainId = 0x2121;
         consensus.nAuxpowStartHeight = 0;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
@@ -149,9 +149,9 @@ public:
         // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("seed1.coordinate.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed2.coordinate.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed3.coordinate.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed1.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed2.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed3.mara.technology."); // Coordinate
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -179,99 +179,6 @@ public:
     }
 };
 
-/**
- * Testnet (v3): public test network which is reset from time to time.
- */
-class CTestNetParams : public CChainParams {
-public:
-    CTestNetParams() {
-        m_chain_type = ChainType::TESTNET;
-        consensus.signet_blocks = false;
-        consensus.signet_challenge.clear();
-        consensus.nSubsidyHalvingInterval = 210000;
-        consensus.BIP34Height = 21111;
-        consensus.BIP34Hash = uint256{};
-        consensus.BIP65Height = 1;
-        consensus.BIP66Height = 1; 
-        consensus.CSVHeight = 1; 
-        consensus.SegwitHeight = 0; 
-        consensus.MinBIP9WarningHeight = 0; // segwit activation height + miner confirmation window
-        consensus.powLimit = uint256{"00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-        consensus.nPowTargetTimespan = 1 * 1 * 60 * 60; // 1 hour
-        consensus.nPowTargetSpacing = 2 * 60;
-        consensus.fPowAllowMinDifficultyBlocks = true;
-        consensus.enforce_BIP94 = false;
-        consensus.fPowNoRetargeting = false;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].bit = 28;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nStartTime = Consensus::BIP9Deployment::NEVER_ACTIVE;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].nTimeout = Consensus::BIP9Deployment::NO_TIMEOUT;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].min_activation_height = 0; // No activation delay
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].threshold = 27; // 75%
-        consensus.vDeployments[Consensus::DEPLOYMENT_TESTDUMMY].period = 30;
-
-        // Deployment of Taproot (BIPs 340-342)
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].bit = 2;
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nStartTime = 1619222400; // April 24th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].nTimeout = 1628640000; // August 11th, 2021
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].min_activation_height = 0; // No activation delay
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 27; // 75%
-        consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 30;
-
-        consensus.nMinimumChainWork = uint256{};
-        consensus.defaultAssumeValid = uint256{}; 
-
-        consensus.nAuxpowChainId = 0x2222;
-        consensus.nAuxpowStartHeight = 0;
-        consensus.fStrictChainId = true;
-        consensus.nLegacyBlocksBefore = 0;
-
-        consensus.currentKeys = "7b2263757272656e745f61646472657373223a22746331713833756666786e707778713678366364777a7136346568383366653439703270657867656c3434796a716d6366617a773863677176333468616a222c22616c6c5f6b657973223a5b22303233383330313566643462356636383237306563363537343565326138303631386361303439333765643733393037633462613563326236356339366234373966222c22303331633633313236313831656236343065343263346264333132313831636632383366306561373639383936396538303434376136353137623264353961313931222c22303235333836393635633963323231313966616466373536333931396163626561653362366364656639353539356430366664663332353961613834303832366539225d7d";
-
-        pchMessageStart[0] = 0xb9;
-        pchMessageStart[1] = 0xbe;
-        pchMessageStart[2] = 0xb9;
-        pchMessageStart[3] = 0xd8;
-        nDefaultPort = 18333;
-        nPruneAfterHeight = 1000;
-        nAssetPruneAfterHeight = 3000;
-        m_assumed_blockchain_size = 200;
-        m_assumed_chain_state_size = 19;
-
-        genesis = CreateGenesisBlock(1296688602, 414098458, 0x1d00ffff, 1, 0 * COIN, consensus.currentKeys);
-        consensus.hashGenesisBlock = genesis.GetHash();
-    
-        vFixedSeeds.clear();
-        vSeeds.clear();
-        // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed4.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed5.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed6.mara.technology."); // Coordinatenet.achownodes.xyz."); // Ava Chow, only supports x1, x5, x9, x49, x809, x849, xd, x400, x404, x408, x448, xc08, xc48, x40c
-
-        base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
-        base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
-        base58Prefixes[SECRET_KEY] =     std::vector<unsigned char>(1,239);
-        base58Prefixes[EXT_PUBLIC_KEY] = {0x04, 0x35, 0x87, 0xCF};
-        base58Prefixes[EXT_SECRET_KEY] = {0x04, 0x35, 0x83, 0x94};
-
-        bech32_hrp = "tc";
-        parent_bech32_hrp = "tb";
-
-        fDefaultConsistencyChecks = false;
-        m_is_mockable_chain = false;
-
-        m_assumeutxo_data = {
-            {}
-        };
-
-        chainTxData = ChainTxData{
-            0,
-            0,
-            0,
-        };
-        parentGenesisBlockHash = uint256{"00000000da84f2bafbbc53dee25a72ae507ff4914b867c565be350b0da8bf043"};
-        parentPowLimit = uint256{"00000000ffffffffffffffffffffffffffffffffffffffffffffffffffffffff"};
-    }
-};
 
 /**
  * Testnet (v4): public test network which is reset from time to time.
@@ -315,7 +222,7 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{}; 
 
-        consensus.nAuxpowChainId = 0x2222;
+        consensus.nAuxpowChainId = 0x2121;
         consensus.nAuxpowStartHeight = 0;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
@@ -347,9 +254,9 @@ public:
         vSeeds.clear();
 
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed7.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed8.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed9.mara.technology."); // Coordinatenet.achownodes.
+        vSeeds.emplace_back("seed4.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed5.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed6.mara.technology."); // Coordinatenet.achownodes.
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
@@ -453,7 +360,7 @@ public:
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].threshold = 1815; // 90%
         consensus.vDeployments[Consensus::DEPLOYMENT_TAPROOT].period = 2016;
 
-        consensus.nAuxpowChainId = 0x2222;
+        consensus.nAuxpowChainId = 0x2121;
         consensus.nAuxpowStartHeight = 0;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
@@ -542,7 +449,7 @@ public:
         consensus.nMinimumChainWork = uint256{};
         consensus.defaultAssumeValid = uint256{};
 
-        consensus.nAuxpowChainId = 0x2222;
+        consensus.nAuxpowChainId = 0x2121;
         consensus.nAuxpowStartHeight = 0;
         consensus.fStrictChainId = true;
         consensus.nLegacyBlocksBefore = 0;
@@ -635,10 +542,6 @@ std::unique_ptr<const CChainParams> CChainParams::Main()
     return std::make_unique<const CMainParams>();
 }
 
-std::unique_ptr<const CChainParams> CChainParams::TestNet()
-{
-    return std::make_unique<const CTestNetParams>();
-}
 
 std::unique_ptr<const CChainParams> CChainParams::TestNet4()
 {
@@ -659,15 +562,12 @@ std::vector<int> CChainParams::GetAvailableSnapshotHeights() const
 std::optional<ChainType> GetNetworkForMagic(const MessageStartChars& message)
 {
     const auto mainnet_msg = CChainParams::Main()->MessageStart();
-    const auto testnet_msg = CChainParams::TestNet()->MessageStart();
     const auto testnet4_msg = CChainParams::TestNet4()->MessageStart();
     const auto regtest_msg = CChainParams::RegTest({})->MessageStart();
     const auto signet_msg = CChainParams::SigNet({})->MessageStart();
 
     if (std::ranges::equal(message, mainnet_msg)) {
         return ChainType::MAIN;
-    } else if (std::ranges::equal(message, testnet_msg)) {
-        return ChainType::TESTNET;
     } else if (std::ranges::equal(message, testnet4_msg)) {
         return ChainType::TESTNET4;
     } else if (std::ranges::equal(message, regtest_msg)) {
