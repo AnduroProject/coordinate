@@ -395,7 +395,6 @@ RPCHelpMan createasset()
             if (!op_dest) {
                 throw JSONRPCError(RPC_TYPE_ERROR, "Transaction needs a change address, but we can't generate it");
             } else {
-                dest = *op_dest;
                 scriptChange = GetScriptForDestination(dest);
             }
 
