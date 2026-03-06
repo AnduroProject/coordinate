@@ -254,9 +254,9 @@ public:
         vSeeds.clear();
 
         // nodes with support for servicebits filtering should be at the top
-        vSeeds.emplace_back("seed4.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed5.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed6.mara.technology."); // Coordinatenet.achownodes.
+        vSeeds.emplace_back("seed1.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed2.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed3.mara.technology."); // Coordinatenet.achownodes.
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,111);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,196);
