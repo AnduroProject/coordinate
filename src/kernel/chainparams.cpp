@@ -149,9 +149,9 @@ public:
         // This is fine at runtime as we'll fall back to using them as an addrfetch if they don't support the
         // service bits we want, but we should get them updated to support all service bits wanted by any
         // release ASAP to avoid it where possible.
-        vSeeds.emplace_back("seed1.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed2.mara.technology."); // Coordinate
-        vSeeds.emplace_back("seed3.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed4.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed5.mara.technology."); // Coordinate
+        vSeeds.emplace_back("seed6.mara.technology."); // Coordinate
 
         base58Prefixes[PUBKEY_ADDRESS] = std::vector<unsigned char>(1,0);
         base58Prefixes[SCRIPT_ADDRESS] = std::vector<unsigned char>(1,5);
@@ -233,7 +233,7 @@ public:
         pchMessageStart[1] = 0x16;
         pchMessageStart[2] = 0x3f;
         pchMessageStart[3] = 0x28;
-        nDefaultPort = 48333;
+        nDefaultPort = 18333;
         nPruneAfterHeight = 1000;
         nAssetPruneAfterHeight = 3000;
         m_assumed_blockchain_size = 11;

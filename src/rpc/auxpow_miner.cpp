@@ -32,11 +32,11 @@ void auxMiningCheck(const node::NodeContext& node)
   if (connman.GetNodeCount (ConnectionDirection::Both) == 0
         && !Params ().MineBlocksOnDemand ())
     throw JSONRPCError (RPC_CLIENT_NOT_CONNECTED,
-                        "Namecoin is not connected!");
+                        "Coordinate is not connected!");
 
   if (chainman.IsInitialBlockDownload () && !Params ().MineBlocksOnDemand ())
     throw JSONRPCError (RPC_CLIENT_IN_INITIAL_DOWNLOAD,
-                        "Namecoin is downloading blocks...");
+                        "Coordinate is downloading blocks...");
 
   /* This should never fail, since the chain is already
      past the point of merge-mining start.  Check nevertheless.  */
