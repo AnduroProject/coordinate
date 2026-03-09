@@ -13,22 +13,35 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETPLATFORM
 ARG TARGETARCH
 
-# Install build dependencies
+# Install build dependencies (including commonly missing ones for Bitcoin Core)
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     pkg-config \
     bsdmainutils \
     python3 \
+    # Core crypto/SSL dependencies
+    libssl-dev \
+    # Event handling
     libevent-dev \
+    # Boost libraries
     libboost-dev \
     libboost-system-dev \
     libboost-filesystem-dev \
     libboost-thread-dev \
+    libboost-chrono-dev \
+    libboost-program-options-dev \
+    # Database
     libsqlite3-dev \
+    # Networking
     libminiupnpc-dev \
     libnatpmp-dev \
     libzmq3-dev \
+    # Additional tools that may be needed
+    git \
+    autoconf \
+    automake \
+    libtool \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /src
@@ -36,16 +49,35 @@ WORKDIR /src
 # Copy source code
 COPY . .
 
-# Build with CMake
-RUN echo "Building for ${TARGETPLATFORM} (${TARGETARCH})" && \
+# Build with CMake - SEPARATE STEPS for better error visibility
+# Step 1: Configure
+RUN echo "=== Configuring for ${TARGETPLATFORM} (${TARGETARCH}) ===" && \
     cmake -B build \
         -DWITH_ZMQ=ON \
         -DBUILD_TESTS=OFF \
         -DBUILD_BENCH=OFF \
-        -DCMAKE_BUILD_TYPE=Release && \
-    cmake --build build -j$(nproc) && \
-    strip --strip-all build/bin/bitcoind || true && \
-    strip --strip-all build/bin/bitcoin-cli || true
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_VERBOSE_MAKEFILE=ON
+
+# Step 2: Build (this is where failures typically occur)
+RUN echo "=== Building ===" && \
+    cmake --build build -j$(nproc)
+
+# Step 3: Strip binaries (only if they exist)
+RUN echo "=== Stripping binaries ===" && \
+    if [ -f build/bin/bitcoind ]; then \
+        strip --strip-all build/bin/bitcoind; \
+    else \
+        echo "ERROR: bitcoind binary not found!" && exit 1; \
+    fi && \
+    if [ -f build/bin/bitcoin-cli ]; then \
+        strip --strip-all build/bin/bitcoin-cli; \
+    else \
+        echo "ERROR: bitcoin-cli binary not found!" && exit 1; \
+    fi
+
+# Verify binaries exist before proceeding
+RUN ls -la build/bin/
 
 # ------------------------------------------------------------------------------
 # Stage 2: Runtime (slim)
@@ -74,7 +106,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libminiupnpc17 \
     libnatpmp1 \
     libzmq5 \
-    # SSL/TLS (often needed)
+    # SSL/TLS
     libssl3 \
     # Other common deps
     ca-certificates \
