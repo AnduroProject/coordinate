@@ -6,12 +6,12 @@
 #ifndef BITCOIN_PRIMITIVES_BLOCK_H
 #define BITCOIN_PRIMITIVES_BLOCK_H
 
+#include <auxpow.h>
 #include <primitives/transaction.h>
 #include <primitives/pureheader.h>
 #include <serialize.h>
 #include <uint256.h>
 #include <util/time.h>
-#include <auxpow.h>
 #include <coordinate/signed_block.h>
 
 /** Nodes collect new transactions into a block, hash them into a hash tree,
@@ -21,14 +21,11 @@
  * in the block is a special one that creates a new coin owned by the creator
  * of the block.
  */
-class CBlockHeader : public CPureBlockHeader
+class CBlockHeader: public CPureBlockHeader
 {
 public:
-    // header
+    // auxpow (if this is a merge-minded block)
     std::shared_ptr<CAuxPow> auxpow;
-    std::string currentKeys;
-    int32_t currentIndex;
-
 
     CBlockHeader()
     {
@@ -38,6 +35,7 @@ public:
     SERIALIZE_METHODS(CBlockHeader, obj)
     {
         READWRITE(AsBase<CPureBlockHeader>(obj));
+
         if (obj.IsAuxpow())
         {
             SER_READ(obj, obj.auxpow = std::make_shared<CAuxPow>());
@@ -47,15 +45,11 @@ public:
         {
             SER_READ(obj, obj.auxpow.reset());
         }
-        READWRITE(obj.currentKeys);
-        READWRITE(obj.currentIndex);
     }
 
     void SetNull()
     {
         CPureBlockHeader::SetNull();
-        currentKeys = "";
-        currentIndex = 0;
         auxpow.reset();
     }
 
@@ -72,11 +66,16 @@ class CBlock : public CBlockHeader
 public:
     // network and disk
     std::vector<CTransactionRef> vtx;
+    std::vector<CTransactionRef> pegins;
     std::vector<SignedBlock> preconfBlock;
     ReconciliationBlock reconciliationBlock;
+    std::string currentKeys;
+    int32_t currentIndex;
 
-    // memory only
-    mutable bool fChecked;
+    // Memory-only flags for caching expensive checks
+    mutable bool fChecked;                            // CheckBlock()
+    mutable bool m_checked_witness_commitment{false}; // CheckWitnessCommitment()
+    mutable bool m_checked_merkle_root{false};        // CheckMerkleRoot()
 
     CBlock()
     {
@@ -86,26 +85,36 @@ public:
     CBlock(const CBlockHeader &header)
     {
         SetNull();
+        vtx.clear();
+        pegins.clear();
+        preconfBlock.clear();
+        reconciliationBlock.SetNull();
         *(static_cast<CBlockHeader*>(this)) = header;
     }
 
     SERIALIZE_METHODS(CBlock, obj)
     {
         READWRITE(AsBase<CBlockHeader>(obj), obj.vtx);
+        READWRITE(obj.pegins);
         READWRITE(obj.preconfBlock);
         READWRITE(obj.reconciliationBlock);
+        READWRITE(obj.currentKeys);
+        READWRITE(obj.currentIndex);
     }
 
     void SetNull()
     {
         CBlockHeader::SetNull();
         vtx.clear();
-        preconfBlock.clear();
-        reconciliationBlock.SetNull();
         fChecked = false;
+        m_checked_witness_commitment = false;
+        m_checked_merkle_root = false;
+        currentKeys = "";
+        currentIndex = 0;
     }
 
-    CBlockHeader GetBlockHeader() const {
+    CBlockHeader GetBlockHeader() const
+    {
         CBlockHeader block;
         block.nVersion       = nVersion;
         block.hashPrevBlock  = hashPrevBlock;
@@ -137,7 +146,7 @@ struct CBlockLocator
 
     std::vector<uint256> vHave;
 
-    CBlockLocator() {}
+    CBlockLocator() = default;
 
     explicit CBlockLocator(std::vector<uint256>&& have) : vHave(std::move(have)) {}
 

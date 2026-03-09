@@ -11,6 +11,7 @@
 #include <serialize.h>
 #include <uint256.h>
 
+#include <set>
 #include <vector>
 
 // Helper functions for serialization.
@@ -144,15 +145,20 @@ public:
     CMerkleBlock(const CBlock& block, CBloomFilter& filter) : CMerkleBlock(block, &filter, nullptr) { }
 
     // Create from a CBlock, matching the txids in the set
-    CMerkleBlock(const CBlock& block, const std::set<uint256>& txids) : CMerkleBlock(block, nullptr, &txids) { }
+    CMerkleBlock(const CBlock& block, const std::set<Txid>& txids) : CMerkleBlock{block, nullptr, &txids} {}
 
-    CMerkleBlock() {}
+        // Create from a CBlock, matching the txids in the set
+    CMerkleBlock(const CBlock& block, std::vector<CTransactionRef> vtx, const std::set<Txid>& txids) : CMerkleBlock{block, vtx, nullptr, &txids} {}
+
+    CMerkleBlock() = default;
 
     SERIALIZE_METHODS(CMerkleBlock, obj) { READWRITE(obj.header, obj.txn); }
 
 private:
     // Combined constructor to consolidate code
-    CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<uint256>* txids);
+    CMerkleBlock(const CBlock& block, CBloomFilter* filter, const std::set<Txid>* txids);
+    CMerkleBlock(const CBlock& block, std::vector<CTransactionRef> vtx, CBloomFilter* filter, const std::set<Txid>* txids);
+    
 };
 
 #endif // BITCOIN_MERKLEBLOCK_H

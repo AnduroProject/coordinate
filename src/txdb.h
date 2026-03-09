@@ -3,8 +3,8 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef COORDINATE_TXDB_H
-#define COORDINATE_TXDB_H
+#ifndef BITCOIN_TXDB_H
+#define BITCOIN_TXDB_H
 
 #include <coins.h>
 #include <dbwrapper.h>
@@ -17,32 +17,17 @@
 #include <memory>
 #include <optional>
 #include <vector>
+
 #include <coordinate/coordinate_assets.h>
 #include <coordinate/signed_block.h>
 #include <coordinate/invalid_tx.h>
 #include <coordinate/signed_txindex.h>
-
+#include <coordinate/coordinate_address.h>
 class COutPoint;
 class uint256;
 
-//! -dbcache default (MiB)
-static const int64_t nDefaultDbCache = 450;
 //! -dbbatchsize default (bytes)
 static const int64_t nDefaultDbBatchSize = 16 << 20;
-//! max. -dbcache (MiB)
-static const int64_t nMaxDbCache = sizeof(void*) > 4 ? 16384 : 1024;
-//! min. -dbcache (MiB)
-static const int64_t nMinDbCache = 4;
-//! Max memory allocated to block tree DB specific cache, if no -txindex (MiB)
-static const int64_t nMaxBlockDBCache = 2;
-//! Max memory allocated to block tree DB specific cache, if -txindex (MiB)
-// Unlike for the UTXO database, for the txindex scenario the leveldb cache make
-// a meaningful difference: https://github.com/bitcoin/bitcoin/pull/8273#issuecomment-229601991
-static const int64_t nMaxTxIndexCache = 1024;
-//! Max memory allocated to all block filter index caches combined in MiB.
-static const int64_t max_filter_index_cache = 1024;
-//! Max memory allocated to coin DB specific cache (MiB)
-static const int64_t nMaxCoinsDBCache = 8;
 
 //! User-controlled performance and debug options.
 struct CoinsViewOptions {
@@ -63,11 +48,11 @@ protected:
 public:
     explicit CCoinsViewDB(DBParams db_params, CoinsViewOptions options);
 
-    bool GetCoin(const COutPoint &outpoint, Coin &coin) const override;
+    std::optional<Coin> GetCoin(const COutPoint& outpoint) const override;
     bool HaveCoin(const COutPoint &outpoint) const override;
     uint256 GetBestBlock() const override;
     std::vector<uint256> GetHeadBlocks() const override;
-    bool BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, bool erase = true) override;
+    bool BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) override;
     std::unique_ptr<CCoinsViewCursor> Cursor() const override;
 
     //! Whether an unsupported database format is used.
@@ -88,10 +73,7 @@ public:
     CoordinateAssetDB(DBParams db_params);
     bool WriteCoordinateAssets(const std::vector<CoordinateAsset>& vAsset);
     std::vector<CoordinateAsset> GetAssets();
-    bool GetLastAssetID(uint32_t& nID);
-    bool WriteLastAssetID(const uint32_t nID);
-    bool GetAsset(const uint32_t nID,CoordinateAsset& asset);
-    bool RemoveAsset(const uint32_t nID);
+    bool GetAsset(uint256 nID, CoordinateAsset& asset);
     bool WriteAssetMinedBlock(uint256 blockHash);
     bool getAssetMinedBlock(uint256 blockHash);
     bool GetLastAssetPruneHeight(uint32_t& nID);
@@ -113,8 +95,10 @@ public:
     bool DeleteInvalidTx(const uint64_t nHeight);
     bool WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash);
     bool getTxPosition(const uint256 txHash, SignedTxindex& txIndex);
+
+    bool WriteDepositAddress(const CoordinateAddress& coordinateAddressObj, std::string address);
+    bool getDepositAddress(const std::string address, CoordinateAddress& coordinateAddressObj);
 };
 
 
-
-#endif // COORDINATE_TXDB_H
+#endif // BITCOIN_TXDB_H

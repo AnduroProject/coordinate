@@ -27,7 +27,6 @@ static constexpr uint8_t DB_COINS{'c'};
 
 static constexpr uint8_t DB_ASSET{'A'};
 static constexpr uint8_t DB_MINED_ASSET{'D'};
-static constexpr uint8_t DB_ASSET_LAST_ID{'I'};
 static constexpr uint8_t DB_ASSET_LAST_PRUNE_HEIGHT{'E'};
 
 static constexpr uint8_t DB_SIGNED_BLOCK_HASH{'V'};
@@ -35,7 +34,7 @@ static constexpr uint8_t DB_SIGNED_BLOCK_LAST_ID{'S'};
 static constexpr uint8_t DB_SIGNED_BLOCK_LAST_HASH{'U'};
 static constexpr uint8_t DB_BLOCK_INVALID_TX{'Q'};
 static constexpr uint8_t DB_SIGNED_BLOCK_TX{'P'};
-
+static constexpr uint8_t DB_DEPOSIT_ADDRESS{'R'};
 
 bool CCoinsViewDB::NeedsUpgrade()
 {
@@ -77,8 +76,10 @@ void CCoinsViewDB::ResizeCache(size_t new_cache_size)
     }
 }
 
-bool CCoinsViewDB::GetCoin(const COutPoint &outpoint, Coin &coin) const {
-    return m_db->Read(CoinEntry(&outpoint), coin);
+std::optional<Coin> CCoinsViewDB::GetCoin(const COutPoint& outpoint) const
+{
+    if (Coin coin; m_db->Read(CoinEntry(&outpoint), coin)) return coin;
+    return std::nullopt;
 }
 
 bool CCoinsViewDB::HaveCoin(const COutPoint &outpoint) const {
@@ -100,7 +101,7 @@ std::vector<uint256> CCoinsViewDB::GetHeadBlocks() const {
     return vhashHeadBlocks;
 }
 
-bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, bool erase) {
+bool CCoinsViewDB::BatchWrite(CoinsViewCacheCursor& cursor, const uint256 &hashBlock) {
     CDBBatch batch(*m_db);
     size_t count = 0;
     size_t changed = 0;
@@ -112,7 +113,7 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, boo
         std::vector<uint256> old_heads = GetHeadBlocks();
         if (old_heads.size() == 2) {
             if (old_heads[0] != hashBlock) {
-                LogPrintLevel(BCLog::COINDB, BCLog::Level::Error, "The coins database detected an inconsistent state, likely due to a previous crash or shutdown. You will need to restart coordinated with the -reindex-chainstate or -reindex configuration option.\n");
+                LogPrintLevel(BCLog::COINDB, BCLog::Level::Error, "The coins database detected an inconsistent state, likely due to a previous crash or shutdown. You will need to restart bitcoind with the -reindex-chainstate or -reindex configuration option.\n");
             }
             assert(old_heads[0] == hashBlock);
             old_tip = old_heads[1];
@@ -126,19 +127,22 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, boo
     batch.Erase(DB_BEST_BLOCK);
     batch.Write(DB_HEAD_BLOCKS, Vector(hashBlock, old_tip));
 
-    for (CCoinsMap::iterator it = mapCoins.begin(); it != mapCoins.end();) {
-        if (it->second.flags & CCoinsCacheEntry::DIRTY) {
+    for (auto it{cursor.Begin()}; it != cursor.End();) {
+        if (it->second.IsDirty()) {
             CoinEntry entry(&it->first);
-            if (it->second.coin.IsSpent())
+            if (it->second.coin.IsSpent()) {
                 batch.Erase(entry);
-            else
+            } else {
                 batch.Write(entry, it->second.coin);
+            }
+
             changed++;
         }
         count++;
-        it = erase ? mapCoins.erase(it) : std::next(it);
-        if (batch.SizeEstimate() > m_options.batch_write_bytes) {
-            LogPrint(BCLog::COINDB, "Writing partial batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
+        it = cursor.NextAndMaybeErase(*it);
+        if (batch.ApproximateSize() > m_options.batch_write_bytes) {
+            LogDebug(BCLog::COINDB, "Writing partial batch of %.2f MiB\n", batch.ApproximateSize() * (1.0 / 1048576.0));
+
             m_db->WriteBatch(batch);
             batch.Clear();
             if (m_options.simulate_crash_ratio) {
@@ -155,9 +159,9 @@ bool CCoinsViewDB::BatchWrite(CCoinsMap &mapCoins, const uint256 &hashBlock, boo
     batch.Erase(DB_HEAD_BLOCKS);
     batch.Write(DB_BEST_BLOCK, hashBlock);
 
-    LogPrint(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.SizeEstimate() * (1.0 / 1048576.0));
+    LogDebug(BCLog::COINDB, "Writing final batch of %.2f MiB\n", batch.ApproximateSize() * (1.0 / 1048576.0));
     bool ret = m_db->WriteBatch(batch);
-    LogPrint(BCLog::COINDB, "Committed %u changed transaction outputs (out of %u) to coin database...\n", (unsigned int)changed, (unsigned int)count);
+    LogDebug(BCLog::COINDB, "Committed %u changed transaction outputs (out of %u) to coin database...\n", (unsigned int)changed, (unsigned int)count);
     return ret;
 }
 
@@ -239,6 +243,7 @@ void CCoinsViewDBCursor::Next()
     }
 }
 
+
 CoordinateAssetDB::CoordinateAssetDB(DBParams db_params)
     : CDBWrapper(db_params) { }
 
@@ -246,7 +251,8 @@ bool CoordinateAssetDB::WriteCoordinateAssets(const std::vector<CoordinateAsset>
 {
     CDBBatch batch(*this);
     for (const CoordinateAsset& asset : vAsset) {
-        std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, asset.nID);
+        uint256 assetHash = getAssetHash(asset.nID);
+        std::pair<uint8_t, uint256> key = std::make_pair(DB_ASSET, assetHash);
         batch.Write(key, asset);
     }
     return WriteBatch(batch, true);
@@ -260,7 +266,7 @@ std::vector<CoordinateAsset> CoordinateAssetDB::GetAssets()
     std::vector<CoordinateAsset> vAsset;
 
     while (pcursor->Valid()) {
-        std::pair<uint8_t, uint32_t> key;
+        std::pair<uint8_t, uint256> key;
         CoordinateAsset asset;
         if (pcursor->GetKey(key) && key.first == DB_ASSET) {
             if (pcursor->GetValue(asset))
@@ -270,20 +276,6 @@ std::vector<CoordinateAsset> CoordinateAssetDB::GetAssets()
         pcursor->Next();
     }
     return vAsset;
-}
-
-bool CoordinateAssetDB::GetLastAssetID(uint32_t& nID)
-{
-    // Look up the last asset ID (in chronological order)
-    if (!Read(DB_ASSET_LAST_ID, nID))
-        return false;
-
-    return true;
-}
-
-bool CoordinateAssetDB::WriteLastAssetID(const uint32_t nID)
-{
-    return Write(DB_ASSET_LAST_ID, nID);
 }
 
 bool CoordinateAssetDB::GetLastAssetPruneHeight(uint32_t& nID)
@@ -299,14 +291,7 @@ bool CoordinateAssetDB::WriteLastAssetPruneHeight(const uint32_t nID)
     return Write(DB_ASSET_LAST_PRUNE_HEIGHT, nID);
 }
 
-
-bool CoordinateAssetDB::RemoveAsset(const uint32_t nID)
-{
-    std::pair<uint8_t, uint32_t> key = std::make_pair(DB_ASSET, nID);
-    return Erase(key);
-}
-
-bool CoordinateAssetDB::GetAsset(const uint32_t nID, CoordinateAsset& asset)
+bool CoordinateAssetDB::GetAsset(uint256 nID, CoordinateAsset& asset)
 {
     return Read(std::make_pair(DB_ASSET, nID), asset);
 }
@@ -389,6 +374,11 @@ bool SignedBlocksDB::GetInvalidTx(const uint64_t nHeight, InvalidTx& invalidTx)
     return Read(std::make_pair(DB_BLOCK_INVALID_TX, nHeight), invalidTx);
 }
 
+bool SignedBlocksDB::DeleteInvalidTx(const uint64_t nHeight){
+    std::pair<uint8_t, uint64_t> key = std::make_pair(DB_BLOCK_INVALID_TX, nHeight);
+    return Erase(key);
+}
+
 
 bool SignedBlocksDB::WriteTxPosition(const SignedTxindex& signedTx, uint256 txHash){
     CDBBatch batch(*this);
@@ -400,4 +390,16 @@ bool SignedBlocksDB::WriteTxPosition(const SignedTxindex& signedTx, uint256 txHa
 bool SignedBlocksDB::getTxPosition(const uint256 txHash, SignedTxindex& txIndex)
 {
     return Read(std::make_pair(DB_SIGNED_BLOCK_TX, txHash), txIndex);
+}
+
+bool SignedBlocksDB::WriteDepositAddress(const CoordinateAddress& coordinateAddressObj, std::string address){
+    CDBBatch batch(*this);
+    std::pair<uint8_t, std::string> key = std::make_pair(DB_DEPOSIT_ADDRESS, address);
+    batch.Write(key, coordinateAddressObj);
+    return WriteBatch(batch, true);
+}
+
+bool SignedBlocksDB::getDepositAddress(const std::string address, CoordinateAddress& coordinateAddressObj)
+{
+    return Read(std::make_pair(DB_DEPOSIT_ADDRESS, address), coordinateAddressObj);
 }

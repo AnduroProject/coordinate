@@ -95,9 +95,9 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
 
     CBlockUndo block_undo;
     block_undo.vtxundo.emplace_back();
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(500, included_scripts[3]), 1000, true, false, false, false, 0);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(600, included_scripts[4]), 10000, false, false, false, false, 0);
-    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(700, excluded_scripts[3]), 100000, false, false, false, false, 0);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(500, included_scripts[3]), 1000, true);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(600, included_scripts[4]), 10000, false);
+    block_undo.vtxundo.back().vprevout.emplace_back(CTxOut(700, excluded_scripts[3]), 100000, false);
 
     BlockFilter block_filter(BlockFilterType::BASIC, block, block_undo);
     const GCSFilter& filter = block_filter.GetFilter();
@@ -127,6 +127,53 @@ BOOST_AUTO_TEST_CASE(blockfilter_basic_test)
     BOOST_CHECK(default_ctor_block_filter_1.GetEncodedFilter() == default_ctor_block_filter_2.GetEncodedFilter());
 }
 
+BOOST_AUTO_TEST_CASE(blockfilters_json_test)
+{
+    UniValue json;
+    if (!json.read(json_tests::blockfilters) || !json.isArray()) {
+        BOOST_ERROR("Parse error.");
+        return;
+    }
+
+    const UniValue& tests = json.get_array();
+    for (unsigned int i = 0; i < tests.size(); i++) {
+        const UniValue& test = tests[i];
+        std::string strTest = test.write();
+
+        if (test.size() == 1) {
+            continue;
+        } else if (test.size() < 7) {
+            BOOST_ERROR("Bad test: " << strTest);
+            continue;
+        }
+
+        unsigned int pos = 0;
+        /*int block_height =*/ test[pos++].getInt<int>();
+        BOOST_CHECK(uint256::FromHex(test[pos++].get_str()));
+
+        CBlock block;
+        BOOST_REQUIRE(DecodeHexBlk(block, test[pos++].get_str()));
+
+        CBlockUndo block_undo;
+        block_undo.vtxundo.emplace_back();
+        CTxUndo& tx_undo = block_undo.vtxundo.back();
+        const UniValue& prev_scripts = test[pos++].get_array();
+        for (unsigned int ii = 0; ii < prev_scripts.size(); ii++) {
+            std::vector<unsigned char> raw_script = ParseHex(prev_scripts[ii].get_str());
+            CTxOut txout(0, CScript(raw_script.begin(), raw_script.end()));
+            tx_undo.vprevout.emplace_back(txout, 0, false);
+        }
+
+        uint256 prev_filter_header_basic{*Assert(uint256::FromHex(test[pos++].get_str()))};
+        std::vector<unsigned char> filter_basic = ParseHex(test[pos++].get_str());
+        uint256 filter_header_basic{*Assert(uint256::FromHex(test[pos++].get_str()))};
+
+        BlockFilter computed_filter_basic(BlockFilterType::BASIC, block, block_undo);
+        BOOST_CHECK(computed_filter_basic.GetFilter().GetEncoded() == filter_basic);
+        uint256 computed_header_basic = computed_filter_basic.ComputeHeader(prev_filter_header_basic);
+        BOOST_CHECK(computed_header_basic == filter_header_basic);
+    }
+}
 
 BOOST_AUTO_TEST_CASE(blockfilter_type_names)
 {

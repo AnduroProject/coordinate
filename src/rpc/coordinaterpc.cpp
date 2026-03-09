@@ -1,15 +1,16 @@
 #include <rpc/coordinaterpc.h>
+#include <common/args.h>
 #include <rpc/util.h>
 #include <rpc/server.h>
 #include <rpc/server_util.h>
 #include <key_io.h>
 #include <rpc/auxpow_miner.h>
 #include <core_io.h>
-#include <anduro_deposit.h>
+#include <coordinate/anduro_deposit.h>
 #include <coordinate/coordinate_mempool_entry.h>
-#include <anduro_validator.h>
-#include <consensus/merkle.h>
-#include <merkleblock.h>
+#include <coordinate/coordinate_pegin.h>
+#include <coordinate/anduro_validator.h>
+#include <rpc/request.h>
 
 using node::NodeContext;
 
@@ -84,6 +85,7 @@ static RPCHelpMan createAuxBlockHex()
     };
 }
 
+
 static RPCHelpMan submitAuxBlock()
 {
     return RPCHelpMan{
@@ -130,111 +132,6 @@ static RPCHelpMan anduroDepositAddress()
             HelpExampleCli("andurodepositaddress", "")
         },
         [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue {
-            // raw block proof
-            std::vector<uint256> leaves;
-            leaves.resize(1);
-            leaves[0].SetNull();
-            leaves.push_back(uint256S("992f701a2959345ab1579445a14c12d06ade6d65f0b89bdc3dbb32ec35e4ae30"));
-            leaves.push_back(uint256S("013e8776b43a71e9d9dc80662c4b4bf6bb87093794f41c24ee8786aed8626eb5"));
-            leaves.push_back(uint256S("4679dfbd42be169a953d6586f995cdd6c50b89c2a9a87e55d05faaa484309021"));
-            leaves.push_back(uint256S("7df3aa51463c3ca96639efb43fb445dca1662f427e9344f4f4a66e4a80de4db1"));
-            leaves.push_back(uint256S("88611613c3c74af87397c7af13b08bfce4bd4f4081c1d8ae2613ec715b830c95"));
-
-            uint256 root = ComputeMerkleRoot(leaves);
-       
-            // invalid block proof after 3 blocks
-            std::vector<uint256> rleaves;
-            rleaves.resize(6);
-            rleaves[0].SetNull();
-            rleaves[1].SetNull();
-            rleaves[2].SetNull();
-            rleaves[3].SetNull();
-            rleaves[4] = uint256S("7df3aa51463c3ca96639efb43fb445dca1662f427e9344f4f4a66e4a80de4db1");
-            rleaves[5].SetNull();
-            uint256 rroot = ComputeMerkleRoot(rleaves);
-
-
-            LogPrintf("root is %s \n", root.ToString());
-            LogPrintf("reconcile root is %s \n", rroot.ToString());
-
-
-            // check proof for Raw block
-            std::vector<uint256> input;
-            // input.resize(1);
-            // input[0].SetNull();
-            input.push_back(uint256S("4679dfbd42be169a953d6586f995cdd6c50b89c2a9a87e55d05faaa484309021"));
-
-            // prepare proof
-            std::vector<bool> vMatch;
-            std::vector<uint256> vHashes;
-            vMatch.reserve(leaves.size());
-            vHashes.reserve(leaves.size());
-
-            for (unsigned int i = 0; i < leaves.size(); i++)
-            {
-                const uint256& hash = leaves[i];
-                if (std::find(input.begin(), input.end(), hash) != input.end()) {
-                    vMatch.push_back(true);
-                } else {
-                    vMatch.push_back(false);
-                }
-                vHashes.push_back(hash);
-                LogPrintf("element is %s \n", hash.ToString());
-            }
-
-            std::vector<uint256> rvHashes;
-            rvHashes.reserve(rleaves.size());
-            for (unsigned int i = 0; i < rleaves.size(); i++) {
-                const uint256& hash = rleaves[i];
-                rvHashes.push_back(hash);
-                LogPrintf("reconcile element is %s \n", hash.ToString());
-            }
-
-            DataStream ssMB{};
-            CPartialMerkleTree txn(vHashes, vMatch);
-            ssMB << txn;
-
-            DataStream ssMB1{};
-            CPartialMerkleTree txn1(rvHashes, vMatch);
-            ssMB1 << txn1;
-
-            LogPrintf("proof is %s \n", HexStr(ssMB));
-            LogPrintf("reconcile proof is %s \n", HexStr(ssMB1));
-
-            DataStream ssEB{ParseHexV(HexStr(ssMB), "proof")};
-            CPartialMerkleTree pMerkleBlock;
-            ssEB >> pMerkleBlock;
-
-            DataStream ssEB1{ParseHexV(HexStr(ssMB1), "proof")};
-            CPartialMerkleTree pMerkleBlock1;
-            ssEB1 >> pMerkleBlock1;
-
-            std::vector<uint256> vMatchE;
-            std::vector<unsigned int> vIndexE;
-            uint256 finalVerify(pMerkleBlock.ExtractMatches(vMatchE, vIndexE));
-            if(finalVerify != root) {
-                LogPrintf("invalid proof %s \n", finalVerify.ToString());
-                return getDepositAddress();
-            }
-
-            for (unsigned int i = 0; i < vMatchE.size(); i++) {
-                const uint256& hash = vMatchE[i];
-                LogPrintf("result element is %s \n", hash.ToString());
-            }
-
-            std::vector<uint256> vMatchE1;
-            std::vector<unsigned int> vIndexE1;
-            uint256 finalVerify1(pMerkleBlock1.ExtractMatches(vMatchE1, vIndexE1));
-            if(finalVerify1 != rroot) {
-                LogPrintf("invalid reconcile proof %s \n", finalVerify1.ToString());
-               // return getDepositAddress();
-            }
-
-            for (unsigned int i = 0; i < vMatchE1.size(); i++) {
-                const uint256& hash = vMatchE1[i];
-                LogPrintf("result reconcile element is %s \n", hash.ToString());
-            }
-
             return getDepositAddress();
         }
     };
@@ -341,25 +238,29 @@ static RPCHelpMan listAllAssets() {
             UniValue assets(UniValue::VARR);
             std::vector<CoordinateAsset> assetList = chainman.ActiveChainstate().passettree->GetAssets();
             ;
-                for (const CoordinateAsset& asset_item : assetList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("id", (uint64_t)asset_item.nID);
-                    obj.pushKV("assettype", asset_item.assetType);
-                    obj.pushKV("precision", asset_item.precision);
-                    obj.pushKV("ticker", asset_item.strTicker);
-                    obj.pushKV("supply", asset_item.nSupply);
-                    obj.pushKV("headline", asset_item.strHeadline);
-                    obj.pushKV("payload", asset_item.payload.ToString());
-                    obj.pushKV("txid", asset_item.txid.ToString());
-                    obj.pushKV("controller", asset_item.strController);
-                    obj.pushKV("owner", asset_item.strOwner);
-                    assets.push_back(obj);
-                }
-                result.pushKV("assets", assets);
-                return result;
-        }
-    };
 
+            for (const CoordinateAsset& asset_item : assetList) {
+                uint64_t blockNumber;
+                uint16_t assetIndex;
+                ParseAssetId(asset_item.nID, blockNumber, assetIndex);
+
+                UniValue obj(UniValue::VOBJ);
+                obj.pushKV("id", assetIndex);
+                obj.pushKV("blockheight", blockNumber);
+                obj.pushKV("assettype", asset_item.assetType);
+                obj.pushKV("precision", asset_item.precision);
+                obj.pushKV("ticker", asset_item.strTicker);
+                obj.pushKV("supply", asset_item.nSupply);
+                obj.pushKV("headline", asset_item.strHeadline);
+                obj.pushKV("payload", asset_item.payload.ToString());
+                obj.pushKV("txid", asset_item.txid.ToString());
+                obj.pushKV("controller", asset_item.strController);
+                obj.pushKV("owner", asset_item.strOwner);
+                assets.push_back(obj);
+            }
+            result.pushKV("assets", assets);
+            return result;
+        }};
 }
 
 static RPCHelpMan listMempoolAssets() {
@@ -394,19 +295,94 @@ static RPCHelpMan listMempoolAssets() {
                 UniValue assets(UniValue::VARR);
                 std::vector<CoordinateMempoolEntry> assetList = getMempoolAssets();
             ;
-                for (const CoordinateMempoolEntry& assetItem : assetList) {
-                    UniValue obj(UniValue::VOBJ);
-                    obj.pushKV("assetId", (uint32_t)assetItem.assetID);
-                    obj.pushKV("txid", assetItem.txid.ToString());
-                    obj.pushKV("vout", (uint32_t)assetItem.vout);
-                     obj.pushKV("nValue", (int64_t)assetItem.nValue);
-                    assets.push_back(obj);
-                }
-                result.pushKV("assets", assets);
-                return result;
-        }
-    };
 
+            for (const CoordinateMempoolEntry& assetItem : assetList) {
+                UniValue obj(UniValue::VOBJ);
+                uint64_t blockNumber;
+                uint16_t assetIndex;
+                ParseAssetId(assetItem.assetID, blockNumber, assetIndex);
+                obj.pushKV("id", assetIndex);
+                obj.pushKV("blockheight", blockNumber);
+                obj.pushKV("txid", assetItem.txid.ToString());
+                obj.pushKV("vout", (uint32_t)assetItem.vout);
+                obj.pushKV("nValue", (int64_t)assetItem.nValue);
+                assets.push_back(obj);
+            }
+            result.pushKV("assets", assets);
+            return result;
+        }};
+}
+
+static RPCHelpMan createPegin()
+{
+    return RPCHelpMan{"createpegin",
+                "\nCreates a raw transaction to claim coins from the main chain by creating a pegin transaction with the necessary metadata after the corresponding Bitcoin transaction.\n"
+                "Note that this call will not sign the transaction.\n"
+                "If a transaction is not relayed it may require manual addition to a functionary mempool in order for it to be mined.\n",
+                {
+                    {"bitcoin_tx", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "The raw bitcoin transaction (in hex) depositing bitcoin to the mainchain_address generated by getpeginaddress"},
+                    {"txoutproof", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "A rawtxoutproof (in hex) generated by the mainchain daemon's `gettxoutproof` containing a proof of only bitcoin_tx"},
+                    {"deposit_address", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "deposit adddress generated by federation"},
+                    {"miner_address", RPCArg::Type::STR_HEX, RPCArg::Optional::NO, "miner adddress to receive fee"},
+                },
+                RPCResult{
+                    RPCResult::Type::OBJ, "", "",
+                    {
+                        {RPCResult::Type::STR, "hex", "raw transaction data"},
+                        {RPCResult::Type::BOOL, "mature", "Whether the peg-in is mature (only included when validating peg-ins)"},
+                    },
+                },
+                RPCExamples{
+                    HelpExampleCli("createrawpegin", "\"0200000002b80a99d63ca943d72141750d983a3eeda3a5c5a92aa962884ffb141eb49ffb4f000000006a473044022031ffe1d76decdfbbdb7e2ee6010e865a5134137c261e1921da0348b95a207f9e02203596b065c197e31bcc2f80575154774ac4e80acd7d812c91d93c4ca6a3636f27012102d2130dfbbae9bd27eee126182a39878ac4e117d0850f04db0326981f43447f9efeffffffb80a99d63ca943d72141750d983a3eeda3a5c5a92aa962884ffb141eb49ffb4f010000006b483045022100cf041ce0eb249ae5a6bc33c71c156549c7e5ad877ae39e2e3b9c8f1d81ed35060220472d4e4bcc3b7c8d1b34e467f46d80480959183d743dad73b1ed0e93ec9fd14f012103e73e8b55478ab9c5de22e2a9e73c3e6aca2c2e93cd2bad5dc4436a9a455a5c44feffffff0200e1f5050000000017a914da1745e9b549bd0bfa1a569971c77eba30cd5a4b87e86cbe00000000001976a914a25fe72e7139fd3f61936b228d657b2548b3936a88acc0020000\", \"00000020976e918ed537b0f99028648f2a25c0bd4513644fb84d9cbe1108b4df6b8edf6ba715c424110f0934265bf8c5763d9cc9f1675a0f728b35b9bc5875f6806be3d19cd5b159ffff7f2000000000020000000224eab3da09d99407cb79f0089e3257414c4121cb85a320e1fd0f88678b6b798e0713a8d66544b6f631f9b6d281c71633fb91a67619b189a06bab09794d5554a60105\" \"0014058c769ffc7d12c35cddec87384506f536383f9c\"")
+            + HelpExampleRpc("createrawpegin", "\"0200000002b80a99d63ca943d72141750d983a3eeda3a5c5a92aa962884ffb141eb49ffb4f000000006a473044022031ffe1d76decdfbbdb7e2ee6010e865a5134137c261e1921da0348b95a207f9e02203596b065c197e31bcc2f80575154774ac4e80acd7d812c91d93c4ca6a3636f27012102d2130dfbbae9bd27eee126182a39878ac4e117d0850f04db0326981f43447f9efeffffffb80a99d63ca943d72141750d983a3eeda3a5c5a92aa962884ffb141eb49ffb4f010000006b483045022100cf041ce0eb249ae5a6bc33c71c156549c7e5ad877ae39e2e3b9c8f1d81ed35060220472d4e4bcc3b7c8d1b34e467f46d80480959183d743dad73b1ed0e93ec9fd14f012103e73e8b55478ab9c5de22e2a9e73c3e6aca2c2e93cd2bad5dc4436a9a455a5c44feffffff0200e1f5050000000017a914da1745e9b549bd0bfa1a569971c77eba30cd5a4b87e86cbe00000000001976a914a25fe72e7139fd3f61936b228d657b2548b3936a88acc0020000\", \"00000020976e918ed537b0f99028648f2a25c0bd4513644fb84d9cbe1108b4df6b8edf6ba715c424110f0934265bf8c5763d9cc9f1675a0f728b35b9bc5875f6806be3d19cd5b159ffff7f2000000000020000000224eab3da09d99407cb79f0089e3257414c4121cb85a320e1fd0f88678b6b798e0713a8d66544b6f631f9b6d281c71633fb91a67619b189a06bab09794d5554a60105\", \"0014058c769ffc7d12c35cddec87384506f536383f9c\"")
+                },
+        [&](const RPCHelpMan& self, const JSONRPCRequest& request) -> UniValue
+{
+    if (!IsHex(request.params[0].get_str()) || !IsHex(request.params[1].get_str())) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "the first two arguments must be hex strings");
+    }
+    LOCK(cs_main);
+    NodeContext& node = EnsureAnyNodeContext(request.context);
+    ChainstateManager& chainman = EnsureChainman(node);
+
+    if(!hasAddressInRegistry(chainman.ActiveChainstate(),request.params[2].get_str())) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "deposit address not exist");
+    }
+
+    CTxOut txOut = getPeginAmount(ParseHex(request.params[0].get_str()), ParseHex(request.params[1].get_str()), request.params[2].get_str());
+
+    if(txOut.IsNull()) {
+        throw JSONRPCError(RPC_TYPE_ERROR, "error geting pegin output");
+    }
+
+    CMutableTransaction mtx;
+    mtx.version = TRANSACTION_PEGIN_VERSION;
+    mtx.vin.push_back(buildPeginTxInput(ParseHex(request.params[0].get_str()), ParseHex(request.params[1].get_str()),  request.params[2].get_str(), txOut));
+    mtx.vout.push_back(txOut);
+    const CTxDestination coinbaseScript = DecodeDestination(request.params[3].get_str());
+    mtx.vout.push_back(CTxOut(0, GetScriptForDestination(coinbaseScript)));
+
+    CTransaction ctx = CTransaction(mtx);
+    size_t size(GetVirtualTransactionSize(ctx));
+    LogPrintf("tx size %i \n",size);
+    LogPrintf("original value %i \n",mtx.vout[0].nValue);
+    mtx.vout[0].nValue = mtx.vout[0].nValue - (size * PEGIN_FEE);
+    mtx.vout[1].nValue = size * PEGIN_FEE;
+    LogPrintf("final value %i \n",mtx.vout[0].nValue);
+
+
+    std::string strHex = EncodeHexTx(CTransaction(mtx));
+    std::string err;
+    bool valid = IsValidPeginWitness(mtx.vin[0].scriptWitness, mtx.vin[0].prevout, err);
+
+    LogPrintf(" message %s \n",err);
+
+    UniValue obj(UniValue::VOBJ);
+    obj.pushKV("hex", strHex);
+    obj.pushKV("mature", valid);
+    return obj;
+},
+    };
 }
 
 void RegisterCoordinateRPCCommands(CRPCTable& t)
@@ -419,7 +395,8 @@ void RegisterCoordinateRPCCommands(CRPCTable& t)
         {"coordinate", &anduroDepositAddress},
         {"coordinate", &anduroWithdrawAddress},
         {"coordinate", &listAllAssets},
-        {"coordinate", &listMempoolAssets}
+        {"coordinate", &listMempoolAssets},
+        {"coordinate", createPegin}
     };
     for (const auto& c : commands) {
         t.appendCommand(c.name, &c);

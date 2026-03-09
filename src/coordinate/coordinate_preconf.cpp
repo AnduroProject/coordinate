@@ -3,13 +3,14 @@
 #include <logging.h>
 #include <univalue.h>
 #include <node/blockstorage.h>
-#include <anduro_validator.h>
+#include <coordinate/anduro_validator.h>
 #include <validation.h>
 #include <consensus/merkle.h>
 #include <coordinate/invalid_tx.h>
+#include <coordinate/coordinate_pegin.h>
 #include <undo.h>
-#include <consensus/merkle.h>
 #include <merkleblock.h>
+#include <util/transaction_identifier.h>
 
 using node::BlockManager;
 
@@ -20,7 +21,7 @@ std::vector<SignedBlockPeer> finalizedSignedBlockPeers;
 CCoinsView coins_view;
 CCoinsViewCache preconfView(&coins_view);
 // temporary minfee
-CAmount preconfMinFee = 5;
+CAmount preconfMinFee = DEFAULT_SIGNED_BLOCK_RESERVE;
 
 CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     uint64_t signedBlockHeight = 0;
@@ -35,8 +36,8 @@ CoordinatePreConfBlock getNextPreConfSigList(ChainstateManager& chainman) {
     }
 
     CBlock block;
-    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+    if (!chainman.m_blockman.ReadBlock(block, *active_chain[blockindex])) {
+        LogPrintf("Error reading block from disk at index %d\n", active_chain[blockindex]->GetBlockHash().ToString());
         CoordinatePreConfBlock result;
         return result;
     }
@@ -89,11 +90,6 @@ CoordinatePreConfBlock prepareRefunds(CTxMemPool& preconf_pool, CAmount finalFee
         }
         result.minedBlockHeight = coordinatePreConfSigtem.minedBlockHeight;
         result.witness = coordinatePreConfSigtem.witness;
-        if(coordinatePreConfSigtem.pegins.size() > 0) {
-          for (size_t i = 0; i < coordinatePreConfSigtem.pegins.size(); i++) {
-             result.pegins.push_back(coordinatePreConfSigtem.pegins[i]);
-          }
-        }
         for (size_t i = 0; i < coordinatePreConfSigtem.txids.size(); i++) {
             if(coordinatePreConfSigtem.txids[i] != uint256::ZERO) {
                 txids.push_back(coordinatePreConfSigtem.txids[i]);
@@ -131,6 +127,10 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     int blockindex = preconf[0].minedBlockHeight;
     int finalizedStatus = preconf[0].finalized;
 
+    if(finalizedStatus == 1) {
+        removePreConfWitness();
+    }
+
     if(blockindex<0) {
           return false;
     }
@@ -153,8 +153,8 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
     
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock block;
-    if (!chainman.m_blockman.ReadBlockFromDisk(block, *CHECK_NONFATAL(active_chain[blockindex]))) {
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+    if (!chainman.m_blockman.ReadBlock(block, *active_chain[blockindex])) {
+        LogPrintf("Error reading block from disk at index %d\n", active_chain[blockindex]->GetBlockHash().ToString());
     }
 
     // check txid exist in preconf mempool
@@ -163,7 +163,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         for (size_t i = 0; i < coordinatePreConfSigItem.txids.size(); i++){
             UniValue message(UniValue::VOBJ);
             if(coordinatePreConfSigItem.txids[i] != uint256::ZERO) {
-                if(!preconf_pool.exists(GenTxid::Txid( coordinatePreConfSigItem.txids[i]))) {
+                if(!preconf_pool.exists(Txid::FromUint256(coordinatePreConfSigItem.txids[i]))) {
                     LogPrintf("preconf txid not avilable in mempool \n");
                     return false;
                 }
@@ -173,22 +173,6 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
             }
             message.pushKV("signed_block_height", coordinatePreConfSigItem.blockHeight);
             message.pushKV("mined_block_height", coordinatePreConfSigItem.minedBlockHeight);
-            UniValue pegmessages(UniValue::VARR);
-            if(coordinatePreConfSigItem.pegins.size() > 0 && i == 0) {
-                    // preparing message for signature verification
-                    for (const CTxOut& pegin : coordinatePreConfSigItem.pegins) {
-                        CTxDestination address;
-                        ExtractDestination(pegin.scriptPubKey, address);
-                        std::string addressStr = EncodeDestination(address);
-
-                        UniValue pegmessage(UniValue::VOBJ);
-                        pegmessage.pushKV("address", addressStr);
-                        pegmessage.pushKV("amount", pegin.nValue);
-                        pegmessages.push_back(pegmessage);
-                    }
-                    
-            }
-            message.pushKV("pegins", pegmessages);
             messages.push_back(message);
         }
         if(finalizedStatus == 1) {
@@ -202,9 +186,7 @@ bool includePreConfSigWitness(std::vector<CoordinatePreConfSig> preconf, Chainst
         }
     }
 
-    if(finalizedStatus == 1) {
-        removePreConfWitness();
-    }
+
 
     for (const CoordinatePreConfSig& preconfItem : preconf) {
         coordinatePreConfSig.push_back(preconfItem);
@@ -223,12 +205,12 @@ bool includePreConfBlockFromNetwork(std::vector<SignedBlock> newFinalizedSignedB
         });
         if (it == finalizedSignedBlocks.end()) {
             if (!checkSignedBlock(newFinalizedSignedBlock, chainman)) {
-                LogPrint(BCLog::NET, "signed block validity failed from network\n");
+                LogPrintf("signed block validity failed from network\n");
                 continue;
             }
             LOCK(cs_main);
             if (!chainman.ActiveChainstate().ConnectSignedBlock(newFinalizedSignedBlock)) {
-                LogPrint(BCLog::NET, "signed block connect failed from network\n");
+                LogPrintf("signed block connect failed from network\n");
                 continue;
             }
             insertNewSignedBlock(newFinalizedSignedBlock);
@@ -385,7 +367,7 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
 
 
     for (const uint256& hash : preconfList.txids) {
-        TxMempoolInfo info = preconf_pool.info(GenTxid::Txid(hash));
+        TxMempoolInfo info = preconf_pool.info(Txid::FromUint256(hash));
         if(!info.tx) {
            LogPrintf("Signed block invalid tx \n");
            return nullptr;
@@ -397,15 +379,12 @@ std::unique_ptr<SignedBlock> CreateNewSignedBlock(ChainstateManager& chainman, u
     CTxOut federationFeeOut(federationFee, getFederationScript(chainman, chainman.ActiveHeight()));
     coinBaseOuts.push_back(federationFeeOut);
 
-    for (size_t i = 0; i < preconfList.pegins.size(); i++) {
-        coinBaseOuts.push_back(preconfList.pegins[i]);
-    }
     std::vector<unsigned char> witnessMerkleData = ParseHex(SignedBlockWitnessMerkleRoot(*block).ToString());
     CTxOut witnessMerkleOut(0, CScript() << OP_RETURN << witnessMerkleData);
     coinBaseOuts.push_back(witnessMerkleOut);
 
     CMutableTransaction signedCoinbaseTx;
-    signedCoinbaseTx.nVersion = TRANSACTION_PRECONF_VERSION;
+    signedCoinbaseTx.version = TRANSACTION_PRECONF_VERSION;
     signedCoinbaseTx.vin.resize(1);
     signedCoinbaseTx.vin[0].prevout.SetNull();
     signedCoinbaseTx.vout.resize(coinBaseOuts.size());
@@ -436,22 +415,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
         message.pushKV("signed_block_height", block.nHeight);
         message.pushKV("mined_block_height", block.blockIndex);
 
-        UniValue pegmessages(UniValue::VARR);
-        if(i == 0) {
-            // preparing message for signature verification
-            if(block.vtx[i]->vout.size() > 3) {
-                for (size_t idx = 2; idx < block.vtx[i]->vout.size()-1; idx++) {
-                    CTxDestination address;
-                    ExtractDestination(block.vtx[i]->vout[idx].scriptPubKey, address);
-                    std::string addressStr = EncodeDestination(address);
-                    UniValue pegmessage(UniValue::VOBJ);
-                    pegmessage.pushKV("address", addressStr);
-                    pegmessage.pushKV("amount", block.vtx[i]->vout[idx].nValue);
-                    pegmessages.push_back(pegmessage);
-                }
-            } 
-        }
-        message.pushKV("pegins", pegmessages);
         messages.push_back(message);
     }
     
@@ -460,9 +423,9 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
     }
     // get block to find the eligible anduro keys to be signed on presigned block
     CBlock minedblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(minedblock, *CHECK_NONFATAL(active_chain[blockindex]))) {
+    if (!chainman.m_blockman.ReadBlock(minedblock, *active_chain[blockindex])) {
         removePreConfWitness();
-        LogPrintf("Error reading block from disk at index %d\n", CHECK_NONFATAL(active_chain[blockindex])->GetBlockHash().ToString());
+        LogPrintf("Error reading block from disk at index %d\n", active_chain[blockindex]->GetBlockHash().ToString());
         return false;
     }
     CTxOut witnessOut = block.vtx[0]->vout[0];
@@ -483,31 +446,6 @@ bool checkSignedBlock(const SignedBlock& block, ChainstateManager& chainman) {
 }
 
 /**
- * This function get next invalid tx
- */
-std::vector<ReconciliationInvalidTx> getInvalidTx(ChainstateManager& chainman) {
-    std::vector<ReconciliationInvalidTx> invalidTxs;
-    LOCK(cs_main);
-    CChain& active_chain = chainman.ActiveChain();
-    int lastHeight = active_chain.Height();
-    if(lastHeight < 3 ) {
-        return invalidTxs;
-    }
-    int currentHeight = lastHeight - 3;
-
-    if(currentHeight < 0) {
-        return invalidTxs;
-    }
-    CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
-        return invalidTxs;
-    } 
-    InvalidTx invalidTxObj;
-    chainman.ActiveChainstate().psignedblocktree->GetInvalidTx(currentHeight,invalidTxObj);
-    return invalidTxObj.invalidTxs;
-}
-
-/**
  * This function will get all validate invalid tx details for block
  */
 bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBlock reconciliationBlock) {
@@ -520,7 +458,7 @@ bool validateReconciliationBlock(ChainstateManager& chainman, ReconciliationBloc
 
     int currentHeight = lastHeight - 3;
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return false;
     } 
 
@@ -633,7 +571,7 @@ ReconciliationBlock getReconsiledBlock(ChainstateManager& chainman) {
         return block;
     }
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return block;
     } 
 
@@ -654,6 +592,7 @@ ReconciliationBlock getReconsiledBlock(ChainstateManager& chainman) {
     return block;
 }
 
+
 CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     LOCK(cs_main);
     CChain& active_chain = chainman.ActiveChain();
@@ -663,7 +602,7 @@ CAmount getPreconfFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return 0;
     } 
 
@@ -705,13 +644,13 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return 0;
     } 
 
 
     CBlockUndo blockUndo;
-    if(!chainman.m_blockman.UndoReadFromDisk(blockUndo, *active_chain[currentHeight])) {
+    if(!chainman.m_blockman.ReadBlockUndo(blockUndo, *active_chain[currentHeight])) {
        return 0;
     }
 
@@ -742,7 +681,7 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
                 if (have_undo) {
                     const Coin& prev_coin = txundo->vprevout[ix];
                     const CTxOut& prev_txout = prev_coin.out;
-                    if(!(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && prev_coin.IsBitAssetController())) {
+                    if(!(tx->version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION && prev_coin.IsBitAssetController())) {
                         amt_total_in += prev_txout.nValue;
                     } 
                 }
@@ -750,11 +689,11 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
 
             for (unsigned int ix = 0; ix < tx->vout.size(); ix++) {
                 const CTxOut& txout = tx->vout[ix];
-                if(tx->nVersion == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+                if(tx->version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
                     if(ix > 1) {
                         amt_total_out += txout.nValue;
                     }
-                } else if(tx->nVersion == TRANSACTION_PRECONF_VERSION) {
+                } else if(tx->version == TRANSACTION_PRECONF_VERSION) {
                     if(ix > 0) {
                         amt_total_out += txout.nValue;
                     }
@@ -766,6 +705,16 @@ CAmount getFeeForBlock(ChainstateManager& chainman, int blockHeight) {
         }
 
         totalFee = totalFee + (amt_total_in - amt_total_out);
+    }
+
+    for (size_t i = 0; i < prevblock.pegins.size(); ++i) {
+        const std::vector<std::vector<unsigned char> >& stack = prevblock.pegins[i]->vin[0].scriptWitness.stack;
+        DataStream stream(stack[2]);
+        CAmount value;
+        stream >> value;
+        const CTransaction& tx = *prevblock.pegins[i];
+        CAmount fee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+        totalFee = totalFee + fee;
     }
 
     if(!MoneyRange(totalFee)) {
@@ -782,11 +731,10 @@ CScript getMinerScript(ChainstateManager& chainman, int blockHeight) {
     int currentHeight = blockHeight - 3;
     CScript scriptPubKey;
     CBlock prevblock;
-
     if(currentHeight < 0) { 
          return scriptPubKey;
     }
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return scriptPubKey;
     } 
     return prevblock.vtx[0]->vout[0].scriptPubKey;
@@ -802,7 +750,7 @@ CScript getFederationScript(ChainstateManager& chainman, int blockHeight) {
     }
 
     CBlock prevblock;
-    if (!chainman.m_blockman.ReadBlockFromDisk(prevblock, *CHECK_NONFATAL(active_chain[currentHeight]))) {
+    if (!chainman.m_blockman.ReadBlock(prevblock, *active_chain[currentHeight])) {
         return scriptPubKey;
     } 
     std::vector<unsigned char> wData(ParseHex(prevblock.currentKeys));

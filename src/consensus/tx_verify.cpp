@@ -14,6 +14,7 @@
 #include <util/check.h>
 #include <util/moneystr.h>
 #include <logging.h>
+#include <coordinate/coordinate_pegin.h>
 
 bool IsFinalTx(const CTransaction &tx, int nBlockHeight, int64_t nBlockTime)
 {
@@ -49,11 +50,7 @@ std::pair<int, int64_t> CalculateSequenceLocks(const CTransaction &tx, int flags
     int nMinHeight = -1;
     int64_t nMinTime = -1;
 
-    // tx.nVersion is signed integer so requires cast to unsigned otherwise
-    // we would be doing a signed comparison and half the range of nVersion
-    // wouldn't support BIP 68.
-    bool fEnforceBIP68 = static_cast<uint32_t>(tx.nVersion) >= 2
-                      && flags & LOCKTIME_VERIFY_SEQUENCE;
+    bool fEnforceBIP68 = tx.version >= 2 && flags & LOCKTIME_VERIFY_SEQUENCE;
 
     // Do not enforce sequence numbers as a relative lock time
     // unless we have been instructed to
@@ -166,52 +163,112 @@ int64_t GetTransactionSigOpCost(const CTransaction& tx, const CCoinsViewCache& i
     return nSigOps;
 }
 
-bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, bool isConnectBlock)
+bool Consensus::CheckTxInputs(const CTransaction& tx, TxValidationState& state, const CCoinsViewCache& inputs, int nSpendHeight, CAmount& txfee, CAmount& utxoFee, bool isConnectBlock)
 {
-    // are the actual inputs available?
-    if (!inputs.HaveInputs(tx)) {
-        return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
-                         strprintf("%s: inputs missing/spent", __func__));
-    }
-
-    CAmount nValueIn = 0;
-    for (unsigned int i = 0; i < tx.vin.size(); ++i) {
-        const COutPoint &prevout = tx.vin[i].prevout;
-        const Coin& coin = inputs.AccessCoin(prevout);
-        if(isConnectBlock && coin.IsSpent()) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
-        } else {
-           assert(!coin.IsSpent());
-        }
-
-        if(!coin.isPreconf) {
-            // If prev is coinbase, check that it's matured
-            if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
-                return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
-                    strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
+    if(tx.version == TRANSACTION_PEGIN_VERSION) {
+        for (const CTxIn& txin : tx.vin) {
+            const COutPoint &prevout = txin.prevout;
+            if (inputs.isPeginSpent(prevout)) {
+                return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
+                            strprintf("%s: inputs missing/spent", __func__));
             }
         }
-        // Check for negative or overflow input values
-        if(!coin.IsBitAssetController()) { 
-           nValueIn += coin.out.nValue;
+        if(tx.vin.size() > 1 || tx.vout.size() > 2) {
+           return state.Invalid(TxValidationResult::TX_CONSENSUS, "Invalid pegin transaction");
         }
-        if (!MoneyRange(coin.out.nValue)) {
-            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
+        std::string err;
+        if(!IsValidPeginWitness(tx.vin[0].scriptWitness,tx.vin[0].prevout,err)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, err);
+        }
+        txfee = GetVirtualTransactionSize(tx) * PEGIN_FEE;
+
+        const CAmount value_out = tx.GetValueOut();
+        const std::vector<std::vector<unsigned char> >& stack = tx.vin[0].scriptWitness.stack;
+
+        DataStream stream(stack[2]);
+        CAmount value;
+        try {
+            stream >> value;
+        } catch (...) {
+            err = "Could not deserialize value.";
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, err);
+        }
+
+        if(value_out > value) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
+        }
+        
+     } else {
+        if (!inputs.HaveInputs(tx)) {
+            return state.Invalid(TxValidationResult::TX_MISSING_INPUTS, "bad-txns-inputs-missingorspent",
+                            strprintf("%s: inputs missing/spent", __func__));
+        }
+
+        CAmount nValueIn = 0;
+        for (unsigned int i = 0; i < tx.vin.size(); ++i) {
+            const COutPoint &prevout = tx.vin[i].prevout;
+            const Coin& coin = inputs.AccessCoin(prevout);
+            if(isConnectBlock && coin.IsSpent()) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
+            } else {
+                assert(!coin.IsSpent());
+            }
+
+
+            if (tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION) {
+                if (coin.IsBitAsset()) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
+                }
+            }
+
+
+            if(tx.version == TRANSACTION_PRECONF_VERSION || tx.version == 2) {
+                if (coin.IsBitAsset() || coin.IsBitAssetController()) {
+                    return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-coins-not-exist");
+                }
+            }
+
+            if (!coin.isPreconf) {
+                // If prev is coinbase, check that it's matured
+                if (coin.IsCoinBase() && nSpendHeight - coin.nHeight < COINBASE_MATURITY) {
+                    return state.Invalid(TxValidationResult::TX_PREMATURE_SPEND, "bad-txns-premature-spend-of-coinbase",
+                        strprintf("tried to spend coinbase at depth %d", nSpendHeight - coin.nHeight));
+                }
+            }
+
+            if(coin.IsBitAsset() && tx.vin[i].prevout.assetId.empty()){
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Asset information is missing");
+            }
+
+            if(coin.IsBitAsset() && tx.vin[i].prevout.assetId != coin.GetAssetID()){
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "Asset mistmatch");
+            }
+            
+            // Check for negative or overflow input values
+            if(!coin.IsBitAssetController()) { 
+                nValueIn += coin.out.nValue;
+            }
+            if (!MoneyRange(coin.out.nValue)) {
+                return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-inputvalues-outofrange");
+            }
+        }
+
+        const CAmount value_out = tx.GetValueOut();
+        if (nValueIn < value_out) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
+                strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
+        }
+
+        const CAmount txfee_aux = nValueIn - value_out;
+        if (!MoneyRange(txfee_aux)) {
+            return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
+        }
+
+        txfee = txfee_aux;
+
+        if((tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION || tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION) && tx.vin.size() < tx.vout.size()) {
+            utxoFee = CAmount(tx.vout.size() - tx.vin.size()) * UTXO_FEE;
         }
     }
-
-    const CAmount value_out = tx.GetValueOut();
-    if (nValueIn < value_out) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-in-belowout",
-            strprintf("value in (%s) < value out (%s)", FormatMoney(nValueIn), FormatMoney(value_out)));
-    }
-
-    // Tally transaction fees
-    const CAmount txfee_aux = nValueIn - value_out;
-    if (!MoneyRange(txfee_aux)) {
-        return state.Invalid(TxValidationResult::TX_CONSENSUS, "bad-txns-fee-outofrange");
-    }
-
-    txfee = txfee_aux;
     return true;
 }

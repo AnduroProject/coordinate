@@ -13,8 +13,8 @@ std::string ChainTypeToString(ChainType chain)
     switch (chain) {
     case ChainType::MAIN:
         return "main";
-    case ChainType::TESTNET:
-        return "test";
+    case ChainType::TESTNET4:
+        return "testnet4";
     case ChainType::SIGNET:
         return "signet";
     case ChainType::REGTEST:
@@ -27,8 +27,8 @@ std::optional<ChainType> ChainTypeFromString(std::string_view chain)
 {
     if (chain == "main") {
         return ChainType::MAIN;
-    } else if (chain == "test") {
-        return ChainType::TESTNET;
+    } else if (chain == "testnet4") {
+        return ChainType::TESTNET4;
     } else if (chain == "signet") {
         return ChainType::SIGNET;
     } else if (chain == "regtest") {

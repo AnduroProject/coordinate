@@ -1,12 +1,12 @@
-// Copyright (c) 2022 The Bitcoin Core developers
+// Copyright (c) 2022-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #ifndef BITCOIN_NODE_CONNECTION_TYPES_H
 #define BITCOIN_NODE_CONNECTION_TYPES_H
 
+#include <cstdint>
 #include <string>
-#include <stdint.h>
 
 /** Different types of connections to a peer. This enum encapsulates the
  * information we have available at the time of opening or accepting the
@@ -14,7 +14,7 @@
  *
  * If adding or removing types, please update CONNECTION_TYPE_DOC in
  * src/rpc/net.cpp and src/qt/rpcconsole.cpp, as well as the descriptions in
- * src/qt/guiutil.cpp and src/coordinate-cli.cpp::NetinfoRequestHandler. */
+ * src/qt/guiutil.cpp and src/bitcoin-cli.cpp::NetinfoRequestHandler. */
 enum class ConnectionType {
     /**
      * Inbound connections are those initiated by a peer. This is the only

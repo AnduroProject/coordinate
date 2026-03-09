@@ -40,6 +40,7 @@ struct CCoinsStats {
     //! The total amount, or nullopt if an overflow occurred calculating it
     std::optional<CAmount> total_amount{0};
     std::optional<CAmount> total_assets{0};
+
     //! The number of coins contained.
     uint64_t coins_count{0};
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 The Bitcoin Core developers
+// Copyright (c) 2022-present The Bitcoin Core developers
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
@@ -8,7 +8,7 @@
 #include <arith_uint256.h>
 #include <chain.h>
 #include <consensus/params.h>
-#include <net.h> // For NodeId
+#include <net.h>
 #include <primitives/block.h>
 #include <uint256.h>
 #include <util/bitdeque.h>
@@ -25,7 +25,9 @@ struct CompressedHeader {
     uint32_t nTime{0};
     uint32_t nBits{0};
     uint32_t nNonce{0};
+
     std::shared_ptr<CAuxPow> auxpow;
+
     CompressedHeader()
     {
         hashMerkleRoot.SetNull();
@@ -102,7 +104,7 @@ struct CompressedHeader {
 
 class HeadersSyncState {
 public:
-    ~HeadersSyncState() {}
+    ~HeadersSyncState() = default;
 
     enum class State {
         /** PRESYNC means the peer has not yet demonstrated their chain has
@@ -200,7 +202,7 @@ private:
     bool ValidateAndStoreHeadersCommitments(const std::vector<CBlockHeader>& headers);
 
     /** In PRESYNC, process and update state for a single header */
-    bool ValidateAndProcessSingleHeader(const CPureBlockHeader& current);
+    bool ValidateAndProcessSingleHeader(const CBlockHeader& current);
 
     /** In REDOWNLOAD, check a header's commitment (if applicable) and add to
      * buffer for later processing */

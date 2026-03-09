@@ -46,6 +46,11 @@ WitnessV0ScriptHash::WitnessV0ScriptHash(const CScript& in)
     CSHA256().Write(in.data(), in.size()).Finalize(begin());
 }
 
+WitnessV2P2TSH::WitnessV2P2TSH(const CScript& in)
+{
+    CSHA256().Write(in.data(), in.size()).Finalize(begin());
+}
+
 bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
 {
     std::vector<valtype> vSolutions;
@@ -85,6 +90,16 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         WitnessV1Taproot tap;
         std::copy(vSolutions[0].begin(), vSolutions[0].end(), tap.begin());
         addressRet = tap;
+        return true;
+    }
+    case TxoutType::WITNESS_V2_P2TSH: {
+        WitnessV2P2TSH p2tsh;
+        std::copy(vSolutions[0].begin(), vSolutions[0].end(), p2tsh.begin());
+        addressRet = p2tsh;
+        return true;
+    }
+    case TxoutType::ANCHOR: {
+        addressRet = PayToAnchor();
         return true;
     }
     case TxoutType::WITNESS_UNKNOWN: {
@@ -143,6 +158,12 @@ public:
     {
         return CScript() << CScript::EncodeOP_N(id.GetWitnessVersion()) << id.GetWitnessProgram();
     }
+
+    CScript operator()(const WitnessV2P2TSH& id) const
+    {
+        // P2TSH is version 2
+        return CScript() << CScript::EncodeOP_N(2) << ToByteVector(id);
+    }
 };
 
 class ValidDestinationVisitor
@@ -156,6 +177,7 @@ public:
     bool operator()(const WitnessV0ScriptHash& dest) const { return true; }
     bool operator()(const WitnessV1Taproot& dest) const { return true; }
     bool operator()(const WitnessUnknown& dest) const { return true; }
+    bool operator()(const WitnessV2P2TSH& dest) const { return true; }
 };
 } // namespace
 

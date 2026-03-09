@@ -22,4 +22,5 @@ class InvalidTx {
         }
 };
 
+
 #endif // BITCOIN_INVALIDTX_H

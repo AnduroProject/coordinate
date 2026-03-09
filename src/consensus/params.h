@@ -9,6 +9,7 @@
 #include <consensus/amount.h>
 #include <uint256.h>
 
+#include <array>
 #include <chrono>
 #include <limits>
 #include <map>
@@ -53,6 +54,14 @@ struct BIP9Deployment {
      *  boundary.
      */
     int min_activation_height{0};
+    /** Period of blocks to check signalling in (usually retarget period, ie params.DifficultyAdjustmentInterval()) */
+    uint32_t period{2016};
+    /**
+     * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
+     * which is also used for BIP9 deployments.
+     * Examples: 1916 for 95%, 1512 for testchains.
+     */
+    uint32_t threshold{1916};
 
     /** Constant for nTimeout very far in the future. */
     static constexpr int64_t NO_TIMEOUT = std::numeric_limits<int64_t>::max();
@@ -98,17 +107,15 @@ struct Params {
     /** Don't warn about unknown BIP 9 activations below this height.
      * This prevents us from warning about the CSV and segwit activations. */
     int MinBIP9WarningHeight;
-    /**
-     * Minimum blocks including miner confirmation of the total of 2016 blocks in a retargeting period,
-     * (nPowTargetTimespan / nPowTargetSpacing) which is also used for BIP9 deployments.
-     * Examples: 1916 for 95%, 1512 for testchains.
-     */
-    uint32_t nRuleChangeActivationThreshold;
-    uint32_t nMinerConfirmationWindow;
-    BIP9Deployment vDeployments[MAX_VERSION_BITS_DEPLOYMENTS];
+    std::array<BIP9Deployment,MAX_VERSION_BITS_DEPLOYMENTS> vDeployments;
     /** Proof of work parameters */
     uint256 powLimit;
     bool fPowAllowMinDifficultyBlocks;
+    /**
+      * Enforce BIP94 timewarp attack mitigation. On testnet4 this also enforces
+      * the block storm mitigation.
+      */
+    bool enforce_BIP94;
     bool fPowNoRetargeting;
     int64_t nPowTargetSpacing;
     int64_t nPowTargetTimespan;
@@ -145,14 +152,25 @@ struct Params {
         } // no default case, so the compiler can warn about missing cases
         return std::numeric_limits<int>::max();
     }
-
-    /** Auxpow parameters */
     int32_t nAuxpowChainId;
     int nAuxpowStartHeight;
     bool fStrictChainId;
     int nLegacyBlocksBefore; // -1 for "always allow"
+
     std::string currentKeys;
     CAmount preconfMinFee;
+
+    /**
+     * Check whether or not to allow legacy blocks at the given height.
+     * @param nHeight Height of the block to check.
+     * @return True if it is allowed to have a legacy version.
+     */
+    bool AllowLegacyBlocks(unsigned nHeight) const
+    {
+        if (nLegacyBlocksBefore < 0)
+            return true;
+        return static_cast<int> (nHeight) < nLegacyBlocksBefore;
+    }
 };
 
 } // namespace Consensus

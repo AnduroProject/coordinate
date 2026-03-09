@@ -4,12 +4,13 @@
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
 #include <primitives/pureheader.h>
+
 #include <hash.h>
 #include <util/strencodings.h>
 
 uint256 CPureBlockHeader::GetHash() const
 {
-    return (CHashWriter{PROTOCOL_VERSION} << *this).GetHash();
+    return (HashWriter{} << *this).GetHash();
 }
 
 void CPureBlockHeader::SetBaseVersion(int32_t nBaseVersion, int32_t nChainId)

@@ -41,7 +41,7 @@ Core configuration options:
 In a typical situation, this suffices:
 
 ```
-coordinated -i2psam=127.0.0.1:7656
+bitcoind -i2psam=127.0.0.1:7656
 ```
 
 ## Additional configuration options related to I2P
@@ -51,7 +51,7 @@ coordinated -i2psam=127.0.0.1:7656
 ```
 
 Set the `debug=i2p` config logging option to see additional information in the
-debug log about your I2P configuration and connections. Run `coordinate-cli help
+debug log about your I2P configuration and connections. Run `bitcoin-cli help
 logging` for more information.
 
 ```
@@ -66,7 +66,7 @@ I2P support was added to Bitcoin Core in version 22.0 and there may be fewer I2P
 peers than Tor or IP ones. Therefore, using I2P alone without other networks may
 make a node more susceptible to [Sybil
 attacks](https://en.bitcoin.it/wiki/Weaknesses#Sybil_attack). You can use
-`coordinate-cli -addrinfo` to see the number of I2P addresses known to your node.
+`bitcoin-cli -addrinfo` to see the number of I2P addresses known to your node.
 
 Another consideration with `onlynet=i2p` is that the initial blocks download
 phase when syncing up a new node can be very slow. This phase can be sped up by
@@ -79,8 +79,8 @@ one of the networks has issues.
 ## Persistent vs transient I2P addresses
 
 The first time Bitcoin Core connects to the I2P router, it automatically
-generates a persistent I2P address and its corresponding private key by default
-or if `-i2pacceptincoming=1` is set.  The private key is saved in a file named
+generates a persistent I2P address and its corresponding private key by default,
+unless `-i2pacceptincoming=0` is set.  The private key is saved in a file named
 `i2p_private_key` in the Bitcoin Core data directory.  The persistent I2P
 address is used for making outbound connections and accepting inbound
 connections.
@@ -106,10 +106,10 @@ incoming I2P connections (`-i2pacceptincoming`):
 - in the "localaddresses" output of RPC `getnetworkinfo`
 - in the debug log (grep for `AddLocal`; the I2P address ends in `.b32.i2p`)
 
-To see which I2P peers your node is connected to, use `coordinate-cli -netinfo 4`
-or the `getpeerinfo` RPC (e.g. `coordinate-cli getpeerinfo`).
+To see which I2P peers your node is connected to, use `bitcoin-cli -netinfo 4`
+or the `getpeerinfo` RPC (e.g. `bitcoin-cli getpeerinfo`).
 
-You can use the `getnodeaddresses` RPC to fetch a number of I2P peers known to your node; run `coordinate-cli help getnodeaddresses` for details.
+You can use the `getnodeaddresses` RPC to fetch a number of I2P peers known to your node; run `bitcoin-cli help getnodeaddresses` for details.
 
 ## Compatibility
 

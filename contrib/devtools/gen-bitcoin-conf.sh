@@ -5,24 +5,24 @@
 
 export LC_ALL=C
 TOPDIR=${TOPDIR:-$(git rev-parse --show-toplevel)}
-BUILDDIR=${BUILDDIR:-$TOPDIR}
-BINDIR=${BINDIR:-$BUILDDIR/src}
-COORDINATED=${COORDINATED:-$BINDIR/coordinated}
+BUILDDIR=${BUILDDIR:-$TOPDIR/build}
+BINDIR=${BINDIR:-$BUILDDIR/bin}
+BITCOIND=${BITCOIND:-$BINDIR/bitcoind}
 SHARE_EXAMPLES_DIR=${SHARE_EXAMPLES_DIR:-$TOPDIR/share/examples}
 EXAMPLE_CONF_FILE=${EXAMPLE_CONF_FILE:-$SHARE_EXAMPLES_DIR/bitcoin.conf}
 
-[ ! -x "$COORDINATED" ] && echo "$COORDINATED not found or not executable." && exit 1
+[ ! -x "$BITCOIND" ] && echo "$BITCOIND not found or not executable." && exit 1
 
 DIRTY=""
-VERSION_OUTPUT=$($COORDINATED --version)
+VERSION_OUTPUT=$($BITCOIND --version)
 if [[ $VERSION_OUTPUT == *"dirty"* ]]; then
-  DIRTY="${DIRTY}${COORDINATED}\n"
+  DIRTY="${DIRTY}${BITCOIND}\n"
 fi
 
 if [ -n "$DIRTY" ]
 then
-  echo -e "WARNING: $COORDINATED was built from a dirty tree.\n"
-  echo -e "To safely generate a bitcoin.conf file, please commit your changes to $COORDINATED, rebuild, then run this script again.\n"
+  echo -e "WARNING: $BITCOIND was built from a dirty tree.\n"
+  echo -e "To safely generate a bitcoin.conf file, please commit your changes to $BITCOIND, rebuild, then run this script again.\n"
 fi
 
 echo 'Generating example bitcoin.conf file in share/examples/'
@@ -46,11 +46,12 @@ cat > "${EXAMPLE_CONF_FILE}" << 'EOF'
 ### Options
 EOF
 
-# parse the output from coordinated --help
+# parse the output from bitcoind --help
 # adding newlines is a bit funky to ensure portability for BSD
 # see here for more details: https://stackoverflow.com/a/24575385
-${COORDINATED} --help \
-    | sed '1,/Print this help message and exit/d' \
+${BITCOIND} --help \
+    | sed '1,/Options:/d' \
+    | sed -E '/^[[:space:]]{2}-help/,/^[[:space:]]*$/d' \
     | sed -E 's/^[[:space:]]{2}\-/#/' \
     | sed -E 's/^[[:space:]]{7}/# /' \
     | sed -E '/[=[:space:]]/!s/#.*$/&=1/' \
@@ -72,8 +73,11 @@ cat >> "${EXAMPLE_CONF_FILE}" << 'EOF'
 # Options for mainnet
 [main]
 
-# Options for testnet
+# Options for testnet3
 [test]
+
+# Options for testnet4
+[testnet4]
 
 # Options for signet
 [signet]

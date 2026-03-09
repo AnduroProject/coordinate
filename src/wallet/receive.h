@@ -2,10 +2,11 @@
 // Distributed under the MIT software license, see the accompanying
 // file COPYING or http://www.opensource.org/licenses/mit-license.php.
 
-#ifndef COORDINATE_WALLET_RECEIVE_H
-#define COORDINATE_WALLET_RECEIVE_H
+#ifndef BITCOIN_WALLET_RECEIVE_H
+#define BITCOIN_WALLET_RECEIVE_H
 
 #include <consensus/amount.h>
+#include <util/transaction_identifier.h>
 #include <wallet/transaction.h>
 #include <wallet/types.h>
 #include <wallet/wallet.h>
@@ -29,10 +30,6 @@ CAmount CachedTxGetCredit(const CWallet& wallet, const CWalletTx& wtx, const ism
 //! filter decides which addresses will count towards the debit
 CAmount CachedTxGetDebit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter);
 CAmount CachedTxGetChange(const CWallet& wallet, const CWalletTx& wtx);
-CAmount CachedTxGetImmatureCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter)
-    EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
-CAmount CachedTxGetAvailableCredit(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter = ISMINE_SPENDABLE)
-    EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 struct COutputEntry
 {
     CTxDestination destination;
@@ -45,16 +42,13 @@ void CachedTxGetAmounts(const CWallet& wallet, const CWalletTx& wtx,
                         CAmount& nFee, const isminefilter& filter,
                         bool include_change);
 bool CachedTxIsFromMe(const CWallet& wallet, const CWalletTx& wtx, const isminefilter& filter);
-bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<uint256>& trusted_parents) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
+bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx, std::set<Txid>& trusted_parents) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 bool CachedTxIsTrusted(const CWallet& wallet, const CWalletTx& wtx);
 
 struct Balance {
     CAmount m_mine_trusted{0};           //!< Trusted, at depth=GetBalance.min_depth or more
     CAmount m_mine_untrusted_pending{0}; //!< Untrusted, but in mempool (pending)
     CAmount m_mine_immature{0};          //!< Immature coinbases in the main chain
-    CAmount m_watchonly_trusted{0};
-    CAmount m_watchonly_untrusted_pending{0};
-    CAmount m_watchonly_immature{0};
 };
 Balance GetBalance(const CWallet& wallet, int min_depth = 0, bool avoid_reuse = true);
 
@@ -62,4 +56,4 @@ std::map<CTxDestination, CAmount> GetAddressBalances(const CWallet& wallet);
 std::set<std::set<CTxDestination>> GetAddressGroupings(const CWallet& wallet) EXCLUSIVE_LOCKS_REQUIRED(wallet.cs_wallet);
 } // namespace wallet
 
-#endif // COORDINATE_WALLET_RECEIVE_H
+#endif // BITCOIN_WALLET_RECEIVE_H
