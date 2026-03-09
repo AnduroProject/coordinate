@@ -2051,9 +2051,9 @@ bool CheckProofOfWork(const CBlockHeader& block, const Consensus::Params& params
     if (!block.auxpow) {
         // regtest - 1785db2ef2693e42685107293456a5b10941fda948c4dd79054b336ee2b930c4
         // signet - 483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7
-        // testnet4 - 34376981a7dfa2c9d1a26c10e7ae03d7ce165ed97385a2116ba8255b105648e2
+        // testnet4 - 04ae4025ac3c47a3ca36dfd5e0f7875989bcf81e6c684d54bb41a60bacb9c378
         // mainnet - 64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8
-        if (block.GetHash().ToString().compare("1785db2ef2693e42685107293456a5b10941fda948c4dd79054b336ee2b930c4") == 0 || block.GetHash().ToString().compare("34376981a7dfa2c9d1a26c10e7ae03d7ce165ed97385a2116ba8255b105648e2") == 0 || block.GetHash().ToString().compare("64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8") == 0 || block.GetHash().ToString().compare("483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7") == 0) {
+        if (block.GetHash().ToString().compare("1785db2ef2693e42685107293456a5b10941fda948c4dd79054b336ee2b930c4") == 0 || block.GetHash().ToString().compare("04ae4025ac3c47a3ca36dfd5e0f7875989bcf81e6c684d54bb41a60bacb9c378") == 0 || block.GetHash().ToString().compare("64a92c2b815bbebeb13c6c6ea629731afae731e7256b2441b8dfef349926dcd8") == 0 || block.GetHash().ToString().compare("483871e45eea39cbdae2e79f65003fa6fff2e3bd7c5071438ff37dddca1346e7") == 0) {
             return true;
         } else {
             LogError("%s : block hash no auxpow on block with auxpow version",
@@ -2232,32 +2232,26 @@ void Chainstate::InitSignedBlockCache()
 //
 bool ChainstateManager::IsInitialBlockDownload() const
 {
-    LogPrintf("IsInitialBlockDownload 1 \n");
     // Optimization: pre-test latch before taking the lock.
     if (m_cached_finished_ibd.load(std::memory_order_relaxed))
         return false;
 
-    LogPrintf("IsInitialBlockDownload 2 \n");
     LOCK(cs_main);
     if (m_cached_finished_ibd.load(std::memory_order_relaxed))
         return false;
     if (m_blockman.LoadingBlocks()) {
         return true;
     }
-    LogPrintf("IsInitialBlockDownload 3 \n");
     CChain& chain{ActiveChain()};
     if (chain.Tip() == nullptr) {
         return true;
     }
-    LogPrintf("IsInitialBlockDownload 4 \n");
     if (chain.Tip()->nChainWork < MinimumChainWork()) {
         return true;
     }
-    LogPrintf("IsInitialBlockDownload 5 \n");
     if (chain.Tip()->Time() < Now<NodeSeconds>() - m_options.max_tip_age) {
         return true;
     }
-    LogPrintf("IsInitialBlockDownload 6 \n");
     LogInfo("Leaving InitialBlockDownload (latching to false)");
     m_cached_finished_ibd.store(true, std::memory_order_relaxed);
     return false;
