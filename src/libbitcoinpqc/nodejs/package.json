@@ -31,7 +31,7 @@
     "ts-jest": "^29.1.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.2",
-    "node-gyp": "^9.0.0"
+    "node-gyp": "^12.2.0"
   },
   "dependencies": {
     "node-addon-api": "^5.0.0"
