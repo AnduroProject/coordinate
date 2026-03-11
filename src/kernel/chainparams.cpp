@@ -243,7 +243,7 @@ public:
         const CScript testnet4_genesis_script = CScript() << "000000000000000000000000000000000000000000000000000000000000000000"_hex << OP_CHECKSIG;
         genesis = CreateGenesisBlock(testnet4_genesis_msg,
                 testnet4_genesis_script,
-                1773037189,
+                1773215999,
                 393743547,
                 0x1d00ffff,
                 1,
