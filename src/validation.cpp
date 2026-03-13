@@ -1024,7 +1024,7 @@ bool MemPoolAccept::PreChecks(ATMPArgs& args, Workspace& ws)
     ws.m_vsize = ws.m_tx_handle->GetTxSize();
 
     // Enforces 0-fee for dust transactions, no incentive to be mined alone
-    if (m_pool.m_opts.require_standard) {
+    if (m_pool.m_opts.require_standard && !(tx.version == TRANSACTION_COORDINATE_ASSET_CREATE_VERSION || tx.version == TRANSACTION_COORDINATE_ASSET_TRANSFER_VERSION)) {
         if (!PreCheckEphemeralTx(*ptx, m_pool.m_opts.dust_relay_feerate, ws.m_base_fees, ws.m_modified_fees, state)) {
             return false; // state filled in by PreCheckEphemeralTx
         }
@@ -1550,12 +1550,12 @@ MempoolAcceptResult MemPoolAccept::AcceptSingleTransaction(const CTransactionRef
         return MempoolAcceptResult::Failure(ws.m_state);
     }
 
-    if (m_pool.m_opts.require_standard) {
-        Wtxid dummy_wtxid;
-        if (!CheckEphemeralSpends(/*package=*/{ptx}, m_pool.m_opts.dust_relay_feerate, m_pool, ws.m_state, dummy_wtxid)) {
-            return MempoolAcceptResult::Failure(ws.m_state);
-        }
-    }
+    // if (m_pool.m_opts.require_standard) {
+    //     Wtxid dummy_wtxid;
+    //     if (!CheckEphemeralSpends(/*package=*/{ptx}, m_pool.m_opts.dust_relay_feerate, m_pool, ws.m_state, dummy_wtxid)) {
+    //         return MempoolAcceptResult::Failure(ws.m_state);
+    //     }
+    // }
 
     if (m_subpackage.m_rbf && !ReplacementChecks(ws)) {
         if (ws.m_state.GetResult() == TxValidationResult::TX_RECONSIDERABLE) {
@@ -1714,15 +1714,15 @@ PackageMempoolAcceptResult MemPoolAccept::AcceptMultipleTransactions(const std::
     }
 
     // Now that we've bounded the resulting possible ancestry count, check package for dust spends
-    if (m_pool.m_opts.require_standard) {
-        TxValidationState child_state;
-        Wtxid child_wtxid;
-        if (!CheckEphemeralSpends(txns, m_pool.m_opts.dust_relay_feerate, m_pool, child_state, child_wtxid)) {
-            package_state.Invalid(PackageValidationResult::PCKG_TX, "unspent-dust");
-            results.emplace(child_wtxid, MempoolAcceptResult::Failure(child_state));
-            return PackageMempoolAcceptResult(package_state, std::move(results));
-        }
-    }
+    // if (m_pool.m_opts.require_standard) {
+    //     TxValidationState child_state;
+    //     Wtxid child_wtxid;
+    //     if (!CheckEphemeralSpends(txns, m_pool.m_opts.dust_relay_feerate, m_pool, child_state, child_wtxid)) {
+    //         package_state.Invalid(PackageValidationResult::PCKG_TX, "unspent-dust");
+    //         results.emplace(child_wtxid, MempoolAcceptResult::Failure(child_state));
+    //         return PackageMempoolAcceptResult(package_state, std::move(results));
+    //     }
+    // }
 
     for (Workspace& ws : workspaces) {
         ws.m_package_feerate = package_feerate;
@@ -2125,9 +2125,9 @@ bool CheckParentProofOfWork(uint256 hash, unsigned int nBits)
 
 CAmount GetBlockSubsidy(int nHeight, const Consensus::Params& consensusParams)
 {
-    // if(Params().GetChainType() != ChainType::REGTEST) {
+    if(Params().GetChainType() != ChainType::REGTEST) {
         return 0;
-    // }
+    }
     int halvings = nHeight / consensusParams.nSubsidyHalvingInterval;
     // Force block reward to zero when right shift is undefined.
     if (halvings >= 64)
@@ -2953,8 +2953,6 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     }
 
 
-    blockundo.vtxundo.reserve(block.vtx.size() - 1);
-
     int16_t assetIncr = 0;
     for (unsigned int i = 0; i < block.vtx.size(); i++) {
         if (!state.IsValid()) break;
@@ -3187,6 +3185,7 @@ bool Chainstate::ConnectBlock(const CBlock& block, BlockValidationState& state, 
     if (fJustCheck) {
         return true;
     }
+
 
     if (!m_blockman.WriteBlockUndo(blockundo, state, *pindex)) {
         return false;

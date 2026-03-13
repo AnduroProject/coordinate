@@ -800,6 +800,7 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
         CAmount amountAssetIn = CAmount(0);
         CAmount preconfRefund = CAmount(0);
         int nControlN = -1;
+        std::vector<unsigned char> nAssetIDOut; 
         for (size_t x = 0; x < tx.vin.size(); x++) {
             bool fBitAsset = false;
             bool fBitAssetControl = false;
@@ -807,13 +808,15 @@ void CTxMemPool::check(const CCoinsViewCache& active_coins_tip, int64_t spendhei
             std::vector<unsigned char> nAssetID;
             Coin coin;
             mempoolDuplicate.SpendCoin(tx.vin[x].prevout, fBitAsset, fBitAssetControl, isPreconf, nAssetID, &coin);
-            if (fBitAsset)
+            if (!nAssetID.empty())
+                nAssetIDOut = nAssetID;           // ← save it
+            if (fBitAsset && !fBitAssetControl)   // ← exclude controller
                 amountAssetIn += coin.out.nValue;
             if (fBitAssetControl)
                 nControlN = x;
 
         }
-        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), preconfRefund, std::vector<unsigned char>{}, amountAssetIn, nControlN, std::vector<unsigned char>{}, true);
+        AddCoins(mempoolDuplicate, tx, std::numeric_limits<int>::max(), preconfRefund, nAssetIDOut, amountAssetIn, nControlN, std::vector<unsigned char>{}, true);
     }
     for (auto it = mapNextTx.cbegin(); it != mapNextTx.cend(); it++) {
         uint256 hash = it->second->GetHash();
