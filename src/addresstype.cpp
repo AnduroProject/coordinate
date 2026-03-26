@@ -46,7 +46,7 @@ WitnessV0ScriptHash::WitnessV0ScriptHash(const CScript& in)
     CSHA256().Write(in.data(), in.size()).Finalize(begin());
 }
 
-WitnessV2P2TSH::WitnessV2P2TSH(const CScript& in)
+WitnessV2P2MR::WitnessV2P2MR(const CScript& in)
 {
     CSHA256().Write(in.data(), in.size()).Finalize(begin());
 }
@@ -92,10 +92,10 @@ bool ExtractDestination(const CScript& scriptPubKey, CTxDestination& addressRet)
         addressRet = tap;
         return true;
     }
-    case TxoutType::WITNESS_V2_P2TSH: {
-        WitnessV2P2TSH p2tsh;
-        std::copy(vSolutions[0].begin(), vSolutions[0].end(), p2tsh.begin());
-        addressRet = p2tsh;
+    case TxoutType::WITNESS_V2_P2MR: {
+        WitnessV2P2MR p2mr;
+        std::copy(vSolutions[0].begin(), vSolutions[0].end(), p2mr.begin());
+        addressRet = p2mr;
         return true;
     }
     case TxoutType::ANCHOR: {
@@ -159,9 +159,9 @@ public:
         return CScript() << CScript::EncodeOP_N(id.GetWitnessVersion()) << id.GetWitnessProgram();
     }
 
-    CScript operator()(const WitnessV2P2TSH& id) const
+    CScript operator()(const WitnessV2P2MR& id) const
     {
-        // P2TSH is version 2
+        // P2MR is version 2
         return CScript() << CScript::EncodeOP_N(2) << ToByteVector(id);
     }
 };
@@ -177,7 +177,7 @@ public:
     bool operator()(const WitnessV0ScriptHash& dest) const { return true; }
     bool operator()(const WitnessV1Taproot& dest) const { return true; }
     bool operator()(const WitnessUnknown& dest) const { return true; }
-    bool operator()(const WitnessV2P2TSH& dest) const { return true; }
+    bool operator()(const WitnessV2P2MR& dest) const { return true; }
 };
 } // namespace
 

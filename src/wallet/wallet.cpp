@@ -9,6 +9,7 @@
 #include <addresstype.h>
 #include <blockfilter.h>
 #include <chain.h>
+#include <chainparams.h>
 #include <coins.h>
 #include <common/args.h>
 #include <common/messages.h>
@@ -311,7 +312,7 @@ public:
         // create initial filter with scripts from all ScriptPubKeyMans
         for (auto spkm : m_wallet.GetAllScriptPubKeyMans()) {
             auto desc_spkm{dynamic_cast<DescriptorScriptPubKeyMan*>(spkm)};
-            assert(desc_spkm != nullptr);
+            if (!desc_spkm) continue;  // Skip non-descriptor SPKMs (e.g. P2MR)
             AddScriptPubKeys(desc_spkm);
             // save each range descriptor's end for possible future filter updates
             if (desc_spkm->IsHDEnabled()) {
@@ -369,21 +370,6 @@ std::shared_ptr<CWallet> LoadWallet(WalletContext& context, const std::string& n
     }
     auto wallet = LoadWalletInternal(context, name, load_on_start, options, status, error, warnings);
     WITH_LOCK(g_loading_wallet_mutex, g_loading_wallet_set.erase(result.first));
-    LOCK(wallet->cs_wallet);
-    if (wallet->IsP2TSHEnabled()) {
-     
-        try {
-            // Get stored signature type from wallet flags or default
-            P2TSHSignatureType sig_type = wallet->GetDefaultP2TSHType();
-            wallet->InitP2TSH(sig_type);
-            
-            wallet->WalletLogPrintf("Loaded P2TSH wallet with %d keys\n",
-                           wallet->GetP2TSHScriptPubKeyMan()->GetKeyCount());
-        } catch (const std::exception& e) {
-            error = Untranslated(strprintf("Failed to load P2TSH: %s", e.what()));
-            return nullptr;
-        }
-    }
 
     return wallet;
 }
@@ -539,6 +525,7 @@ void CWallet::UpgradeDescriptorCache()
 
     for (ScriptPubKeyMan* spkm : GetAllScriptPubKeyMans()) {
         DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
+        if (!desc_spkm) continue;  // Skip non-descriptor SPKMs (e.g. P2MR)
         desc_spkm->UpgradeDescriptorCache();
     }
     SetWalletFlag(WALLET_FLAG_LAST_HARDENED_XPUB_CACHED);
@@ -1590,11 +1577,11 @@ isminetype CWallet::IsMine(const CScript& script) const
         return res;
     }
 
-    // Check P2TSH manager directly (fallback if not in cache)
+    // Check P2MR manager directly (fallback if not in cache)
     if (script.size() == 34 && script[0] == OP_2 && script[1] == 0x20) {
-        P2TSHScriptPubKeyMan* p2tsh_spkm = GetP2TSHScriptPubKeyMan();
-        if (p2tsh_spkm) {
-            isminetype res = p2tsh_spkm->IsMine(script);
+        P2MRScriptPubKeyMan* p2mr_spkm = GetP2MRScriptPubKeyMan();
+        if (p2mr_spkm) {
+            isminetype res = p2mr_spkm->IsMine(script);
             if (res != ISMINE_NO) {
                 return res;
             }
@@ -3090,18 +3077,6 @@ std::shared_ptr<CWallet> CWallet::Create(WalletContext& context, const std::stri
         walletInstance->WalletLogPrintf("m_address_book.size() = %u\n",  walletInstance->m_address_book.size());
     }
 
-    // Initialize P2TSH if enabled
-    if (wallet_creation_flags & WALLET_FLAG_P2TSH_ENABLED) {
-        LOCK(walletInstance->cs_wallet);
-        try {
-            walletInstance->InitP2TSH(P2TSHSignatureType::HYBRID);  // Default to hybrid
-        } catch (const std::exception& e) {
-            error = Untranslated(strprintf("Failed to initialize P2TSH: %s", e.what()));
-            return nullptr;
-        }
-    }
-    
-
     return walletInstance;
 }
 
@@ -3364,9 +3339,9 @@ std::set<ScriptPubKeyMan*> CWallet::GetAllScriptPubKeyMans() const
     }
 
      LOCK(cs_wallet);
-    // Add P2TSH manager if it exists
-    if (m_p2tsh_spk_man) {
-        spk_mans.insert(m_p2tsh_spk_man.get());
+    // Add P2MR manager if it exists
+    if (m_p2mr_spk_man) {
+        spk_mans.insert(m_p2mr_spk_man.get());
     }
 
     return spk_mans;
@@ -3543,9 +3518,32 @@ void CWallet::SetupDescriptorScriptPubKeyMans(WalletBatch& batch, const CExtKey&
     AssertLockHeld(cs_wallet);
     for (bool internal : {false, true}) {
         for (OutputType t : OUTPUT_TYPES) {
+            if (t == OutputType::P2MR) continue;  // P2MR uses its own manager
             SetupDescriptorScriptPubKeyMan(batch, master_key, t, internal);
         }
     }
+
+    // Initialize P2MR manager with PQHD seeded from the same master key.
+    // Build 64-byte seed: [private_key(32) | chaincode(32)]
+    m_p2mr_spk_man = std::make_unique<P2MRScriptPubKeyMan>(*this);
+    m_p2mr_spk_man->SetPreferredSpendType(m_preferred_p2mr_spend_type);
+
+    std::vector<unsigned char> pqhd_seed;
+    const auto* key_begin = reinterpret_cast<const unsigned char*>(master_key.key.data());
+    pqhd_seed.insert(pqhd_seed.end(), key_begin, key_begin + master_key.key.size());
+    pqhd_seed.insert(pqhd_seed.end(), master_key.chaincode.begin(), master_key.chaincode.end());
+
+    uint32_t coin_type = Params().IsTestChain() ? 1 : 0;
+    if (m_p2mr_spk_man->SetSeed(pqhd_seed, coin_type, /*account=*/0)) {
+        WalletLogPrintf("P2MR: Initialized from master key with PQHD (coin_type=%u)\n", coin_type);
+    } else {
+        WalletLogPrintf("P2MR: PQHD seeding failed during wallet creation\n");
+    }
+
+    // Register P2MR in the active SPK manager maps so GetScriptPubKeyMan(P2MR)
+    // works through the standard wallet path (same as bech32, legacy, etc.)
+    m_external_spk_managers[OutputType::P2MR] = m_p2mr_spk_man.get();
+    m_internal_spk_managers[OutputType::P2MR] = m_p2mr_spk_man.get();
 }
 
 void CWallet::SetupOwnDescriptorScriptPubKeyMans(WalletBatch& batch)
@@ -4414,7 +4412,7 @@ std::set<CExtPubKey> CWallet::GetActiveHDPubKeys() const
     std::set<CExtPubKey> active_xpubs;
     for (const auto& spkm : GetActiveScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        assert(desc_spkm);
+        if (!desc_spkm) continue;  // Skip non-descriptor SPKMs
         LOCK(desc_spkm->cs_desc_man);
         WalletDescriptor w_desc = desc_spkm->GetWalletDescriptor();
 
@@ -4432,7 +4430,7 @@ std::optional<CKey> CWallet::GetKey(const CKeyID& keyid) const
 
     for (const auto& spkm : GetAllScriptPubKeyMans()) {
         const DescriptorScriptPubKeyMan* desc_spkm = dynamic_cast<DescriptorScriptPubKeyMan*>(spkm);
-        assert(desc_spkm);
+        if (!desc_spkm) continue;  // Skip non-descriptor SPKMs (e.g. P2MR)
         LOCK(desc_spkm->cs_desc_man);
         if (std::optional<CKey> key = desc_spkm->GetKey(keyid)) {
             return key;
@@ -4537,22 +4535,67 @@ std::optional<WalletTXO> CWallet::GetTXO(const COutPoint& outpoint) const
     return it->second;
 }
 
-void CWallet::InitP2TSH(P2TSHSignatureType sig_type)
+P2MRScriptPubKeyMan* CWallet::GetOrCreateP2MRScriptPubKeyMan()
 {
     AssertLockHeld(cs_wallet);
-    
-    if (!(m_wallet_flags & WALLET_FLAG_P2TSH_ENABLED)) {
-        throw std::runtime_error("Cannot initialize P2TSH on non-P2TSH wallet");
+
+    if (!m_p2mr_spk_man) {
+        m_p2mr_spk_man = std::make_unique<P2MRScriptPubKeyMan>(*this);
+        m_p2mr_spk_man->SetPreferredSpendType(m_preferred_p2mr_spend_type);
+
+        // Load any existing P2MR keys from the database
+        {
+            WalletBatch batch(GetDatabase());
+            m_p2mr_spk_man->LoadFromDB(batch);
+        }
+
+        // If keys were loaded, register their scripts in the wallet cache
+        auto spks = m_p2mr_spk_man->GetScriptPubKeys();
+        for (const auto& spk : spks) {
+            m_cached_spks[spk].push_back(m_p2mr_spk_man.get());
+        }
+
+        // Seed PQHD from the wallet's HD master key for deterministic derivation.
+        // Only attempt if this is a descriptor wallet with active HD keys.
+        if (IsWalletFlagSet(WALLET_FLAG_DESCRIPTORS) && !m_spk_managers.empty()) {
+            std::set<CExtPubKey> active_xpubs = GetActiveHDPubKeys();
+            if (!active_xpubs.empty()) {
+                const CExtPubKey& xpub = *active_xpubs.begin();
+                std::optional<CKey> priv = GetKey(xpub.pubkey.GetID());
+                if (priv) {
+                    CExtKey master_ext(xpub, *priv);
+                    std::vector<unsigned char> pqhd_seed;
+                    const auto* key_begin = reinterpret_cast<const unsigned char*>(master_ext.key.data());
+                    pqhd_seed.insert(pqhd_seed.end(), key_begin, key_begin + master_ext.key.size());
+                    pqhd_seed.insert(pqhd_seed.end(), master_ext.chaincode.begin(), master_ext.chaincode.end());
+
+                    uint32_t coin_type = Params().IsTestChain() ? 1 : 0;
+                    if (m_p2mr_spk_man->SetSeed(pqhd_seed, coin_type, /*account=*/0)) {
+                        WalletLogPrintf("P2MR manager created with PQHD (coin_type=%u, preferred: %s)\n",
+                                       coin_type, m_p2mr_spk_man->SpendTypeToString(m_preferred_p2mr_spend_type));
+                    } else {
+                        WalletLogPrintf("P2MR: PQHD seeding failed, falling back to random keys\n");
+                    }
+                } else {
+                    WalletLogPrintf("P2MR: No private key for HD master, using random keys\n");
+                }
+            } else {
+                WalletLogPrintf("P2MR: No active HD keys found, using random keys\n");
+            }
+        } else {
+            WalletLogPrintf("P2MR: Wallet not descriptor-based or no SPKMs yet, using random keys\n");
+        }
+
+        // Register P2MR in the active SPK manager maps — but only if the
+        // wallet already has descriptor managers. During createwallet, descriptors
+        // are set up after LoadWallet returns; SetupDescriptorScriptPubKeyMans
+        // handles registration in that path.
+        if (!m_spk_managers.empty()) {
+            m_external_spk_managers[OutputType::P2MR] = m_p2mr_spk_man.get();
+            m_internal_spk_managers[OutputType::P2MR] = m_p2mr_spk_man.get();
+        }
     }
-    
-    if (!m_p2tsh_spk_man) {
-        m_p2tsh_spk_man = std::make_unique<P2TSHScriptPubKeyMan>(*this);
-        m_p2tsh_spk_man->SetDefaultSignatureType(sig_type);
-        m_default_p2tsh_type = sig_type;
-        
-        WalletLogPrintf("P2TSH manager initialized with %s signatures\n",
-                       m_p2tsh_spk_man->SignatureTypeToString(sig_type));
-    }
+    return m_p2mr_spk_man.get();
 }
 
 void CWallet::AddWatchOnly(const CScript& dest)
@@ -4570,10 +4613,10 @@ void CWallet::AddWatchOnly(const CScript& dest)
     }
     
     // Add to cache for IsMine to find it
-    P2TSHScriptPubKeyMan* p2tsh_spkm = GetP2TSHScriptPubKeyMan();
-    if (p2tsh_spkm) {
-        m_cached_spks[dest].push_back(p2tsh_spkm);
-        WalletLogPrintf("Added P2TSH script to cache\n");
+    P2MRScriptPubKeyMan* p2mr_spkm = GetP2MRScriptPubKeyMan();
+    if (p2mr_spkm) {
+        m_cached_spks[dest].push_back(p2mr_spkm);
+        WalletLogPrintf("Added P2MR script to cache\n");
     }
     
     WalletLogPrintf("Added watch-only script: %s\n", HexStr(dest));

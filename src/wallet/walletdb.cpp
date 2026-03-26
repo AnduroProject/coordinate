@@ -61,9 +61,9 @@ const std::string WALLETDESCRIPTORKEY{"walletdescriptorkey"};
 const std::string WATCHMETA{"watchmeta"};
 const std::string WATCHS{"watchs"};
 
-const std::string P2TSH_METADATA{"p2tshmetadata"};
-const std::string P2TSH_SCHNORR_KEY{"p2tshschnorrkey"};
-const std::string P2TSH_SLHDSA_KEY{"p2tshslhdsakey"};
+const std::string P2MR_METADATA{"p2mrmetadata"};
+const std::string P2MR_SCHNORR_KEY{"p2mrschnorrkey"};
+const std::string P2MR_SLHDSA_KEY{"p2mrslhdsakey"};
 
 const std::unordered_set<std::string> LEGACY_TYPES{CRYPTED_KEY, CSCRIPT, DEFAULTKEY, HDCHAIN, KEYMETA, KEY, OLD_KEY, POOL, WATCHMETA, WATCHS};
 } // namespace DBKeys
@@ -1171,6 +1171,10 @@ DBErrors WalletBatch::LoadWallet(CWallet* pwallet)
         // Load SPKMs
         result = std::max(LoadActiveSPKMs(pwallet, *m_batch), result);
 
+        // Load P2MR keys — must happen before LoadTxRecords so IsMine
+        // recognizes P2MR outputs during transaction loading.
+        pwallet->GetOrCreateP2MRScriptPubKeyMan();
+
         // Load decryption keys
         result = std::max(LoadDecryptionKeys(pwallet, *m_batch), result);
 
@@ -1402,19 +1406,19 @@ std::unique_ptr<WalletDatabase> MakeDatabase(const fs::path& path, const Databas
     return nullptr;
 }
 
-bool WalletBatch::WriteP2TSHMetadata(const uint256& merkle_root, const P2TSHKeyMetadata& metadata)
+bool WalletBatch::WriteP2MRMetadata(const uint256& merkle_root, const P2MRKeyMetadata& metadata)
 {
-    return WriteIC(std::make_pair(DBKeys::P2TSH_METADATA, merkle_root), metadata);
+    return WriteIC(std::make_pair(DBKeys::P2MR_METADATA, merkle_root), metadata);
 }
 
-bool WalletBatch::WriteP2TSHSchnorrKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
+bool WalletBatch::WriteP2MRSchnorrKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
 {
-    return WriteIC(std::make_pair(DBKeys::P2TSH_SCHNORR_KEY, keyid), key);
+    return WriteIC(std::make_pair(DBKeys::P2MR_SCHNORR_KEY, keyid), key);
 }
 
-bool WalletBatch::WriteP2TSHSLHDSAKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
+bool WalletBatch::WriteP2MRSLHDSAKey(const CKeyID& keyid, const std::vector<unsigned char>& key)
 {
-    return WriteIC(std::make_pair(DBKeys::P2TSH_SLHDSA_KEY, keyid), key);
+    return WriteIC(std::make_pair(DBKeys::P2MR_SLHDSA_KEY, keyid), key);
 }
 
 } // namespace wallet

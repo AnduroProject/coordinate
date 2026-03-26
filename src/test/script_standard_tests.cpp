@@ -301,14 +301,14 @@ BOOST_AUTO_TEST_CASE(script_standard_ExtractDestination)
     s << OP_2 << ToByteVector(xpk);
     BOOST_CHECK(ExtractDestination(s, address));
     
-    // P2TSH as witness version 2, expect WitnessV2P2TSH
-    // Create a uint256 from the xpk bytes and construct WitnessV2P2TSH properly
+    // P2MR as witness version 2, expect WitnessV2P2MR
+    // Create a uint256 from the xpk bytes and construct WitnessV2P2MR properly
     uint256 hash;
     auto xpk_bytes = ToByteVector(xpk);
     assert(xpk_bytes.size() == 32); // Ensure it's exactly 32 bytes
     std::copy(xpk_bytes.begin(), xpk_bytes.end(), hash.begin());
-    WitnessV2P2TSH p2tsh(hash);
-    BOOST_CHECK(std::get<WitnessV2P2TSH>(address) == p2tsh);
+    WitnessV2P2MR p2mr(hash);
+    BOOST_CHECK(std::get<WitnessV2P2MR>(address) == p2mr);
 }
 
 BOOST_AUTO_TEST_CASE(script_standard_GetScriptFor_)

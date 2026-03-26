@@ -259,6 +259,7 @@ RPCHelpMan sendtoaddress()
                                          "dirty if they have previously been used in a transaction. If true, this also activates avoidpartialspends, grouping outputs by their addresses."},
                     {"fee_rate", RPCArg::Type::AMOUNT, RPCArg::DefaultHint{"not set, fall back to wallet fee estimation"}, "Specify a fee rate in " + CURRENCY_ATOM + "/vB."},
                     {"verbose", RPCArg::Type::BOOL, RPCArg::Default{false}, "If true, return extra information about the transaction."},
+                    {"spend_leaf", RPCArg::Type::STR, RPCArg::DefaultHint{"schnorr"}, "For P2MR inputs: which leaf to spend through. Options are \"schnorr\" (cheapest), \"slh-dsa\" (post-quantum), \"hybrid\" (both signatures required)."},
                 },
                 {
                     RPCResult{"if verbose is not set or set to false",
@@ -327,6 +328,20 @@ RPCHelpMan sendtoaddress()
 
     std::vector<CRecipient> recipients{CreateRecipients(ParseOutputs(address_amounts), sffo_set)};
     const bool verbose{request.params[10].isNull() ? false : request.params[10].get_bool()};
+
+    // Handle spend_leaf for P2MR inputs
+    if (!request.params[11].isNull()) {
+        std::string leaf_str = request.params[11].get_str();
+        auto leaf_opt = P2MRScriptPubKeyMan::StringToSpendType(leaf_str);
+        if (!leaf_opt) {
+            throw JSONRPCError(RPC_INVALID_PARAMETER,
+                "Invalid spend_leaf. Must be 'schnorr', 'slh-dsa', or 'hybrid'");
+        }
+        P2MRScriptPubKeyMan* p2mr_spkm = pwallet->GetP2MRScriptPubKeyMan();
+        if (p2mr_spkm) {
+            p2mr_spkm->SetPreferredSpendType(*leaf_opt);
+        }
+    }
 
     return SendMoney(*pwallet, coin_control, recipients, mapValue, verbose);
 },

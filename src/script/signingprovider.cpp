@@ -94,6 +94,11 @@ std::vector<CPubKey> FlatSigningProvider::GetMuSig2ParticipantPubkeys(const CPub
     return participant_pubkeys;
 }
 
+bool FlatSigningProvider::GetP2MRSpendData(const uint256& merkle_root, P2MRSpendData& spenddata) const
+{
+    return LookupHelper(p2mr_spenddata, merkle_root, spenddata);
+}
+
 FlatSigningProvider& FlatSigningProvider::Merge(FlatSigningProvider&& b)
 {
     scripts.merge(b.scripts);
@@ -102,6 +107,9 @@ FlatSigningProvider& FlatSigningProvider::Merge(FlatSigningProvider&& b)
     origins.merge(b.origins);
     tr_trees.merge(b.tr_trees);
     aggregate_pubkeys.merge(b.aggregate_pubkeys);
+    for (auto& [root, data] : b.p2mr_spenddata) {
+        p2mr_spenddata[root].Merge(std::move(data));
+    }
     return *this;
 }
 
@@ -324,6 +332,16 @@ void TaprootSpendData::Merge(TaprootSpendData other)
     if (internal_key.IsNull() && !other.internal_key.IsNull()) {
         internal_key = other.internal_key;
     }
+    if (merkle_root.IsNull() && !other.merkle_root.IsNull()) {
+        merkle_root = other.merkle_root;
+    }
+    for (auto& [key, control_blocks] : other.scripts) {
+        scripts[key].merge(std::move(control_blocks));
+    }
+}
+
+void P2MRSpendData::Merge(P2MRSpendData other)
+{
     if (merkle_root.IsNull() && !other.merkle_root.IsNull()) {
         merkle_root = other.merkle_root;
     }

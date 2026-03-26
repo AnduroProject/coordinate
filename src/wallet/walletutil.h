@@ -76,7 +76,7 @@ enum WalletFlags : uint64_t {
     //! Indicates that the wallet needs an external signer
     WALLET_FLAG_EXTERNAL_SIGNER = (1ULL << 35),
 
-     WALLET_FLAG_P2TSH_ENABLED = (1ULL << 8),
+     WALLET_FLAG_P2MR_ENABLED = (1ULL << 8),
 };
 
 //! Get the path of the wallet directory.

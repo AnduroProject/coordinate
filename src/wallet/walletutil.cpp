@@ -73,9 +73,10 @@ WalletDescriptor GenerateWalletDescriptor(const CExtPubKey& master_key, const Ou
         desc_prefix = "tr(" + xpub + "/86h";
         break;
     }
+    case OutputType::P2MR:
     case OutputType::UNKNOWN: {
-        // We should never have a DescriptorScriptPubKeyMan for an UNKNOWN OutputType,
-        // so if we get to this point something is wrong
+        // P2MR uses its own P2MRScriptPubKeyMan, not DescriptorScriptPubKeyMan.
+        // UNKNOWN should never reach here.
         assert(false);
     }
     } // no default case, so the compiler can warn about missing cases

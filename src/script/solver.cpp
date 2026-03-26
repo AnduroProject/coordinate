@@ -28,7 +28,7 @@ std::string GetTxnOutputType(TxoutType t)
     case TxoutType::WITNESS_V0_KEYHASH: return "witness_v0_keyhash";
     case TxoutType::WITNESS_V0_SCRIPTHASH: return "witness_v0_scripthash";
     case TxoutType::WITNESS_V1_TAPROOT: return "witness_v1_taproot";
-    case TxoutType::WITNESS_V2_P2TSH: return "witness_v2_p2tsh";
+    case TxoutType::WITNESS_V2_P2MR: return "witness_v2_p2mr";
     case TxoutType::WITNESS_UNKNOWN: return "witness_unknown";
     } // no default case, so the compiler can warn about missing cases
     assert(false);
@@ -167,8 +167,8 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
             vSolutionsRet.push_back(std::move(witnessprogram));
             return TxoutType::WITNESS_V1_TAPROOT;
         }
-        if (witnessversion == 2 && witnessprogram.size() == WITNESS_V2_P2TSH_SIZE) {
-            // Only classify as P2TSH if this is a native witness output (not a redeem script)
+        if (witnessversion == 2 && witnessprogram.size() == WITNESS_V2_P2MR_SIZE) {
+            // Only classify as P2MR if this is a native witness output (not a redeem script)
             // Check if this looks like a redeem script (P2SH-wrapped)
             bool is_likely_redeem_script = false;
             
@@ -181,7 +181,7 @@ TxoutType Solver(const CScript& scriptPubKey, std::vector<std::vector<unsigned c
             
             if (!is_likely_redeem_script) {
                 vSolutionsRet.push_back(std::move(witnessprogram));
-                return TxoutType::WITNESS_V2_P2TSH;
+                return TxoutType::WITNESS_V2_P2MR;
             } else {
                 // Treat as WITNESS_UNKNOWN if it looks like a redeem script
                 vSolutionsRet.push_back(std::vector<unsigned char>{(unsigned char)witnessversion});

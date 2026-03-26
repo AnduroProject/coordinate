@@ -346,7 +346,7 @@ public:
         return obj;
     }
 
-    UniValue operator()(const WitnessV2P2TSH& id) const
+    UniValue operator()(const WitnessV2P2MR& id) const
     {
         UniValue obj(UniValue::VOBJ);
         obj.pushKV("isscript", true);

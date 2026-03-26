@@ -31,7 +31,7 @@
 #include <wallet/crypter.h>
 #include <wallet/db.h>
 #include <wallet/scriptpubkeyman.h>
-#include <wallet/p2tsh_scriptpubkeyman.h>
+#include <wallet/p2mr_scriptpubkeyman.h>
 #include <wallet/transaction.h>
 #include <wallet/types.h>
 #include <wallet/walletutil.h>
@@ -147,7 +147,7 @@ static constexpr size_t DUMMY_NESTED_P2WPKH_INPUT_SIZE = 92;
 class CCoinControl;
 
 //! Default for -addresstype
-constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::BECH32};
+constexpr OutputType DEFAULT_ADDRESS_TYPE{OutputType::P2MR};
 
 static constexpr uint64_t KNOWN_WALLET_FLAGS =
         WALLET_FLAG_AVOID_REUSE
@@ -156,8 +156,7 @@ static constexpr uint64_t KNOWN_WALLET_FLAGS =
     |   WALLET_FLAG_LAST_HARDENED_XPUB_CACHED
     |   WALLET_FLAG_DISABLE_PRIVATE_KEYS
     |   WALLET_FLAG_DESCRIPTORS
-    |   WALLET_FLAG_EXTERNAL_SIGNER
-    |   WALLET_FLAG_P2TSH_ENABLED;
+    |   WALLET_FLAG_EXTERNAL_SIGNER;
 
 static constexpr uint64_t MUTABLE_WALLET_FLAGS =
         WALLET_FLAG_AVOID_REUSE;
@@ -170,7 +169,6 @@ static const std::map<WalletFlags, std::string> WALLET_FLAG_TO_STRING{
     {WALLET_FLAG_DISABLE_PRIVATE_KEYS, "disable_private_keys"},
     {WALLET_FLAG_DESCRIPTORS, "descriptor_wallet"},
     {WALLET_FLAG_EXTERNAL_SIGNER, "external_signer"},
-    {WALLET_FLAG_P2TSH_ENABLED, "p2tsh_enabled"} 
 };
 
 static const std::map<std::string, WalletFlags> STRING_TO_WALLET_FLAG{
@@ -181,7 +179,6 @@ static const std::map<std::string, WalletFlags> STRING_TO_WALLET_FLAG{
     {WALLET_FLAG_TO_STRING.at(WALLET_FLAG_DISABLE_PRIVATE_KEYS), WALLET_FLAG_DISABLE_PRIVATE_KEYS},
     {WALLET_FLAG_TO_STRING.at(WALLET_FLAG_DESCRIPTORS), WALLET_FLAG_DESCRIPTORS},
     {WALLET_FLAG_TO_STRING.at(WALLET_FLAG_EXTERNAL_SIGNER), WALLET_FLAG_EXTERNAL_SIGNER},
-    {WALLET_FLAG_TO_STRING.at(WALLET_FLAG_P2TSH_ENABLED), WALLET_FLAG_P2TSH_ENABLED}
 };
 
 /** A wrapper to reserve an address from a wallet
@@ -459,11 +456,11 @@ private:
     // Update last block processed in memory only
     void SetLastBlockProcessedInMem(int block_height, uint256 block_hash) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 
-    //! P2TSH script pubkey manager
-    std::unique_ptr<P2TSHScriptPubKeyMan> m_p2tsh_spk_man GUARDED_BY(cs_wallet);
+    //! P2MR script pubkey manager
+    std::unique_ptr<P2MRScriptPubKeyMan> m_p2mr_spk_man GUARDED_BY(cs_wallet);
     
-    //! Default P2TSH signature type
-    P2TSHSignatureType m_default_p2tsh_type{P2TSHSignatureType::HYBRID};
+    //! Default P2MR signature type
+    P2MRSpendType m_preferred_p2mr_spend_type{P2MRSpendType::SCHNORR};
 
 public:
     /**
@@ -1082,31 +1079,26 @@ public:
     //! Returns nullopt when no descriptor has the key or if the wallet is locked.
     std::optional<CKey> GetKey(const CKeyID& keyid) const;
 
-        //! Check if P2TSH is enabled
-    bool IsP2TSHEnabled() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) { 
-        return (m_wallet_flags & WALLET_FLAG_P2TSH_ENABLED); 
+    //! Get or create the P2MR script pub key manager (lazy initialization).
+    //! Created on first call — no wallet flag needed.
+    P2MRScriptPubKeyMan* GetOrCreateP2MRScriptPubKeyMan() EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
+
+    //! Get P2MR manager (nullptr if not yet created)
+    P2MRScriptPubKeyMan* GetP2MRScriptPubKeyMan() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
+        return m_p2mr_spk_man.get();
     }
-    
-    //! Get P2TSH manager
-    P2TSHScriptPubKeyMan* GetP2TSHScriptPubKeyMan() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
-        return m_p2tsh_spk_man.get();
-    }
-    
-    //! Initialize P2TSH manager
-    void InitP2TSH(P2TSHSignatureType sig_type = P2TSHSignatureType::HYBRID) 
-        EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
-    
-    //! Set default P2TSH signature type
-    void SetDefaultP2TSHType(P2TSHSignatureType type) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
-        m_default_p2tsh_type = type;
-        if (m_p2tsh_spk_man) {
-            m_p2tsh_spk_man->SetDefaultSignatureType(type);
+
+    //! Set preferred P2MR spend leaf (default: schnorr)
+    void SetPreferredP2MRSpendType(P2MRSpendType type) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
+        m_preferred_p2mr_spend_type = type;
+        if (m_p2mr_spk_man) {
+            m_p2mr_spk_man->SetPreferredSpendType(type);
         }
     }
-    
-    //! Get default P2TSH signature type
-    P2TSHSignatureType GetDefaultP2TSHType() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
-        return m_default_p2tsh_type;
+
+    //! Get preferred P2MR spend leaf
+    P2MRSpendType GetPreferredP2MRSpendType() const EXCLUSIVE_LOCKS_REQUIRED(cs_wallet) {
+        return m_preferred_p2mr_spend_type;
     }
     void AddWatchOnly(const CScript& dest) EXCLUSIVE_LOCKS_REQUIRED(cs_wallet);
 };

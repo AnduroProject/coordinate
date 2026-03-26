@@ -393,6 +393,56 @@ static bool SignTaproot(const SigningProvider& provider, const BaseSignatureCrea
 }
 
 /**
+ * Sign a P2MR (BIP-360) output. Script-path only — no key-path spend.
+ *
+ * P2MR outputs are OP_2 <32-byte merkle_root>. The witness must contain:
+ *   [signatures...] [leaf_script] [control_block]
+ * where the control block is [0xc1] [merkle_path(32*m)] (no internal pubkey).
+ *
+ * This function tries all available leaf scripts and picks the one
+ * that produces the smallest witness.
+ */
+static bool SignP2MR(const SigningProvider& provider, const BaseSignatureCreator& creator,
+                     const uint256& merkle_root, SignatureData& sigdata,
+                     std::vector<valtype>& result)
+{
+    P2MRSpendData spenddata;
+
+    // Gather P2MR spend data from the signing provider
+    if (provider.GetP2MRSpendData(merkle_root, spenddata)) {
+        sigdata.p2mr_spenddata.Merge(spenddata);
+    }
+
+    // P2MR has no key-path spend — go straight to script path.
+    // Try each leaf script and pick the smallest successful witness.
+    std::vector<std::vector<unsigned char>> smallest_result_stack;
+
+    for (const auto& [key, control_blocks] : sigdata.p2mr_spenddata.scripts) {
+        const auto& [script, leaf_ver] = key;
+
+        std::vector<std::vector<unsigned char>> result_stack;
+        if (SignTaprootScript(provider, creator, sigdata, leaf_ver, script, result_stack)) {
+            // Append leaf script
+            result_stack.emplace_back(script.begin(), script.end());
+            // Append smallest control block
+            result_stack.push_back(*control_blocks.begin());
+
+            if (smallest_result_stack.empty() ||
+                GetSerializeSize(result_stack) < GetSerializeSize(smallest_result_stack)) {
+                smallest_result_stack = std::move(result_stack);
+            }
+        }
+    }
+
+    if (!smallest_result_stack.empty()) {
+        result = std::move(smallest_result_stack);
+        return true;
+    }
+
+    return false;
+}
+
+/**
  * Sign scriptPubKey using signature made with creator.
  * Signatures are returned in scriptSigRet (or returns false if scriptPubKey can't be signed),
  * unless whichTypeRet is TxoutType::SCRIPTHASH, in which case scriptSigRet is the redemption script.
@@ -412,8 +462,9 @@ static bool SignStep(const SigningProvider& provider, const BaseSignatureCreator
     case TxoutType::NONSTANDARD:
     case TxoutType::NULL_DATA:
     case TxoutType::WITNESS_UNKNOWN:
-    case TxoutType::WITNESS_V2_P2TSH:
         return false;
+    case TxoutType::WITNESS_V2_P2MR:
+        return SignP2MR(provider, creator, uint256(vSolutions[0]), sigdata, ret);
     case TxoutType::PUBKEY:
         if (!CreateSig(creator, sigdata, provider, sig, CPubKey(vSolutions[0]), scriptPubKey, sigversion)) return false;
         ret.push_back(std::move(sig));
@@ -554,6 +605,14 @@ bool ProduceSignature(const SigningProvider& provider, const BaseSignatureCreato
         sigdata.witness = true;
         result.clear();
     } else if (whichType == TxoutType::WITNESS_V1_TAPROOT && !P2SH) {
+        sigdata.witness = true;
+        if (solved) {
+            sigdata.scriptWitness.stack = std::move(result);
+        }
+        result.clear();
+    } else if (whichType == TxoutType::WITNESS_V2_P2MR && !P2SH) {
+        // P2MR (BIP-360): script-path only, witness contains
+        // [signatures...] [leaf_script] [control_block]
         sigdata.witness = true;
         if (solved) {
             sigdata.scriptWitness.stack = std::move(result);
